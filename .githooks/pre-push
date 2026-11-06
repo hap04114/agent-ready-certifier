@@ -3,4 +3,7 @@
 set -e
 command -v gitleaks >/dev/null 2>&1 || { echo "pre-push: gitleaks not installed (winget install Gitleaks.Gitleaks)"; exit 1; }
 gitleaks git --redact --no-banner .
-pnpm --silent scan:env-values
+
+# Prefer node.exe on Windows: a stray global npm "node" package can shadow it in sh.
+NODE=$(command -v node.exe 2>/dev/null || command -v node)
+"$NODE" node_modules/tsx/dist/cli.mjs packages/config/src/scan-env-values.ts
