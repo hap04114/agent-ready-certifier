@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Demo Store (good) — sandbox</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 520px; margin: 24px auto; padding: 0 16px; color: #1a1a1a; }
+    .banner { background: #fff4d6; border: 1px solid #e0c060; padding: 8px 12px; border-radius: 6px; font-size: 14px; }
+    label { display: block; margin: 12px 0 4px; font-weight: 600; }
+    select, input { width: 100%; padding: 8px; font-size: 16px; box-sizing: border-box; }
+    .total { font-size: 20px; margin: 16px 0 8px; }
+    #result { margin-top: 16px; padding: 12px; border-radius: 6px; display: none; }
+    #result.ok { display: block; background: #e6f6ea; }
+    #result.err { display: block; background: #fde8e8; }
+  </style>
+</head>
+<body>
+  <p class="banner">PayPal <strong>sandbox</strong> demo store. No real money. Products are placeholders until Channel3 data is connected.</p>
+  <h1>Demo Store</h1>
+
+  <label for="sku">Product</label>
+  <select id="sku">{{OPTIONS}}</select>
+
+  <label for="qty">Quantity</label>
+  <input id="qty" type="number" min="1" max="10" value="1">
+
+  <p class="total">Total: $<span id="total">{{INITIAL_AMOUNT}}</span></p>
+  <div id="paylater" data-pp-message data-pp-placement="product" data-pp-amount="{{INITIAL_AMOUNT}}"></div>
+  <div id="paypal-buttons"></div>
+  <div id="result" role="status"></div>
+
+  <script src="{{SDK_URL}}" data-namespace="paypal"></script>
+  <script src="/checkout.js"></script>
+</body>
+</html>

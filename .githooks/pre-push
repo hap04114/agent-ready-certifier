@@ -1,0 +1,6 @@
+#!/bin/sh
+# Block a push if gitleaks finds a secret in history or a .env value is tracked.
+set -e
+command -v gitleaks >/dev/null 2>&1 || { echo "pre-push: gitleaks not installed (winget install Gitleaks.Gitleaks)"; exit 1; }
+gitleaks git --redact --no-banner .
+pnpm --silent scan:env-values

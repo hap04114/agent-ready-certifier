@@ -1,0 +1,18 @@
+{
+  "name": "@certifier/demo-stores",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:good": "tsx watch src/good/main.ts",
+    "start:good": "tsx src/good/main.ts",
+    "verify:order": "tsx src/good/verify-order.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@certifier/config": "workspace:*",
+    "@certifier/paypal": "workspace:*",
+    "fastify": "^5.12.8",
+    "zod": "^4.6.7"
+  }
+}
