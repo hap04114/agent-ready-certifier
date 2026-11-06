@@ -8,5 +8,14 @@
     "start": "tsx src/main.ts",
     "typecheck": "tsc -p tsconfig.json"
   },
-  "dependencies": { "@certifier/config": "workspace:*", "fastify": "^5.12.8" }
+  "dependencies": {
+    "@certifier/config": "workspace:*",
+    "fastify": "^5.12.8",
+    "@certifier/db": "workspace:*",
+    "@certifier/paypal": "workspace:*",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.15"
+  }
 }

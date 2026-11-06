@@ -1,0 +1,17 @@
+{
+  "name": "@certifier/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "works:run": "tsx src/works-run.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@certifier/config": "workspace:*",
+    "@certifier/contract": "workspace:*",
+    "@certifier/db": "workspace:*",
+    "@certifier/paypal": "workspace:*",
+    "@certifier/truth": "workspace:*"
+  }
+}
