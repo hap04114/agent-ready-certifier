@@ -15,7 +15,10 @@
     "verify:order": "pnpm --filter @certifier/demo-stores verify:order",
     "scan:secrets": "gitleaks git --redact --no-banner . && gitleaks git --pre-commit --staged --redact --no-banner && pnpm --silent scan:env-values",
     "scan:env-values": "tsx packages/config/src/scan-env-values.ts",
-    "lint": "biome lint ."
+    "lint": "biome lint .",
+    "works:run": "pnpm --filter @certifier/worker works:run",
+    "db:up": "docker compose up -d db",
+    "store:keys": "tsx packages/contract/src/keys-cli.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.6",

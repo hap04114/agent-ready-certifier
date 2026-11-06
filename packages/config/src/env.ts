@@ -19,6 +19,8 @@ export const SENSITIVE_KEYS = [
   "PAYPAL_SANDBOX_BUYER_EMAIL",
   "PAYPAL_SANDBOX_BUYER_PASSWORD",
   "PAYPAL_WEBHOOK_ID",
+  "DEMO_STORE_GOOD_WEBHOOK_ID",
+  "DEMO_STORE_GOOD_STATUS_KEY",
   "PAYPAL_LOOKALIKE_CLIENT_ID",
   "PAYPAL_LOOKALIKE_CLIENT_SECRET",
   "DATABASE_URL",
@@ -75,6 +77,11 @@ export const envSchema = z.object({
     blankToUndefined,
     z.url({ error: "must be a valid URL" }).refine((u) => u.startsWith("https://"), { error: "must use https://" }).optional(),
   ),
+
+  // Demo store "good" (a separate merchant system)
+  DEMO_STORE_GOOD_URL: urlWithDefault("http://localhost:5001"),
+  DEMO_STORE_GOOD_WEBHOOK_ID: optionalString,
+  DEMO_STORE_GOOD_STATUS_KEY: optionalString,
 
   // Lookalike merchant (Milestone 6)
   PAYPAL_LOOKALIKE_CLIENT_ID: optionalString,

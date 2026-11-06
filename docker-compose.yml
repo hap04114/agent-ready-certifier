@@ -1,0 +1,19 @@
+# Local development database. Matches DATABASE_URL in .env.example.
+# Local-only credentials; Render provides its own DATABASE_URL in hosting.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: certifier
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - certifier-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d certifier"]
+      interval: 2s
+      retries: 30
+volumes:
+  certifier-db:

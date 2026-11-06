@@ -1,7 +1,7 @@
 import { ApiError, type Order } from "@paypal/paypal-server-sdk";
 import { ConfigError, SANDBOX_API_BASE, parseConfig, type Config } from "@certifier/config";
 import { describe, expect, it } from "vitest";
-import { PaypalCallError, SandboxPaypal, type OrdersApi, type PaypalAuditEntry } from "./client.js";
+import { PaypalCallError, SandboxPaypal, type OrdersApi, type PaymentsApi, type PaypalAuditEntry, type RestCall } from "./client.js";
 
 const SECRET = "client-secret-must-not-leak-9876";
 const config = parseConfig({
@@ -101,7 +101,9 @@ describe("SandboxPaypal", () => {
     const pp = new SandboxPaypal(config, { orders: fakeOrders().orders, audit: (e) => audit.push(e) });
     await pp.captureOrder("ORDER-1");
     expect(audit).toHaveLength(1);
-    expect(audit[0]).toMatchObject({ operation: "orders.capture", ok: true, orderId: "ORDER-1", orderStatus: "COMPLETED", captureIds: ["CAP-1"] });
+    expect(audit[0]).toMatchObject({ operation: "orders.capture", ok: true, resourceId: "ORDER-1", resourceStatus: "COMPLETED", captureIds: ["CAP-1"] });
+    expect(audit[0]!.requestId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(audit[0]!.correlationId).toMatch(/^[0-9a-f-]{36}$/);
   });
 
   it("turns SDK errors into safe errors without leaking the request or token", async () => {
@@ -125,5 +127,61 @@ describe("SandboxPaypal", () => {
     const pp = new SandboxPaypal(config, { orders: fakeOrders({ fail }).orders });
     const err = await pp.getOrder("ORDER-1").catch((e: unknown) => e);
     expect((err as Error).message).toBe("PayPal orders.get failed: Error");
+  });
+});
+
+describe("payments and notifications", () => {
+  function deps() {
+    const calls: Call[] = [];
+    const payments = {
+      refundCapturedPayment: async (args: Record<string, unknown>) => {
+        calls.push({ method: "refund", args });
+        return { result: { id: "REF-1", status: "COMPLETED" } };
+      },
+      getCapturedPayment: async (args: Record<string, unknown>) => {
+        calls.push({ method: "getCapture", args });
+        return { result: { id: "CAP-1", status: "REFUNDED" } };
+      },
+      getRefund: async (args: Record<string, unknown>) => {
+        calls.push({ method: "getRefund", args });
+        return { result: { id: "REF-1", status: "COMPLETED" } };
+      },
+    } as unknown as PaymentsApi;
+    const rest: RestCall = async (method, path, options) => {
+      calls.push({ method: `${method} ${path}`, args: options as Record<string, unknown> });
+      return { status: 200, headers: {}, json: { id: "WH-EVT-1", event_type: "PAYMENT.CAPTURE.COMPLETED", transmissions: [] } };
+    };
+    return { calls, payments, rest };
+  }
+
+  it("sends a PayPal-Request-Id on refunds and resends, none on reads", async () => {
+    const { calls, payments, rest } = deps();
+    const audit: PaypalAuditEntry[] = [];
+    const pp = new SandboxPaypal(config, { orders: fakeOrders().orders, payments, rest, audit: (e) => audit.push(e) });
+
+    const { refund, requestId } = await pp.refundCapture("CAP-1");
+    expect(refund.status).toBe("COMPLETED");
+    expect(calls[0]!.args.paypalRequestId).toBe(requestId);
+
+    await pp.getRefund("REF-1");
+    expect(calls[1]!.args.paypalRequestId).toBeUndefined();
+
+    const resend = await pp.resendWebhookEvent("WH-EVT-1", ["WH-STORE"]);
+    expect(calls[2]).toEqual({ method: "POST /v1/notifications/webhooks-events/WH-EVT-1/resend", args: { body: { webhook_ids: ["WH-STORE"] }, requestId: resend.requestId } });
+
+    await pp.getWebhookEvent("WH-EVT-1");
+    expect(calls[3]!.method).toBe("GET /v1/notifications/webhooks-events/WH-EVT-1");
+    expect(calls[3]!.args.requestId).toBeUndefined();
+
+    // Reads still get a correlation ID in our own audit log.
+    const reads = audit.filter((a) => a.operation === "payments.getRefund" || a.operation === "webhooks.getEvent");
+    expect(reads.every((a) => a.requestId === undefined && /^[0-9a-f-]{36}$/.test(a.correlationId))).toBe(true);
+  });
+
+  it("escapes IDs placed in REST paths", async () => {
+    const { calls, payments, rest } = deps();
+    const pp = new SandboxPaypal(config, { orders: fakeOrders().orders, payments, rest });
+    await pp.getWebhookEvent("../../v1/oauth2/token");
+    expect(calls[0]!.method).toBe("GET /v1/notifications/webhooks-events/..%2F..%2Fv1%2Foauth2%2Ftoken");
   });
 });
