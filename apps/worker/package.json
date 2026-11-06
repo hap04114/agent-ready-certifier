@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "works:run": "tsx src/works-run.ts",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "paypal:cross-read": "tsx src/cross-read.ts"
   },
   "dependencies": {
     "@certifier/config": "workspace:*",
