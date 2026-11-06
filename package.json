@@ -1,0 +1,27 @@
+{
+  "name": "agent-ready-certifier",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "pnpm -r typecheck",
+    "check:env": "tsx packages/config/src/cli.ts",
+    "dev:api": "pnpm --filter @certifier/api dev",
+    "dev:store-good": "pnpm --filter @certifier/demo-stores dev:good",
+    "verify:order": "pnpm --filter @certifier/demo-stores verify:order",
+    "scan:secrets": "gitleaks git --redact --no-banner . && gitleaks git --pre-commit --staged --redact --no-banner && pnpm --silent scan:env-values",
+    "scan:env-values": "tsx packages/config/src/scan-env-values.ts",
+    "lint": "biome lint ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.6.6",
+    "@types/node": "^22.15.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}

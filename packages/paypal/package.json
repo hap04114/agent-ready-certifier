@@ -1,0 +1,9 @@
+{
+  "name": "@certifier/paypal",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "typecheck": "tsc -p tsconfig.json" },
+  "dependencies": { "@certifier/config": "workspace:*", "@paypal/paypal-server-sdk": "^2.5.0" }
+}
