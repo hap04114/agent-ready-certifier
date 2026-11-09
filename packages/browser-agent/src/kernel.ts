@@ -1,0 +1,70 @@
+/**
+ * A Kernel cloud browser with a recording, connected to Playwright over CDP.
+ * The recording (MP4) is evidence: it is downloaded to recordings/ (gitignored) and its
+ * Kernel replay ID and view URL are returned for the report.
+ */
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import Kernel from "@onkernel/sdk";
+import { type Browser, type BrowserContext, chromium } from "playwright-core";
+
+export interface Recording {
+  replayId: string;
+  viewUrl?: string;
+  file?: string;
+}
+
+export interface KernelSession {
+  sessionId: string;
+  liveViewUrl?: string;
+  browser: Browser;
+  context: BrowserContext;
+  /** Stop the recording, save it, and delete the cloud browser. Always call this. */
+  close(saveDir?: string): Promise<Recording | undefined>;
+}
+
+export async function openKernelSession(apiKey: string, opts: { timeoutSeconds?: number; maxRecordingSeconds?: number } = {}): Promise<KernelSession> {
+  const kernel = new Kernel({ apiKey });
+  const kb = await kernel.browsers.create({ stealth: false, timeout_seconds: opts.timeoutSeconds ?? 900 });
+  let replayId: string | undefined;
+  try {
+    replayId = (await kernel.browsers.replays.start(kb.session_id, { max_duration_in_seconds: opts.maxRecordingSeconds ?? 900 })).replay_id;
+  } catch {
+    // Recording is best effort; the journey still runs and the report says it is missing.
+    replayId = undefined;
+  }
+  const browser = await chromium.connectOverCDP(kb.cdp_ws_url);
+  const context = browser.contexts()[0] ?? (await browser.newContext());
+
+  return {
+    sessionId: kb.session_id,
+    liveViewUrl: kb.browser_live_view_url,
+    browser,
+    context,
+    async close(saveDir) {
+      let recording: Recording | undefined;
+      try {
+        if (replayId) {
+          await kernel.browsers.replays.stop(replayId, { id_or_name: kb.session_id });
+          const list = await kernel.browsers.replays.list(kb.session_id);
+          const meta = list.find((r) => r.replay_id === replayId);
+          recording = { replayId, viewUrl: meta?.replay_view_url };
+          if (saveDir) {
+            const res = await kernel.browsers.replays.download(replayId, { id_or_name: kb.session_id });
+            if (res.ok) {
+              await mkdir(saveDir, { recursive: true });
+              const file = join(saveDir, `${replayId}.mp4`);
+              await writeFile(file, Buffer.from(await res.arrayBuffer()));
+              recording.file = file;
+            }
+          }
+        }
+      } catch {
+        // Keep whatever recording info we have.
+      }
+      await browser.close().catch(() => {});
+      await kernel.browsers.deleteByID(kb.session_id).catch(() => {});
+      return recording;
+    },
+  };
+}

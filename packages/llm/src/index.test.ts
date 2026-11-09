@@ -1,0 +1,47 @@
+import { describe, expect, it } from "vitest";
+import { z } from "zod";
+import { LlmError, askJson, extractJson } from "./index.js";
+
+const schema = z.object({ action: z.enum(["click", "done"]), element: z.number().int().optional() });
+const groq = { provider: "groq" as const, model: "m", apiKey: "k" };
+
+function fakeFetch(replies: string[], seen: { url: string; body: unknown }[] = []): typeof fetch {
+  return (async (url: string, init: RequestInit) => {
+    seen.push({ url, body: JSON.parse(String(init.body)) });
+    const content = replies.shift() ?? "{}";
+    const payload = url.includes("groq")
+      ? { choices: [{ message: { content } }] }
+      : { candidates: [{ content: { parts: [{ text: content }] } }] };
+    return new Response(JSON.stringify(payload), { status: 200 });
+  }) as unknown as typeof fetch;
+}
+
+describe("askJson", () => {
+  it("returns schema-valid JSON", async () => {
+    expect(await askJson(groq, [{ role: "user", content: "go" }], schema, fakeFetch(['{"action":"click","element":3}']))).toEqual({ action: "click", element: 3 });
+  });
+
+  it("retries once with the validation error, then succeeds", async () => {
+    const seen: { url: string; body: unknown }[] = [];
+    const out = await askJson(groq, [{ role: "user", content: "go" }], schema, fakeFetch(['{"action":"jump"}', '{"action":"done"}'], seen));
+    expect(out).toEqual({ action: "done" });
+    const second = seen[1]!.body as { messages: { content: string }[] };
+    expect(second.messages.at(-1)!.content).toMatch(/did not match the required shape: action/);
+  });
+
+  it("throws after two invalid replies (free text never flows on)", async () => {
+    await expect(askJson(groq, [{ role: "user", content: "go" }], schema, fakeFetch(["sure, I will click", "ok"]))).rejects.toThrow(LlmError);
+  });
+
+  it("speaks Gemini's format, with the system prompt as systemInstruction", async () => {
+    const seen: { url: string; body: unknown }[] = [];
+    const gem = { provider: "gemini" as const, model: "gemini-x", apiKey: "k" };
+    await askJson(gem, [{ role: "system", content: "rules" }, { role: "user", content: "go" }], schema, fakeFetch(['{"action":"done"}'], seen));
+    expect(seen[0]!.url).toContain("models/gemini-x:generateContent");
+    expect(seen[0]!.body).toMatchObject({ systemInstruction: { parts: [{ text: "rules" }] }, contents: [{ role: "user", parts: [{ text: "go" }] }] });
+  });
+
+  it("extracts JSON from a fenced block", () => {
+    expect(extractJson('```json\n{"a":1}\n```')).toEqual({ a: 1 });
+  });
+});

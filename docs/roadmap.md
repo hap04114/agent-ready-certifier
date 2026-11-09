@@ -8,7 +8,7 @@ are slotted where they depend on earlier work. Status is updated as work lands, 
 | Milestone | Status |
 | --- | --- |
 | 1. Foundation | Done — sandbox order `8TA22286319557322` captured; PayPal and store agree |
-| 2. Truth checker + Works | W1–W5 pass live (run `695190da`); **W6 inconclusive**: PayPal accepted the resend request but did not deliver it within 9 min |
+| 2. Truth checker + Works | Done — W1–W6 all pass live on demo-store-good (run `b1a5a852`). W6 evidence: verified replay of the store's PayPal-signed delivery (PayPal's resend was refused; its fail-ack retry had not arrived by the end of the run) |
 | 3–9 | Not started |
 
 ## Additions (requested Nov 9), by where they land

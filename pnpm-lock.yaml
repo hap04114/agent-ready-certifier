@@ -92,6 +92,24 @@ importers:
         specifier: workspace:*
         version: link:../../packages/truth
 
+  packages/browser-agent:
+    dependencies:
+      '@certifier/config':
+        specifier: workspace:^
+        version: link:../config
+      '@certifier/llm':
+        specifier: workspace:*
+        version: link:../llm
+      '@onkernel/sdk':
+        specifier: ^0.144.0
+        version: 0.144.0
+      playwright-core:
+        specifier: ^1.65.0
+        version: 1.65.0
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
+
   packages/config:
     dependencies:
       dotenv:
@@ -122,6 +140,12 @@ importers:
       '@types/pg':
         specifier: ^8.23.1
         version: 8.23.1
+
+  packages/llm:
+    dependencies:
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
 
   packages/paypal:
     dependencies:
@@ -445,6 +469,9 @@ packages:
   '@noble/hashes@1.8.0':
     resolution: {integrity: sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==}
     engines: {node: ^14.21.3 || >=16}
+
+  '@onkernel/sdk@0.144.0':
+    resolution: {integrity: sha512-J7t5SePd6pfYaIFWi4yP8q9JZlzs+VEfJ1eiTbFQ3VHm1ZIN2mhMVNHpjJCDyWX3tTGIUR9Aznu9kaxKY2MH2Q==}
 
   '@oxc-project/types@0.156.0':
     resolution: {integrity: sha512-1Duyg48TdJNdyhEB8Xn1L36bT9Pv6GUtlKjHxOys8xkaF/rQq3XJE+bAurSK/AgIz5mGFsb77cn9Pb20+WCScw==}
@@ -1144,6 +1171,11 @@ packages:
     resolution: {integrity: sha512-V9kOzaItwDgqlryhXysQsAXUEKi5O7kqWUaP3dXI7MLvkPqWWMb4wVb1QAtmEDCKI+XIAINsZoNKMFF7sZb1eg==}
     engines: {node: '>=16.0.0'}
 
+  playwright-core@1.65.0:
+    resolution: {integrity: sha512-vNSKgH6YqtN7cdT/L334zo0a+YwkrpicyrHJlWWPIm/Q+Nn2SWInil01oT0mbu96U4GgoRtCYQD9CzJQgju+lA==}
+    engines: {node: '>=20'}
+    hasBin: true
+
   postcss@8.5.32:
     resolution: {integrity: sha512-LJlKCCAUFKOuZxipUdYw1NzIITEsPcgyOG9LkvRJvuKj/bRzbuRY0ARXvL0pWGpsZvn8jku+LMep2eU0seHp8g==}
     engines: {node: ^10 || ^12 || >=14}
@@ -1637,6 +1669,8 @@ snapshots:
       '@jridgewell/sourcemap-codec': 1.6.0
 
   '@noble/hashes@1.8.0': {}
+
+  '@onkernel/sdk@0.144.0': {}
 
   '@oxc-project/types@0.156.0': {}
 
@@ -2296,6 +2330,8 @@ snapshots:
       pvtsutils: 1.3.6
       pvutils: 1.2.0
       tslib: 2.9.1
+
+  playwright-core@1.65.0: {}
 
   postcss@8.5.32:
     dependencies:
