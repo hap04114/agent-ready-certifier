@@ -7,6 +7,13 @@
  *  3. Status endpoint   — GET  /.well-known/certifier/orders/{paypalOrderId}
  *  4. Test hook (opt.)  — POST /.well-known/certifier/test-hook  { paypalOrderId, mock }
  *                         arms a sandbox mock code for that order's next capture (W2/W3).
+ *  Extended contract (optional, enables full duplicate testing for W6):
+ *  4b. Delivery log     — GET /.well-known/certifier/events/{eventId}/deliveries?since=<run start>
+ *                         the exact signed deliveries the store accepted for an event during the
+ *                         run (kept briefly, sandbox only), so the certifier can verify PayPal's
+ *                         signature and replay one byte for byte.
+ *  4c. Store webhook ID — shared as configuration so the certifier can verify the store's copy.
+ *                         Never shown in reports.
  *  5. Read-only sandbox credentials (optional) for deeper PayPal-side checks.
  *
  * Endpoints 3 and 4 require `Authorization: Bearer <status key>`. The status key is private,
@@ -18,6 +25,29 @@ import { z } from "zod";
 export const CONTRACT_BASE = "/.well-known/certifier";
 export const statusPath = (paypalOrderId: string) => `${CONTRACT_BASE}/orders/${encodeURIComponent(paypalOrderId)}`;
 export const TEST_HOOK_PATH = `${CONTRACT_BASE}/test-hook`;
+/**
+ * Delivery log for one event, limited to deliveries received at or after `since` (the run's
+ * start), so a run only ever sees its own deliveries.
+ */
+export const deliveriesPath = (eventId: string, since: Date) =>
+  `${CONTRACT_BASE}/events/${encodeURIComponent(eventId)}/deliveries?since=${encodeURIComponent(since.toISOString())}`;
+
+/** How long a store keeps logged deliveries. Short on purpose: they exist only for a run. */
+export const DELIVERY_RETENTION_HOURS = 24;
+
+/** PayPal transmission headers kept with each accepted delivery (all public, none secret). */
+export const DELIVERY_HEADERS = ["paypal-transmission-id", "paypal-transmission-time", "paypal-transmission-sig", "paypal-cert-url", "paypal-auth-algo"] as const;
+
+export const storeDelivery = z.object({
+  transmissionId: z.string(),
+  headers: z.record(z.string(), z.string()),
+  /** The raw request body exactly as received, base64-encoded. */
+  bodyBase64: z.string(),
+  receivedAt: z.string(),
+  responseStatus: z.number().int().nullable(),
+});
+export const storeDeliveries = z.object({ eventId: z.string(), deliveries: z.array(storeDelivery) });
+export type StoreDelivery = z.infer<typeof storeDelivery>;
 
 /** Mock codes the test hook may arm. Anything else is refused. */
 export const TEST_HOOK_CODES = ["INSTRUMENT_DECLINED", "INTERNAL_SERVER_ERROR"] as const;

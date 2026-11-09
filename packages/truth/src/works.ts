@@ -181,43 +181,68 @@ export function judgeW5(input: {
 }
 
 // ---------------------------------------------------------------------------------------------
-// W6 Duplicate delivery: after PayPal re-sends the same event, the store processed it once.
+// W6 Duplicate delivery: a duplicate of a genuine PayPal-signed event, delivered to the store,
+// is processed exactly once.
+//
+// Two kinds of duplicate, never confused:
+// - "certifier-replay": the certifier re-sent the store's own PayPal-signed delivery, byte for
+//   byte, after verifying PayPal's signature on it for the store's webhook ID.
+// - "paypal": the store received a delivery with a NEW transmission ID whose PayPal signature the
+//   certifier verified. A replay can only reuse the original transmission ID, so a new, validly
+//   signed transmission can only have come from PayPal (a retry or a resend).
 // ---------------------------------------------------------------------------------------------
+export interface DuplicateDelivery {
+  eventId: string;
+  source: "certifier-replay" | "paypal";
+  /** The certifier verified PayPal's signature on these exact bytes for the store's webhook ID. */
+  signatureVerified: boolean;
+  transmissionId?: string;
+}
+
+const duplicateNote = (d: DuplicateDelivery) =>
+  d.source === "paypal"
+    ? `duplicate delivered by PayPal${d.transmissionId ? ` (transmission ${d.transmissionId})` : ""}`
+    : "duplicate of PayPal-signed event, replayed by certifier";
+
 export function judgeW6(input: {
-  eventId?: string;
-  resendRequested: boolean;
-  /** Why the duplicate could not be requested (e.g. PayPal refused the resend). */
-  resendError?: string;
-  /** Store record before and after the duplicate delivery. */
+  duplicates: DuplicateDelivery[];
+  /** Store record for the order before the first duplicate, and at judging time. */
   before?: StoreRecordSnap;
   after?: StoreRecordSnap;
-  delivery?: DeliverySnap;
-  certifierWebhookUrl?: string;
+  /** Why a duplicate could not be produced (e.g. PayPal refused the resend, replay failed). */
+  notes?: string[];
 }): Verdict {
-  const { eventId, before, after } = input;
-  if (!eventId || !input.resendRequested) {
-    return verdict("W6", "inconclusive", input.resendError ? "PayPal did not re-send the event, so duplicate handling was not tested." : "No duplicate delivery was requested.", input.resendError ? [input.resendError] : [], []);
+  const { before, after } = input;
+  const verified = input.duplicates.filter((d) => d.signatureVerified);
+  if (verified.length === 0) {
+    return verdict("W6", "inconclusive", "No verified duplicate of a PayPal-signed event reached the store.", input.notes ?? [], []);
   }
-  if (!before || !after) return verdict("W6", "inconclusive", "Store record unavailable.", [], []);
-  const evidence: EvidenceRef[] = [{ kind: "webhook_event", id: eventId, strength: "paypal-api", note: "re-sent by PayPal" }, storeRef(after)];
+  if (!before || !after) return verdict("W6", "inconclusive", "Store record unavailable.", input.notes ?? [], []);
 
-  const rec = after.webhookEvents.find((e) => e.eventId === eventId);
-  const storeTx = (input.delivery?.transmissions ?? []).filter((t) => !input.certifierWebhookUrl || t.webhookUrl !== input.certifierWebhookUrl);
-  const paypalDeliveredTwice = storeTx.filter((t) => is2xx(t.httpStatus)).length >= 2;
-  const storeSawTwice = (rec?.deliveries ?? 0) >= 2;
-  if (!paypalDeliveredTwice && !storeSawTwice) {
-    return verdict("W6", "inconclusive", "The duplicate delivery was not confirmed within the wait.", [], evidence);
-  }
+  const evidence: EvidenceRef[] = verified.map((d) => ({ kind: "webhook_delivery", id: d.eventId, strength: "paypal-signed", note: duplicateNote(d) }));
+  evidence.push(storeRef(after));
 
   const reasons: string[] = [];
-  if (!rec) reasons.push("Store does not list the event at all.");
-  if (rec && rec.processed !== 1) reasons.push(`Store processed the event ${rec.processed} times.`);
+  for (const eventId of new Set(verified.map((d) => d.eventId))) {
+    const rec = after.webhookEvents.find((e) => e.eventId === eventId);
+    if (!rec) reasons.push(`Store does not list event ${eventId}.`);
+    else if (rec.processed !== 1) reasons.push(`Store processed event ${eventId} ${rec.processed} times.`);
+  }
   if (after.fulfilmentCount !== before.fulfilmentCount) {
     reasons.push(`Fulfilments changed from ${before.fulfilmentCount} to ${after.fulfilmentCount} after a duplicate event.`);
   }
-  if (after.status !== before.status) reasons.push(`Store status changed from "${before.status}" to "${after.status}".`);
+  if (after.refundIds.length > 1) reasons.push(`Store recorded ${after.refundIds.length} refunds for one refund.`);
 
+  const byPaypal = verified.some((d) => d.source === "paypal");
   return reasons.length === 0
-    ? verdict("W6", "pass", "Duplicate event delivered and ignored: processed exactly once.", [], evidence)
+    ? verdict(
+        "W6",
+        "pass",
+        byPaypal
+          ? "A duplicate delivered by PayPal was processed exactly once."
+          : "A duplicate of a PayPal-signed event (replayed by the certifier) was processed exactly once.",
+        [],
+        evidence,
+      )
     : verdict("W6", "fail", "Store re-processed a duplicate webhook event.", reasons, evidence);
 }

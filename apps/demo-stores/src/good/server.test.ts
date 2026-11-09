@@ -1,5 +1,5 @@
 import { SANDBOX_API_BASE, parseConfig } from "@certifier/config";
-import { TEST_HOOK_PATH, statusPath } from "@certifier/contract";
+import { TEST_HOOK_PATH, deliveriesPath, statusPath } from "@certifier/contract";
 import type { Db } from "@certifier/db";
 import { createTestDb } from "@certifier/db/testing";
 import { type CallOptions, type CreateOrderInput, type Order, PaypalCallError } from "@certifier/paypal";
@@ -19,7 +19,7 @@ beforeAll(async () => {
 });
 afterAll(() => db.close());
 beforeEach(async () => {
-  await db.exec(`TRUNCATE ${SCHEMA}.orders, ${SCHEMA}.webhook_events`);
+  await db.exec(`TRUNCATE ${SCHEMA}.orders, ${SCHEMA}.webhook_events, ${SCHEMA}.webhook_deliveries, ${SCHEMA}.fail_ack`);
 });
 
 let orderSeq = 0;
@@ -70,8 +70,13 @@ async function newOrder(app: ReturnType<typeof store>["app"], sku = "MUG-01", qu
 }
 const status = async (app: ReturnType<typeof store>["app"], id: string) => (await app.inject({ method: "GET", url: statusPath(id), headers: auth })).json();
 
-function webhook(app: ReturnType<typeof store>["app"], event: Record<string, unknown>) {
-  return app.inject({ method: "POST", url: "/webhooks/paypal", headers: { "content-type": "application/json" }, payload: JSON.stringify(event) });
+function webhook(app: ReturnType<typeof store>["app"], event: Record<string, unknown>, transmissionId = "TX-1") {
+  return app.inject({
+    method: "POST",
+    url: "/webhooks/paypal",
+    headers: { "content-type": "application/json", "paypal-transmission-id": transmissionId, "paypal-transmission-sig": "c2ln", "x-other": "dropped" },
+    payload: JSON.stringify(event),
+  });
 }
 const captureEvent = (eventId: string, orderId: string, value = "24.00") => ({
   id: eventId,
@@ -267,6 +272,75 @@ describe("webhooks", () => {
   it("finds the capture ID in a refund's up link", () => {
     expect(captureIdFromRefundLinks([{ rel: "up", href: "https://api.sandbox.paypal.com/v2/payments/captures/3C679366HH908993F" }])).toBe("3C679366HH908993F");
     expect(captureIdFromRefundLinks([{ rel: "self", href: "https://x/v2/payments/refunds/R1" }])).toBeUndefined();
+  });
+});
+
+describe("delivery log and fail-ack (W6)", () => {
+  const T0 = new Date(Date.now() - 60_000);
+
+  it("requires `since` and returns only deliveries from the current run", async () => {
+    const { app } = store();
+    const id = await newOrder(app);
+    await webhook(app, captureEvent("WH-S", id), "TX-S");
+    expect((await app.inject({ method: "GET", url: "/.well-known/certifier/events/WH-S/deliveries", headers: auth })).statusCode).toBe(400);
+    expect((await app.inject({ method: "GET", url: deliveriesPath("WH-S", new Date(Date.now() + 60_000)), headers: auth })).json().deliveries).toEqual([]);
+    expect((await app.inject({ method: "GET", url: deliveriesPath("WH-S", T0), headers: auth })).json().deliveries).toHaveLength(1);
+  });
+
+  it("drops deliveries older than the retention window", async () => {
+    const { app } = store();
+    const id = await newOrder(app);
+    await webhook(app, captureEvent("WH-OLD", id), "TX-OLD");
+    await db.query(`UPDATE ${SCHEMA}.webhook_deliveries SET received_at = now() - interval '25 hours' WHERE event_id = 'WH-OLD'`);
+    await webhook(app, captureEvent("WH-NEW", id), "TX-NEW");
+    expect((await db.query(`SELECT event_id FROM ${SCHEMA}.webhook_deliveries ORDER BY id`)).rows).toEqual([{ event_id: "WH-NEW" }]);
+  });
+
+  it("keeps each accepted delivery byte for byte, behind the status key", async () => {
+    const { app } = store();
+    const id = await newOrder(app);
+    const event = captureEvent("WH-L", id);
+    await webhook(app, event, "TX-A");
+    expect((await app.inject({ method: "GET", url: deliveriesPath("WH-L", T0) })).statusCode).toBe(401);
+    const res = (await app.inject({ method: "GET", url: deliveriesPath("WH-L", T0), headers: auth })).json();
+    expect(res.deliveries).toHaveLength(1);
+    const d = res.deliveries[0];
+    expect(Buffer.from(d.bodyBase64, "base64").toString()).toBe(JSON.stringify(event));
+    expect(d.headers).toEqual({ "paypal-transmission-id": "TX-A", "paypal-transmission-sig": "c2ln" });
+    expect(d).toMatchObject({ transmissionId: "TX-A", responseStatus: 200 });
+  });
+
+  it("does not log deliveries whose signature fails", async () => {
+    const { app } = store({ signatureValid: false });
+    const id = await newOrder(app);
+    await webhook(app, captureEvent("WH-X", id));
+    expect((await app.inject({ method: "GET", url: deliveriesPath("WH-X", T0), headers: auth })).json().deliveries).toEqual([]);
+  });
+
+  it("fail-ack processes the refund, answers 500 once, then treats PayPal's retry as a duplicate", async () => {
+    const { app } = store();
+    const id = await newOrder(app);
+    await app.inject({ method: "POST", url: `/api/orders/${id}/capture` });
+    const arm = await app.inject({ method: "POST", url: "/__demo/fail-ack", headers: auth, payload: { paypalOrderId: id, eventType: "PAYMENT.CAPTURE.REFUNDED" } });
+    expect(arm.statusCode).toBe(204);
+
+    const first = await webhook(app, refundEvent("WH-RF", `CAP-${id}`, "REF-1"), "TX-1");
+    expect(first.statusCode).toBe(500);
+    expect((await status(app, id)).status).toBe("refunded");
+
+    const retry = await webhook(app, refundEvent("WH-RF", `CAP-${id}`, "REF-1"), "TX-2");
+    expect(retry.json()).toEqual({ ok: true, outcome: "duplicate" });
+    const s = await status(app, id);
+    expect(s.refundIds).toEqual(["REF-1"]);
+    expect(s.webhookEvents.find((e: { eventId: string }) => e.eventId === "WH-RF")).toMatchObject({ deliveries: 2, processed: 1 });
+    const log = (await app.inject({ method: "GET", url: deliveriesPath("WH-RF", T0), headers: auth })).json().deliveries;
+    expect(log.map((x: { transmissionId: string; responseStatus: number }) => [x.transmissionId, x.responseStatus])).toEqual([["TX-1", 500], ["TX-2", 200]]);
+  });
+
+  it("fail-ack hook needs the status key and a known order", async () => {
+    const { app } = store();
+    expect((await app.inject({ method: "POST", url: "/__demo/fail-ack", payload: { paypalOrderId: "ORDER1", eventType: "PAYMENT.CAPTURE.REFUNDED" } })).statusCode).toBe(401);
+    expect((await app.inject({ method: "POST", url: "/__demo/fail-ack", headers: auth, payload: { paypalOrderId: "UNKNOWN1", eventType: "PAYMENT.CAPTURE.REFUNDED" } })).statusCode).toBe(404);
   });
 });
 

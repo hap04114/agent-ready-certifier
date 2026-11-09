@@ -17,7 +17,7 @@ import { fileURLToPath } from "node:url";
 import Fastify, { type FastifyReply } from "fastify";
 import { z } from "zod";
 import type { Config } from "@certifier/config";
-import { CONTRACT_BASE, TEST_HOOK_PATH, bearerMatches, testHookRequest } from "@certifier/contract";
+import { CONTRACT_BASE, DELIVERY_HEADERS, TEST_HOOK_PATH, bearerMatches, testHookRequest } from "@certifier/contract";
 import type { Db } from "@certifier/db";
 import { PaypalCallError, type SandboxPaypal, type VerifyResult, captureIdsOf, verifyWebhook, webhookHeadersFrom } from "@certifier/paypal";
 import { CATALOG, CURRENCY, MAX_QUANTITY, centsToValue, findProduct, valueToCents } from "./catalog.js";
@@ -242,6 +242,14 @@ export function buildGoodStore(deps: StoreDeps) {
       } catch {
         return reply.code(400).send({ error: "invalid_event" });
       }
+      // Keep the exact signed delivery (store contract item 4b).
+      const keep: Record<string, string> = {};
+      for (const h of DELIVERY_HEADERS) {
+        const v = req.headers[h];
+        if (typeof v === "string") keep[h] = v;
+      }
+      const deliveryId = await repo.recordDelivery({ eventId: parsed.id, transmissionId: keep["paypal-transmission-id"] ?? "unknown", headers: keep, rawBody: raw });
+
       const r = parsed.resource;
       const relatedOrder = r.supplementary_data?.related_ids?.order_id;
       const outcome = await repo.handleDelivery(
@@ -264,8 +272,13 @@ export function buildGoodStore(deps: StoreDeps) {
           }
         },
       );
-      req.log.info({ eventId: parsed.id, type: parsed.event_type, outcome }, "webhook");
-      return reply.code(200).send({ ok: true, outcome });
+      // Demo-only fail-ack: processed above, but answer with an error once so PayPal retries.
+      const orderId = await repo.eventOrder(parsed.id);
+      const failAck = outcome === "processed" && orderId !== undefined && (await repo.consumeFailAck(orderId, parsed.event_type));
+      const status = failAck ? 500 : 200;
+      await repo.setDeliveryResponse(deliveryId, status);
+      req.log.info({ eventId: parsed.id, type: parsed.event_type, outcome, failAck }, "webhook");
+      return failAck ? reply.code(500).send({ error: "fail_ack_test_hook" }) : reply.code(200).send({ ok: true, outcome });
     });
   });
 
@@ -279,6 +292,32 @@ export function buildGoodStore(deps: StoreDeps) {
     if (!params.success) return reply.code(400).send({ error: "invalid_order_id" });
     const status = await repo.status(params.data.id);
     return status ? reply.send(status) : reply.code(404).send({ error: "unknown_order" });
+  });
+
+  app.get(`${CONTRACT_BASE}/events/:eventId/deliveries`, async (req, reply) => {
+    if (!deps.statusKey) return reply.code(503).send({ error: "status_key_not_configured" });
+    if (!authorized(req.headers.authorization)) return reply.code(401).send({ error: "unauthorized" });
+    // Sandbox-only by construction: config refuses to boot unless PAYPAL_ENV=sandbox.
+    if (deps.config.PAYPAL_ENV !== "sandbox") return reply.code(403).send({ error: "sandbox_only" });
+    const params = z.object({ eventId: z.string().min(1).max(100) }).safeParse(req.params);
+    if (!params.success) return reply.code(400).send({ error: "invalid_event_id" });
+    // `since` is required: a run only sees deliveries received after it started.
+    const q = z.object({ since: z.iso.datetime() }).safeParse(req.query);
+    if (!q.success) return reply.code(400).send({ error: "since_required" });
+    return reply.send({ eventId: params.data.eventId, deliveries: await repo.deliveries(params.data.eventId, new Date(q.data.since)) });
+  });
+
+  /** DEMO STORE ONLY (not part of the store contract): arm a one-time fail-ack. */
+  app.post("/__demo/fail-ack", async (req, reply) => {
+    if (!deps.statusKey) return reply.code(503).send({ error: "status_key_not_configured" });
+    if (!authorized(req.headers.authorization)) return reply.code(401).send({ error: "unauthorized" });
+    const parsed = z
+      .object({ paypalOrderId: z.string().regex(ORDER_ID), eventType: z.enum(["PAYMENT.CAPTURE.COMPLETED", "PAYMENT.CAPTURE.REFUNDED"]) })
+      .safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: "invalid_request" });
+    if (!(await repo.getOrder(parsed.data.paypalOrderId))) return reply.code(404).send({ error: "unknown_order" });
+    await repo.armFailAck(parsed.data.paypalOrderId, parsed.data.eventType);
+    return reply.code(204).send();
   });
 
   app.post(TEST_HOOK_PATH, async (req, reply) => {

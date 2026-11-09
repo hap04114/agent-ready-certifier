@@ -1,0 +1,69 @@
+# Render blueprint for Agent-Ready Certifier (sandbox only).
+# Secrets use `sync: false`: Render asks for them in the dashboard; they are never in this file.
+databases:
+  - name: certifier-db
+    plan: free
+    databaseName: certifier
+    user: certifier
+
+services:
+  # Certifier API: boot guard, /health, and the PayPal webhook listener (public HTTPS).
+  - type: web
+    name: certifier-api
+    runtime: node
+    plan: free
+    buildCommand: corepack enable && pnpm install --frozen-lockfile
+    startCommand: pnpm --filter @certifier/api start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PAYPAL_ENV
+        value: sandbox
+      - key: PAYPAL_API_BASE
+        value: https://api-m.sandbox.paypal.com
+      - key: DATABASE_URL
+        fromDatabase:
+          name: certifier-db
+          property: connectionString
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_WEBHOOK_ID
+        sync: false
+      - key: API_BASE_URL
+        sync: false
+      - key: WEBHOOK_PUBLIC_URL
+        sync: false
+
+  # Demo target: the correct, current, secure store. It is a separate merchant system with
+  # its own schema in the same database.
+  - type: web
+    name: demo-store-good
+    runtime: node
+    plan: free
+    buildCommand: corepack enable && pnpm install --frozen-lockfile
+    startCommand: pnpm --filter @certifier/demo-stores start:good
+    healthCheckPath: /api/catalog
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PAYPAL_ENV
+        value: sandbox
+      - key: PAYPAL_API_BASE
+        value: https://api-m.sandbox.paypal.com
+      - key: DATABASE_URL
+        fromDatabase:
+          name: certifier-db
+          property: connectionString
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: DEMO_STORE_GOOD_URL
+        sync: false
+      - key: DEMO_STORE_GOOD_WEBHOOK_ID
+        sync: false
+      - key: DEMO_STORE_GOOD_STATUS_KEY
+        sync: false

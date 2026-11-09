@@ -203,35 +203,51 @@ describe("W5 webhook delivery", () => {
 });
 
 describe("W6 duplicate delivery", () => {
-  const before = store({ webhookEvents: [{ eventId: "WH-1", type: "PAYMENT.CAPTURE.COMPLETED", deliveries: 1, processed: 1 }] });
-  const afterOk = store({ webhookEvents: [{ eventId: "WH-1", type: "PAYMENT.CAPTURE.COMPLETED", deliveries: 2, processed: 1 }] });
+  const ev = (deliveries: number, processed: number, eventId = "WH-1") => ({ eventId, type: "PAYMENT.CAPTURE.COMPLETED", deliveries, processed });
+  const before = store({ webhookEvents: [ev(1, 1)] });
+  const replay = { eventId: "WH-1", source: "certifier-replay" as const, signatureVerified: true };
+  const paypalDup = { eventId: "WH-R", source: "paypal" as const, signatureVerified: true, transmissionId: "TX-2" };
 
-  it("passes when the duplicate was delivered and processed once", () => {
-    expect(judgeW6({ eventId: "WH-1", resendRequested: true, before, after: afterOk }).status).toBe("pass");
+  it("passes on a verified certifier replay processed once, labelled as a replay", () => {
+    const v = judgeW6({ duplicates: [replay], before, after: store({ webhookEvents: [ev(2, 1)] }) });
+    expect(v.status).toBe("pass");
+    expect(v.summary).toMatch(/replayed by the certifier/);
+    expect(v.evidence[0]).toEqual({ kind: "webhook_delivery", id: "WH-1", strength: "paypal-signed", note: "duplicate of PayPal-signed event, replayed by certifier" });
   });
 
-  it("accepts PayPal's delivery record as proof of the duplicate", () => {
-    const after = store({ webhookEvents: [{ eventId: "WH-1", type: "x", deliveries: 1, processed: 1 }] });
-    expect(judgeW6({ eventId: "WH-1", resendRequested: true, before, after, delivery: delivery(200, 200), certifierWebhookUrl: CERTIFIER_URL }).status).toBe("pass");
+  it("upgrades to a PayPal-delivered duplicate, and never labels the replay as PayPal's", () => {
+    const after = store({ webhookEvents: [ev(2, 1), ev(2, 1, "WH-R")], status: "refunded", refundIds: ["R1"] });
+    const v = judgeW6({ duplicates: [replay, paypalDup], before, after });
+    expect(v.status).toBe("pass");
+    expect(v.summary).toBe("A duplicate delivered by PayPal was processed exactly once.");
+    expect(v.evidence.map((e) => e.note)).toEqual([
+      "duplicate of PayPal-signed event, replayed by certifier",
+      "duplicate delivered by PayPal (transmission TX-2)",
+      "status refunded",
+    ]);
   });
 
-  it("fails when the store processed the event twice", () => {
-    const after = store({ fulfilmentCount: 2, webhookEvents: [{ eventId: "WH-1", type: "x", deliveries: 2, processed: 2 }] });
-    const v = judgeW6({ eventId: "WH-1", resendRequested: true, before, after });
+  it("fails when the store processed a duplicate again", () => {
+    const after = store({ fulfilmentCount: 2, webhookEvents: [ev(2, 2)] });
+    const v = judgeW6({ duplicates: [replay], before, after });
     expect(v.status).toBe("fail");
-    expect(v.reasons).toEqual(["Store processed the event 2 times.", "Fulfilments changed from 1 to 2 after a duplicate event."]);
+    expect(v.reasons).toEqual(["Store processed event WH-1 2 times.", "Fulfilments changed from 1 to 2 after a duplicate event."]);
   });
 
-  it("reports why PayPal did not re-send the event", () => {
-    const v = judgeW6({ eventId: "WH-1", resendRequested: false, resendError: "PayPal refused: HTTP 404", before, after: afterOk });
+  it("fails when a duplicate refund event records a second refund", () => {
+    const after = store({ status: "refunded", refundIds: ["R1", "R2"], webhookEvents: [ev(1, 1), ev(2, 1, "WH-R")] });
+    expect(judgeW6({ duplicates: [paypalDup], before, after }).reasons).toEqual(["Store recorded 2 refunds for one refund."]);
+  });
+
+  it("ignores duplicates whose signature the certifier could not verify", () => {
+    const v = judgeW6({ duplicates: [{ ...replay, signatureVerified: false }], before, after: before, notes: ["replay skipped"] });
     expect(v.status).toBe("inconclusive");
-    expect(v.reasons).toEqual(["PayPal refused: HTTP 404"]);
+    expect(v.reasons).toEqual(["replay skipped"]);
   });
 
-  it("is inconclusive when the duplicate was not delivered or not requested", () => {
-    expect(judgeW6({ eventId: "WH-1", resendRequested: true, before, after: before }).status).toBe("inconclusive");
-    expect(judgeW6({ resendRequested: false, before, after: afterOk }).status).toBe("inconclusive");
-    expect(judgeW6({ eventId: "WH-1", resendRequested: true, before }).status).toBe("inconclusive");
+  it("is inconclusive without duplicates or store records", () => {
+    expect(judgeW6({ duplicates: [], before, after: before }).status).toBe("inconclusive");
+    expect(judgeW6({ duplicates: [replay], before }).status).toBe("inconclusive");
   });
 });
 

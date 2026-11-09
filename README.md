@@ -83,6 +83,19 @@ pnpm dev:api              # http://localhost:4000/health
 - **CI needs no secrets.** Unit tests never call PayPal; workflow permissions are read-only.
 - **Dependabot** alerts and weekly update PRs for npm packages and GitHub Actions.
 
+## Optional: enable full duplicate testing in 2 steps
+
+W6 checks that a store processes a duplicate PayPal webhook exactly once. It always tries PayPal's resend API.
+To also let the certifier replay a genuine PayPal-signed delivery (and get a definite result), a store adds the
+extended contract ([docs/store-contract.md](docs/store-contract.md)):
+
+1. **Expose the delivery log:** `GET /.well-known/certifier/events/{eventId}/deliveries?since=<run start>`, protected
+   by the same status key as the status endpoint, sandbox only, returning only deliveries from the current run and
+   keeping them no longer than 24 hours.
+2. **Share your store's webhook ID** with the certifier as configuration (it is never shown in reports).
+
+Without these, W6 still runs on PayPal's resend, and the report says the replay path was not available.
+
 ## Repository layout
 
 ```
