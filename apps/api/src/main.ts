@@ -3,7 +3,7 @@
  * With DATABASE_URL and PAYPAL_WEBHOOK_ID set, the webhook listener is active.
  */
 import { bootConfig } from "@certifier/config";
-import { certifierRepo, createPgDb, migrateCertifier } from "@certifier/db";
+import { certifierRepo, createPgDb, describeDbError, migrateCertifier } from "@certifier/db";
 import { buildApi } from "./server.js";
 
 const config = bootConfig("api");
@@ -16,7 +16,7 @@ if (config.DATABASE_URL) {
     if (ran.length) console.log(`[api] migrations applied: ${ran.join(", ")}`);
     repo = certifierRepo(db);
   } catch (err) {
-    console.error(`[api] database unavailable or migration failed: ${err instanceof Error ? err.message.split("\n")[0] : "unknown"}`);
+    console.error(`[api] database unavailable or migration failed: ${describeDbError(err)}`);
     process.exit(1);
   }
 } else {

@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { type Db, migrate } from "./index.js";
+import { type Db, describeDbError, migrate } from "./index.js";
 import { createTestDb } from "./testing.js";
 
 let db: Db;
@@ -27,5 +27,14 @@ describe("migrate", () => {
 
   it("rejects unsafe schema names", async () => {
     await expect(migrate(db, "x; DROP TABLE y", [])).rejects.toThrow("invalid schema name");
+  });
+});
+
+describe("describeDbError", () => {
+  it("prefers the error code, so empty-message connection errors are still readable", () => {
+    expect(describeDbError(Object.assign(new AggregateError([], ""), { code: "ECONNREFUSED" }))).toBe("ECONNREFUSED");
+    expect(describeDbError(new Error("relation does not exist\nmore"))).toBe("relation does not exist");
+    expect(describeDbError(new AggregateError([], ""))).toBe("AggregateError");
+    expect(describeDbError(null)).toBe("unknown error");
   });
 });

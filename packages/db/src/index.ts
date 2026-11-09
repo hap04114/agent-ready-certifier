@@ -54,6 +54,19 @@ export function createPgDb(databaseUrl: string): Db {
   };
 }
 
+/**
+ * A short, safe description of a database error for logs. Connection failures can carry an
+ * empty message (ECONNREFUSED on both IPv4 and IPv6), so prefer the error code. Never includes
+ * the connection string.
+ */
+export function describeDbError(err: unknown): string {
+  const e = err as { code?: unknown; message?: unknown; name?: unknown } | null;
+  if (e && typeof e.code === "string" && e.code) return e.code;
+  if (e && typeof e.message === "string" && e.message) return e.message.split("\n")[0]!.slice(0, 200);
+  if (e && typeof e.name === "string" && e.name) return e.name;
+  return "unknown error";
+}
+
 const IDENT = /^[a-z_][a-z0-9_]*$/;
 
 /**

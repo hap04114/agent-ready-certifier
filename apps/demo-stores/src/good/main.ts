@@ -5,7 +5,7 @@
  * Exits with a clear message, naming only the missing variables, if required ones are empty.
  */
 import { ConfigError, bootConfig, requireConfig } from "@certifier/config";
-import { createPgDb } from "@certifier/db";
+import { createPgDb, describeDbError } from "@certifier/db";
 import { SandboxPaypal } from "@certifier/paypal";
 import { migrateStore } from "./db.js";
 import { buildGoodStore } from "./server.js";
@@ -19,7 +19,7 @@ try {
   });
   const db = createPgDb(DATABASE_URL);
   const ran = await migrateStore(db).catch((err: unknown) => {
-    console.error(`[demo-store-good] database unavailable or migration failed: ${err instanceof Error ? err.message.split("\n")[0] : "unknown"}`);
+    console.error(`[demo-store-good] database unavailable or migration failed: ${describeDbError(err)}`);
     process.exit(1);
   });
   if (ran.length) console.log(`[demo-store-good] migrations applied: ${ran.join(", ")}`);
