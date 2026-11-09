@@ -98,8 +98,11 @@ export async function runJourney(opts: JourneyOptions): Promise<JourneyResult> {
       try {
         await execute(page, frames, obs.elements, act, opts.buyer);
       } catch (err) {
-        step.error = err instanceof Error ? err.message.split("\n")[0]!.slice(0, 160) : "action failed";
+        step.error = opts.scrub(err instanceof Error ? err.message.split("\n")[0]!.slice(0, 160) : "action failed");
+        log(`       ! failed: ${step.error}`);
       }
+      const after = active();
+      if (after !== page) log(`       → now on ${opts.scrub(new URL(after.url()).hostname)} (new page/popup)`);
       steps.push(step);
       history.push(`${n}. ${act.action}${act.element !== undefined ? ` #${act.element}` : ""}${step.error ? ` (failed: ${step.error})` : ""}`);
     }

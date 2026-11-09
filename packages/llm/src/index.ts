@@ -31,15 +31,30 @@ export class LlmError extends Error {
 
 export type Fetcher = typeof fetch;
 
-async function rawJson(cfg: LlmConfig, messages: ChatMessage[], fetcher: Fetcher): Promise<string> {
+/** Retry rate limits (429) and transient 5xx a few times, honouring retry-after when given. */
+async function withRetry(fn: () => Promise<Response>, sleep: (ms: number) => Promise<void>): Promise<Response> {
+  for (let attempt = 0; ; attempt++) {
+    const res = await fn();
+    if ((res.status !== 429 && res.status < 500) || attempt >= 4) return res;
+    const hint = Number(res.headers.get("retry-after"));
+    await sleep(Number.isFinite(hint) && hint > 0 ? Math.min(hint, 30) * 1000 : 2000 * 2 ** attempt);
+  }
+}
+export const defaultSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+async function rawJson(cfg: LlmConfig, messages: ChatMessage[], fetcher: Fetcher, sleep: (ms: number) => Promise<void> = defaultSleep): Promise<string> {
   const signal = AbortSignal.timeout(cfg.timeoutMs ?? 60_000);
   if (cfg.provider === "groq") {
-    const res = await fetcher("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: { authorization: `Bearer ${cfg.apiKey}`, "content-type": "application/json" },
-      body: JSON.stringify({ model: cfg.model, messages, temperature: 0, response_format: { type: "json_object" } }),
-      signal,
-    });
+    const res = await withRetry(
+      () =>
+        fetcher("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: { authorization: `Bearer ${cfg.apiKey}`, "content-type": "application/json" },
+          body: JSON.stringify({ model: cfg.model, messages, temperature: 0, response_format: { type: "json_object" } }),
+          signal,
+        }),
+      sleep,
+    );
     if (!res.ok) throw new LlmError(`groq HTTP ${res.status}`, res.status);
     const body = (await res.json()) as { choices?: { message?: { content?: string } }[] };
     return body.choices?.[0]?.message?.content ?? "";
@@ -48,16 +63,20 @@ async function rawJson(cfg: LlmConfig, messages: ChatMessage[], fetcher: Fetcher
   const contents = messages
     .filter((m) => m.role !== "system")
     .map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] }));
-  const res = await fetcher(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(cfg.model)}:generateContent`, {
-    method: "POST",
-    headers: { "x-goog-api-key": cfg.apiKey, "content-type": "application/json" },
-    body: JSON.stringify({
-      systemInstruction: system ? { parts: [{ text: system }] } : undefined,
-      contents,
-      generationConfig: { temperature: 0, responseMimeType: "application/json" },
-    }),
-    signal,
-  });
+  const res = await withRetry(
+    () =>
+      fetcher(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(cfg.model)}:generateContent`, {
+        method: "POST",
+        headers: { "x-goog-api-key": cfg.apiKey, "content-type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: system ? { parts: [{ text: system }] } : undefined,
+          contents,
+          generationConfig: { temperature: 0, responseMimeType: "application/json" },
+        }),
+        signal,
+      }),
+    sleep,
+  );
   if (!res.ok) throw new LlmError(`gemini HTTP ${res.status}`, res.status);
   const body = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
   return body.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
@@ -72,10 +91,16 @@ export function extractJson(text: string): unknown {
 /**
  * Ask for JSON matching `schema`. One retry with the validation error fed back; then throws.
  */
-export async function askJson<T>(cfg: LlmConfig, messages: ChatMessage[], schema: z.ZodType<T>, fetcher: Fetcher = fetch): Promise<T> {
+export async function askJson<T>(
+  cfg: LlmConfig,
+  messages: ChatMessage[],
+  schema: z.ZodType<T>,
+  fetcher: Fetcher = fetch,
+  sleep: (ms: number) => Promise<void> = defaultSleep,
+): Promise<T> {
   let convo = messages;
   for (let attempt = 0; attempt < 2; attempt++) {
-    const text = await rawJson(cfg, convo, fetcher);
+    const text = await rawJson(cfg, convo, fetcher, sleep);
     let parsed: unknown;
     try {
       parsed = extractJson(text);

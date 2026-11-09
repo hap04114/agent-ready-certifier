@@ -13,6 +13,8 @@ export interface ElementInfo {
   label: string;
   text: string;
   frame: string;
+  /** For input fields: whether something is typed in. The value itself is never read out. */
+  filled?: boolean;
 }
 
 export interface Observation {
@@ -54,6 +56,7 @@ export function collectInFrame(start: number): { elements: Omit<ElementInfo, "fr
       role: el.getAttribute("role") ?? "",
       type: el.getAttribute("type") ?? "",
       label: (el.getAttribute("aria-label") ?? el.getAttribute("placeholder") ?? el.getAttribute("name") ?? el.getAttribute("title") ?? "").slice(0, 80),
+      filled: isField ? ((el as HTMLInputElement).value ?? "").length > 0 : undefined,
       // biome-ignore lint/performance/useDomNodeTextContent: innerText is the visible text a shopper sees.
       text: isField ? "" : (el.innerText || el.textContent || "").replace(/\s+/g, " ").trim().slice(0, 80),
     });
@@ -67,7 +70,8 @@ export function collectInFrame(start: number): { elements: Omit<ElementInfo, "fr
 /** Render an observation for the model, wrapped and labelled as untrusted data. */
 export function renderObservation(obs: Observation, scrub: (s: string) => string): string {
   const lines = obs.elements.map(
-    (e) => `[${e.id}] <${e.tag}${e.type ? ` type=${e.type}` : ""}${e.role ? ` role=${e.role}` : ""}> ${scrub(e.text || e.label)}${e.frame !== "main" ? ` (in ${e.frame})` : ""}`,
+    (e) =>
+      `[${e.id}] <${e.tag}${e.type ? ` type=${e.type}` : ""}${e.role ? ` role=${e.role}` : ""}> ${scrub(e.text || e.label)}${e.filled === undefined ? "" : e.filled ? " [filled]" : " [empty]"}${e.frame !== "main" ? ` (in ${e.frame})` : ""}`,
   );
   return [
     "<untrusted_page_content>",
@@ -102,5 +106,6 @@ Rules:
 - You never see or type credentials. To log in to PayPal, use "fill_buyer_email" on the email field and "fill_buyer_password" on the password field; the system fills the real values.
 - Pay with the PayPal account (log in), not with a debit or credit card form.
 - Do not change prices, quantities beyond what the mission asks, or any page code.
+- Input fields show [filled] or [empty]. After filling a field, move on: click the button that continues (for example "Next" or "Log In") instead of filling it again.
 - PayPal opens in a popup or a new page; the observation always shows the page that is currently active.
 - When the store or PayPal clearly shows the payment is complete, reply with action "done". If you are stuck after several attempts, reply "give_up".`;
