@@ -12,12 +12,16 @@ services:
     name: certifier-api
     runtime: node
     plan: free
-    buildCommand: corepack enable && pnpm install --frozen-lockfile
+    # --prod=false: NODE_ENV=production would otherwise skip devDependencies, including tsx,
+    # which the start command needs.
+    buildCommand: corepack enable && pnpm install --frozen-lockfile --prod=false
     startCommand: pnpm --filter @certifier/api start
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_VERSION
+        value: "22"
       - key: PAYPAL_ENV
         value: sandbox
       - key: PAYPAL_API_BASE
@@ -43,12 +47,16 @@ services:
     name: demo-store-good
     runtime: node
     plan: free
-    buildCommand: corepack enable && pnpm install --frozen-lockfile
+    # --prod=false: NODE_ENV=production would otherwise skip devDependencies, including tsx,
+    # which the start command needs.
+    buildCommand: corepack enable && pnpm install --frozen-lockfile --prod=false
     startCommand: pnpm --filter @certifier/demo-stores start:good
     healthCheckPath: /api/catalog
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_VERSION
+        value: "22"
       - key: PAYPAL_ENV
         value: sandbox
       - key: PAYPAL_API_BASE
