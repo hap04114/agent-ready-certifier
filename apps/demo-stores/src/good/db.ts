@@ -3,7 +3,7 @@
  * The store is a separate merchant system, so it keeps its own schema.
  */
 import { type Db, type Migration, migrate } from "@certifier/db";
-import type { StoreOrderStatus, TestHookCode } from "@certifier/contract";
+import { DELIVERY_RETENTION_HOURS, type StoreOrderStatus, type TestHookCode } from "@certifier/contract";
 import { centsToValue } from "./catalog.js";
 
 export const SCHEMA = "demo_store_good";
@@ -42,6 +42,30 @@ export const MIGRATIONS: Migration[] = [
         last_received_at  timestamptz NOT NULL DEFAULT now()
       );
       CREATE INDEX webhook_events_order ON webhook_events (paypal_order_id);
+    `,
+  },
+  {
+    id: "002_delivery_log_and_fail_ack",
+    sql: `
+      -- Every signed delivery the store accepted, exactly as received (store contract item 4b).
+      CREATE TABLE webhook_deliveries (
+        id               bigserial PRIMARY KEY,
+        event_id         text NOT NULL,
+        transmission_id  text NOT NULL,
+        headers          jsonb NOT NULL,
+        body_base64      text NOT NULL,
+        received_at      timestamptz NOT NULL DEFAULT now(),
+        response_status  int
+      );
+      CREATE INDEX webhook_deliveries_event ON webhook_deliveries (event_id);
+
+      -- Demo-only fail-ack hook: answer the first delivery of (order, event type) with an error
+      -- AFTER processing it, so PayPal retries a delivery the store has already handled.
+      CREATE TABLE fail_ack (
+        paypal_order_id text NOT NULL,
+        event_type      text NOT NULL,
+        PRIMARY KEY (paypal_order_id, event_type)
+      );
     `,
   },
 ];
@@ -160,6 +184,51 @@ export function storeRepo(db: Db) {
         await tx.query(`UPDATE ${W} SET processed = processed + 1 WHERE event_id = $1`, [e.eventId]);
         return "processed";
       });
+    },
+
+    async recordDelivery(e: { eventId: string; transmissionId: string; headers: Record<string, string>; rawBody: Buffer }): Promise<number> {
+      // Keep the log short: deliveries exist only for a certification run.
+      await db.query(`DELETE FROM ${SCHEMA}.webhook_deliveries WHERE received_at < now() - make_interval(hours => $1)`, [DELIVERY_RETENTION_HOURS]);
+      return (
+        await db.query<{ id: number }>(
+          `INSERT INTO ${SCHEMA}.webhook_deliveries (event_id, transmission_id, headers, body_base64) VALUES ($1,$2,$3,$4) RETURNING id`,
+          [e.eventId, e.transmissionId, JSON.stringify(e.headers), e.rawBody.toString("base64")],
+        )
+      ).rows[0]!.id;
+    },
+
+    async setDeliveryResponse(id: number, status: number) {
+      await db.query(`UPDATE ${SCHEMA}.webhook_deliveries SET response_status=$2 WHERE id=$1`, [id, status]);
+    },
+
+    async deliveries(eventId: string, since: Date) {
+      const rows = (
+        await db.query<{ transmission_id: string; headers: Record<string, string>; body_base64: string; received_at: Date | string; response_status: number | null }>(
+          `SELECT transmission_id, headers, body_base64, received_at, response_status FROM ${SCHEMA}.webhook_deliveries WHERE event_id=$1 AND received_at >= $2 ORDER BY id`,
+          [eventId, since.toISOString()],
+        )
+      ).rows;
+      return rows.map((r) => ({
+        transmissionId: r.transmission_id,
+        headers: r.headers,
+        bodyBase64: r.body_base64,
+        receivedAt: new Date(r.received_at).toISOString(),
+        responseStatus: r.response_status,
+      }));
+    },
+
+    async eventOrder(eventId: string): Promise<string | undefined> {
+      return (await db.query<{ paypal_order_id: string | null }>(`SELECT paypal_order_id FROM ${W} WHERE event_id=$1`, [eventId])).rows[0]?.paypal_order_id ?? undefined;
+    },
+
+    async armFailAck(paypalOrderId: string, eventType: string) {
+      await db.query(`INSERT INTO ${SCHEMA}.fail_ack (paypal_order_id, event_type) VALUES ($1,$2) ON CONFLICT DO NOTHING`, [paypalOrderId, eventType]);
+    },
+
+    /** True once per armed (order, event type), then disarmed. */
+    async consumeFailAck(paypalOrderId: string, eventType: string): Promise<boolean> {
+      const res = await db.query(`DELETE FROM ${SCHEMA}.fail_ack WHERE paypal_order_id=$1 AND event_type=$2 RETURNING paypal_order_id`, [paypalOrderId, eventType]);
+      return res.rows.length === 1;
     },
 
     async setEventOrder(eventId: string, paypalOrderId: string) {

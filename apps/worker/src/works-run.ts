@@ -6,11 +6,12 @@
  * and every verdict comes from the truth checker (plain code), stored with its evidence.
  */
 import { ConfigError, bootConfig, requireConfig } from "@certifier/config";
-import { TEST_HOOK_PATH, type TestHookCode, statusPath, storeOrderStatus } from "@certifier/contract";
+import { TEST_HOOK_PATH, type TestHookCode, type StoreDelivery, deliveriesPath, statusPath, storeDeliveries, storeOrderStatus } from "@certifier/contract";
 import { certifierRepo, createPgDb, migrateCertifier } from "@certifier/db";
-import { PaypalCallError, SandboxPaypal } from "@certifier/paypal";
+import { PaypalCallError, SandboxPaypal, verifyWebhook, webhookHeadersFrom } from "@certifier/paypal";
 import {
   type DeliverySnap,
+  type DuplicateDelivery,
   type SignedEventSnap,
   type StoreRecordSnap,
   type Verdict,
@@ -98,6 +99,13 @@ async function storeStatus(paypalOrderId: string): Promise<StoreRecordSnap | und
   return parsed.success ? parsed.data : undefined;
 }
 
+async function storeDeliveryLog(eventId: string): Promise<StoreDelivery[] | undefined> {
+  const res = await storeFetch(deliveriesPath(eventId, RUN_STARTED), { headers: keyHeader });
+  if (!res.ok) return undefined;
+  const parsed = storeDeliveries.safeParse(await res.json());
+  return parsed.success ? parsed.data.deliveries : undefined;
+}
+
 const toSigned = (e: Awaited<ReturnType<typeof repo.findSignedEvent>>): SignedEventSnap | undefined =>
   e
     ? { eventId: e.event_id, type: e.type, resourceId: e.resource_id ?? undefined, signatureValid: e.signature_valid, receivedAt: new Date(e.received_at).toISOString() }
@@ -114,6 +122,8 @@ async function deliveryOf(eventId: string): Promise<DeliverySnap | undefined> {
 
 // ---------------------------------------------------------------- the run
 const WAIT = config.WEBHOOK_WAIT_SECONDS;
+// Deliveries are requested only from this moment on (store contract: delivery log is per run).
+const RUN_STARTED = new Date();
 const verdicts: Verdict[] = [];
 let runId: string | undefined;
 const notes: Record<string, unknown> = {};
@@ -142,6 +152,13 @@ try {
     C = await storeCreateOrder("LAMP-01"); // W3 server error
     hookB = await storeArm(B, "INSTRUMENT_DECLINED");
     hookC = await storeArm(C, "INTERNAL_SERVER_ERROR");
+    // Demo store only: answer the first refund delivery for A with an error so PayPal retries it.
+    const fa = await storeFetch("/__demo/fail-ack", {
+      method: "POST",
+      headers: { ...keyHeader, "content-type": "application/json" },
+      body: JSON.stringify({ paypalOrderId: A, eventType: "PAYMENT.CAPTURE.REFUNDED" }),
+    });
+    notes.failAck = fa.status === 204;
   }
   Object.assign(notes, { orders: { A, B, C }, hookB, hookC, resumedFrom: resumeFrom ?? null });
 
@@ -186,36 +203,46 @@ try {
   const delivery1 = captureEvent ? await deliveryOf(captureEvent.eventId) : undefined;
   verdicts.push(judgeW5({ captureEvent, delivery: delivery1, certifierWebhookUrl: env.WEBHOOK_PUBLIC_URL, store: storeA1 ?? storeA0 }));
 
-  // 4. W6: PayPal re-sends the same event to the store's webhook.
-  let resendRequested = false;
-  let resendError: string | undefined;
-  let storeA2: StoreRecordSnap | undefined;
-  let delivery2: DeliverySnap | undefined;
+  // 4. W6 part 1 (no waiting): ask PayPal to re-send, then replay the store's own signed
+  //    delivery byte for byte — only after verifying PayPal's signature on it ourselves.
+  const duplicates: DuplicateDelivery[] = [];
+  const dupNotes: string[] = [];
+  const w6Before = storeA1;
   if (captureEvent && storeA1) {
     const eid = captureEvent.eventId;
     try {
       await pp(() => paypal.resendWebhookEvent(eid, [env.DEMO_STORE_GOOD_WEBHOOK_ID]));
-      resendRequested = true;
+      dupNotes.push(`PayPal accepted a re-send request for ${eid}; any PayPal delivery is checked at the end of the run.`);
     } catch (err) {
       if (!(err instanceof PaypalCallError)) throw err;
-      resendError = `PayPal refused to re-send event ${eid}: ${err.message}`;
+      dupNotes.push(`PayPal refused to re-send ${eid}: ${err.message}`);
+    }
+    const log = await storeDeliveryLog(eid);
+    const original = log?.find((d) => d.responseStatus !== null && d.responseStatus >= 200 && d.responseStatus < 300) ?? log?.[0];
+    if (!original) {
+      dupNotes.push("Replay path not available: the store does not offer the optional delivery log (extended contract). W6 relied on PayPal's resend only.");
+    } else {
+      const raw = Buffer.from(original.bodyBase64, "base64");
+      const check = await verifyWebhook({ headers: webhookHeadersFrom(original.headers), rawBody: raw, webhookId: env.DEMO_STORE_GOOD_WEBHOOK_ID });
+      if (!check.valid) {
+        dupNotes.push(`The store's copy of ${eid} did not verify as PayPal-signed (${check.reason}); not replayed.`);
+      } else {
+        budget.spend();
+        const res = await fetch(new URL("/webhooks/paypal", storeUrl), {
+          method: "POST",
+          headers: { ...original.headers, "content-type": "application/json" },
+          body: raw,
+          signal: AbortSignal.timeout(20_000),
+        });
+        console.log(`Replayed the store's PayPal-signed delivery of ${eid}; store answered HTTP ${res.status}.`);
+        duplicates.push({ eventId: eid, source: "certifier-replay", signatureVerified: true, transmissionId: original.transmissionId });
+      }
     }
   }
-  if (captureEvent && storeA1 && resendRequested) {
-    const eid = captureEvent.eventId;
-    console.log("Asked PayPal to re-send the capture event to the store; waiting…");
-    storeA2 = await budget.waitFor(async () => {
-      const s = await storeStatus(A);
-      return (s?.webhookEvents.find((e) => e.eventId === eid)?.deliveries ?? 0) >= 2 ? s : undefined;
-    }, { seconds: WAIT });
-    storeA2 ??= await storeStatus(A);
-    delivery2 = await deliveryOf(eid);
-  }
-  verdicts.push(
-    judgeW6({ eventId: captureEvent?.eventId, resendRequested, resendError, before: storeA1, after: storeA2 ?? storeA1, delivery: delivery2, certifierWebhookUrl: env.WEBHOOK_PUBLIC_URL }),
-  );
+  const storeA2 = (await storeStatus(A)) ?? storeA1;
 
   // 5. W4: refund A in PayPal; the store must learn it from the webhook.
+  let refundEventId: string | undefined;
   const storeBeforeRefund = storeA2 ?? storeA1 ?? storeA0;
   let refundError: string | undefined;
   const refunded = capA && storeBeforeRefund?.status === "paid"
@@ -239,6 +266,7 @@ try {
       return s?.status === "refunded" ? s : undefined;
     }, { seconds: refundEvent ? 30 : 5 })) ?? (await storeStatus(A));
     verdicts.push(judgeW4({ refund: refundSnap(refundDone ?? refund), refundEvent, store: storeA3 }));
+    refundEventId = refundEvent?.eventId;
   } else {
     verdicts.push(judgeW4({ refundError: refundError ?? (storeBeforeRefund ? `Order A is "${storeBeforeRefund.status}" in the store, not "paid", so it was not refunded.` : undefined) }));
   }
@@ -246,6 +274,21 @@ try {
   // 6. W2 / W3: forced errors on the store's own capture.
   verdicts.push(judgeW2({ hookSupported: hookB, order: orderSnap(await pp(() => paypal.getOrder(B))), store: await storeStatus(B) }));
   verdicts.push(judgeW3({ hookSupported: hookC, order: orderSnap(await pp(() => paypal.getOrder(C))), store: await storeStatus(C) }));
+
+  // 7. W6 part 2 (no waiting): did PayPal itself deliver a duplicate during the run? Any
+  //    delivery with a NEW transmission ID that verifies as PayPal-signed came from PayPal
+  //    (a replay can only reuse the original transmission ID).
+  for (const eid of [captureEvent?.eventId, refundEventId]) {
+    if (!eid) continue;
+    const log = (await storeDeliveryLog(eid)) ?? [];
+    const firstTx = log[0]?.transmissionId;
+    for (const d of log) {
+      if (d.transmissionId === firstTx || duplicates.some((x) => x.source === "paypal" && x.transmissionId === d.transmissionId)) continue;
+      const check = await verifyWebhook({ headers: webhookHeadersFrom(d.headers), rawBody: Buffer.from(d.bodyBase64, "base64"), webhookId: env.DEMO_STORE_GOOD_WEBHOOK_ID });
+      if (check.valid) duplicates.push({ eventId: eid, source: "paypal", signatureVerified: true, transmissionId: d.transmissionId });
+    }
+  }
+  verdicts.push(judgeW6({ duplicates, before: w6Before, after: await storeStatus(A), notes: dupNotes }));
 
   verdicts.sort((a, b) => a.check.localeCompare(b.check));
   for (const v of verdicts) await repo.saveVerdict(runId, "works", v);
