@@ -111,9 +111,9 @@ export const judgeW3 = (input: ForcedErrorInput) => judgeForcedError("W3", "serv
 // ---------------------------------------------------------------------------------------------
 // W4 Refund: refund COMPLETED in PayPal and the store shows refunded after the webhook.
 // ---------------------------------------------------------------------------------------------
-export function judgeW4(input: { refund?: PaypalRefundSnap; refundEvent?: SignedEventSnap; store?: StoreRecordSnap }): Verdict {
+export function judgeW4(input: { refund?: PaypalRefundSnap; refundEvent?: SignedEventSnap; store?: StoreRecordSnap; refundError?: string }): Verdict {
   const { refund, refundEvent, store } = input;
-  if (!refund) return verdict("W4", "inconclusive", "PayPal refund record unavailable.", [], []);
+  if (!refund) return verdict("W4", "inconclusive", "PayPal refund record unavailable.", input.refundError ? [input.refundError] : [], []);
   const evidence: EvidenceRef[] = [{ kind: "refund", id: refund.id, strength: "paypal-api", note: `status ${refund.status}, ${fmt(refund.amount)}` }];
   if (refund.status !== "COMPLETED") {
     return verdict("W4", "inconclusive", `PayPal refund is ${refund.status}, not COMPLETED yet.`, [], evidence);
@@ -186,6 +186,8 @@ export function judgeW5(input: {
 export function judgeW6(input: {
   eventId?: string;
   resendRequested: boolean;
+  /** Why the duplicate could not be requested (e.g. PayPal refused the resend). */
+  resendError?: string;
   /** Store record before and after the duplicate delivery. */
   before?: StoreRecordSnap;
   after?: StoreRecordSnap;
@@ -194,7 +196,7 @@ export function judgeW6(input: {
 }): Verdict {
   const { eventId, before, after } = input;
   if (!eventId || !input.resendRequested) {
-    return verdict("W6", "inconclusive", "No duplicate delivery was requested.", [], []);
+    return verdict("W6", "inconclusive", input.resendError ? "PayPal did not re-send the event, so duplicate handling was not tested." : "No duplicate delivery was requested.", input.resendError ? [input.resendError] : [], []);
   }
   if (!before || !after) return verdict("W6", "inconclusive", "Store record unavailable.", [], []);
   const evidence: EvidenceRef[] = [{ kind: "webhook_event", id: eventId, strength: "paypal-api", note: "re-sent by PayPal" }, storeRef(after)];
