@@ -133,6 +133,10 @@ export function certifierRepo(db: Db) {
       ).rows[0]!.id;
     },
 
+    async getRunNotes(id: string): Promise<Record<string, unknown> | undefined> {
+      return (await db.query<{ notes: Record<string, unknown> }>(`SELECT notes FROM ${S}.runs WHERE id = $1`, [id])).rows[0]?.notes;
+    },
+
     async finishRun(id: string, status: "judged" | "stopped" | "failed", requestsUsed: number, notes: Record<string, unknown> = {}) {
       await db.query(`UPDATE ${S}.runs SET status=$2, finished_at=now(), requests_used=$3, notes=$4 WHERE id=$1`, [id, status, requestsUsed, JSON.stringify(notes)]);
     },

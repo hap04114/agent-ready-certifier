@@ -123,15 +123,30 @@ try {
   runId = await repo.createRun({ storeUrl, budgetRequests: config.RUN_MAX_REQUESTS, timeLimitMin: config.RUN_MAX_MINUTES });
   console.log(`Run ${runId} against ${storeUrl} (budget ${config.RUN_MAX_REQUESTS} requests, ${config.RUN_MAX_MINUTES} min)\n`);
 
-  // 1. Three orders through the store's own checkout API.
-  const A = await storeCreateOrder("MUG-01"); // W1, W4, W5, W6
-  const B = await storeCreateOrder("NOTE-01"); // W2 decline
-  const C = await storeCreateOrder("LAMP-01"); // W3 server error
-  const hookB = await storeArm(B, "INSTRUMENT_DECLINED");
-  const hookC = await storeArm(C, "INTERNAL_SERVER_ERROR");
-  Object.assign(notes, { orders: { A, B, C }, hookB, hookC });
+  // 1. Three orders through the store's own checkout API — or reuse the approved orders of an
+  //    earlier run (`--resume <run id>`), so a human does not have to approve again.
+  const resumeIdx = process.argv.indexOf("--resume");
+  const resumeFrom = resumeIdx > 0 ? process.argv[resumeIdx + 1] : undefined;
+  let A: string, B: string, C: string, hookB: boolean, hookC: boolean;
+  if (resumeFrom) {
+    const prev = (await repo.getRunNotes(resumeFrom)) as { orders?: { A: string; B: string; C: string }; hookB?: boolean; hookC?: boolean } | undefined;
+    if (!prev?.orders) throw new Error(`run ${resumeFrom} has no recorded orders to resume`);
+    ({ A, B, C } = prev.orders);
+    hookB = prev.hookB === true;
+    hookC = prev.hookC === true;
+    console.log(`Resuming the orders of run ${resumeFrom}: A=${A} B=${B} C=${C}
+`);
+  } else {
+    A = await storeCreateOrder("MUG-01"); // W1, W4, W5, W6
+    B = await storeCreateOrder("NOTE-01"); // W2 decline
+    C = await storeCreateOrder("LAMP-01"); // W3 server error
+    hookB = await storeArm(B, "INSTRUMENT_DECLINED");
+    hookC = await storeArm(C, "INTERNAL_SERVER_ERROR");
+  }
+  Object.assign(notes, { orders: { A, B, C }, hookB, hookC, resumedFrom: resumeFrom ?? null });
 
   // 2. Human approval (until the browser agent exists).
+  if (!resumeFrom) {
   console.log("Approve these three sandbox orders as the sandbox BUYER (any order, one browser tab each):");
   for (const [label, id] of [["A (purchase, then refund)", A], ["B (will be declined)", B], ["C (server error)", C]] as const) {
     const order = await pp(() => paypal.getOrder(id));
@@ -147,6 +162,7 @@ try {
     seconds: config.RUN_MAX_MINUTES * 60,
     everyMs: 5000,
   });
+  }
 
   // 3. Order A: purchase, signed capture event, delivery to the store.
   const orderA = orderSnap(await pp(() => paypal.getOrder(A)));
@@ -172,12 +188,21 @@ try {
 
   // 4. W6: PayPal re-sends the same event to the store's webhook.
   let resendRequested = false;
+  let resendError: string | undefined;
   let storeA2: StoreRecordSnap | undefined;
   let delivery2: DeliverySnap | undefined;
   if (captureEvent && storeA1) {
     const eid = captureEvent.eventId;
-    await pp(() => paypal.resendWebhookEvent(eid, [env.DEMO_STORE_GOOD_WEBHOOK_ID]));
-    resendRequested = true;
+    try {
+      await pp(() => paypal.resendWebhookEvent(eid, [env.DEMO_STORE_GOOD_WEBHOOK_ID]));
+      resendRequested = true;
+    } catch (err) {
+      if (!(err instanceof PaypalCallError)) throw err;
+      resendError = `PayPal refused to re-send event ${eid}: ${err.message}`;
+    }
+  }
+  if (captureEvent && storeA1 && resendRequested) {
+    const eid = captureEvent.eventId;
     console.log("Asked PayPal to re-send the capture event to the store; waiting…");
     storeA2 = await budget.waitFor(async () => {
       const s = await storeStatus(A);
@@ -187,12 +212,21 @@ try {
     delivery2 = await deliveryOf(eid);
   }
   verdicts.push(
-    judgeW6({ eventId: captureEvent?.eventId, resendRequested, before: storeA1, after: storeA2, delivery: delivery2, certifierWebhookUrl: env.WEBHOOK_PUBLIC_URL }),
+    judgeW6({ eventId: captureEvent?.eventId, resendRequested, resendError, before: storeA1, after: storeA2 ?? storeA1, delivery: delivery2, certifierWebhookUrl: env.WEBHOOK_PUBLIC_URL }),
   );
 
   // 5. W4: refund A in PayPal; the store must learn it from the webhook.
-  if (capA && storeA2?.status === "paid") {
-    const { refund } = await pp(() => paypal.refundCapture(capA));
+  const storeBeforeRefund = storeA2 ?? storeA1 ?? storeA0;
+  let refundError: string | undefined;
+  const refunded = capA && storeBeforeRefund?.status === "paid"
+    ? await pp(() => paypal.refundCapture(capA)).catch((err: unknown) => {
+        if (!(err instanceof PaypalCallError)) throw err;
+        refundError = `PayPal refused the refund: ${err.message}`;
+        return undefined;
+      })
+    : undefined;
+  if (capA && refunded) {
+    const { refund } = refunded;
     const refundId = refund.id!;
     const refundDone = await budget.waitFor(async () => {
       const r = await pp(() => paypal.getRefund(refundId));
@@ -206,7 +240,7 @@ try {
     }, { seconds: refundEvent ? 30 : 5 })) ?? (await storeStatus(A));
     verdicts.push(judgeW4({ refund: refundSnap(refundDone ?? refund), refundEvent, store: storeA3 }));
   } else {
-    verdicts.push(judgeW4({}));
+    verdicts.push(judgeW4({ refundError: refundError ?? (storeBeforeRefund ? `Order A is "${storeBeforeRefund.status}" in the store, not "paid", so it was not refunded.` : undefined) }));
   }
 
   // 6. W2 / W3: forced errors on the store's own capture.

@@ -222,6 +222,12 @@ describe("W6 duplicate delivery", () => {
     expect(v.reasons).toEqual(["Store processed the event 2 times.", "Fulfilments changed from 1 to 2 after a duplicate event."]);
   });
 
+  it("reports why PayPal did not re-send the event", () => {
+    const v = judgeW6({ eventId: "WH-1", resendRequested: false, resendError: "PayPal refused: HTTP 404", before, after: afterOk });
+    expect(v.status).toBe("inconclusive");
+    expect(v.reasons).toEqual(["PayPal refused: HTTP 404"]);
+  });
+
   it("is inconclusive when the duplicate was not delivered or not requested", () => {
     expect(judgeW6({ eventId: "WH-1", resendRequested: true, before, after: before }).status).toBe("inconclusive");
     expect(judgeW6({ resendRequested: false, before, after: afterOk }).status).toBe("inconclusive");

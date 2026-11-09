@@ -24,7 +24,8 @@ export type PaypalOperation =
   | "payments.refund"
   | "payments.getRefund"
   | "webhooks.getEvent"
-  | "webhooks.resendEvent";
+  | "webhooks.resendEvent"
+  | "webhooks.list";
 
 /**
  * One audit-log line per PayPal call. IDs and outcomes only: never headers, tokens or bodies.
@@ -257,6 +258,15 @@ export class SandboxPaypal {
     return this.call("webhooks.getEvent", {}, (e) => ({ resourceId: e.id, resourceStatus: e.event_type }), async () => {
       const res = await this.rest("GET", `/v1/notifications/webhooks-events/${encodeURIComponent(eventId)}`, {});
       return res.json as WebhookEventDetail;
+    });
+  }
+
+  /** The app's webhook subscriptions (ID and URL), for wiring IDs into config. */
+  async listWebhooks(): Promise<{ id: string; url: string }[]> {
+    return this.call("webhooks.list", {}, () => ({}), async () => {
+      const res = await this.rest("GET", "/v1/notifications/webhooks", {});
+      const hooks = (res.json as { webhooks?: { id?: string; url?: string }[] }).webhooks ?? [];
+      return hooks.filter((h) => h.id && h.url).map((h) => ({ id: h.id!, url: h.url! }));
     });
   }
 

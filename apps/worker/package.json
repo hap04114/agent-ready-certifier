@@ -6,7 +6,8 @@
   "scripts": {
     "works:run": "tsx src/works-run.ts",
     "typecheck": "tsc -p tsconfig.json",
-    "paypal:cross-read": "tsx src/cross-read.ts"
+    "paypal:cross-read": "tsx src/cross-read.ts",
+    "webhooks:sync": "tsx src/webhooks-sync.ts"
   },
   "dependencies": {
     "@certifier/config": "workspace:*",
