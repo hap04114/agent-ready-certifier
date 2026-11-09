@@ -41,6 +41,23 @@ describe("askJson", () => {
     expect(seen[0]!.body).toMatchObject({ systemInstruction: { parts: [{ text: "rules" }] }, contents: [{ role: "user", parts: [{ text: "go" }] }] });
   });
 
+  it("waits and retries on a 429 rate limit", async () => {
+    let calls = 0;
+    const waits: number[] = [];
+    const f = (async () => {
+      calls++;
+      if (calls === 1) return new Response("slow down", { status: 429, headers: { "retry-after": "3" } });
+      return new Response(JSON.stringify({ choices: [{ message: { content: '{"action":"done"}' } }] }), { status: 200 });
+    }) as unknown as typeof fetch;
+    expect(await askJson(groq, [{ role: "user", content: "go" }], schema, f, async (ms) => void waits.push(ms))).toEqual({ action: "done" });
+    expect(waits).toEqual([3000]);
+  });
+
+  it("gives up on persistent rate limits", async () => {
+    const f = (async () => new Response("no", { status: 429 })) as unknown as typeof fetch;
+    await expect(askJson(groq, [{ role: "user", content: "go" }], schema, f, async () => {})).rejects.toThrow("groq HTTP 429");
+  });
+
   it("extracts JSON from a fenced block", () => {
     expect(extractJson('```json\n{"a":1}\n```')).toEqual({ a: 1 });
   });
