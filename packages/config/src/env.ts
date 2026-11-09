@@ -26,6 +26,7 @@ export const SENSITIVE_KEYS = [
   "DATABASE_URL",
   "QUEUE_URL",
   "LLM_API_KEY",
+  "GEMINI_API_KEY",
   "KERNEL_API_KEY",
   "CHANNEL3_API_KEY",
   "OWNERSHIP_TOKEN_SECRET",
@@ -95,6 +96,7 @@ export const envSchema = z.object({
   LLM_PROVIDER: optionalString,
   LLM_API_KEY: optionalString,
   LLM_MODEL: optionalString,
+  GEMINI_API_KEY: optionalString,
 
   // Sponsor tools
   KERNEL_API_KEY: optionalString,
