@@ -21,7 +21,8 @@
     "store:keys": "tsx packages/contract/src/keys-cli.ts",
     "paypal:cross-read": "pnpm --filter @certifier/worker paypal:cross-read",
     "webhooks:sync": "pnpm --filter @certifier/worker webhooks:sync",
-    "agent:shop": "pnpm --filter @certifier/browser-agent agent:shop"
+    "agent:shop": "pnpm --filter @certifier/browser-agent agent:shop",
+    "webhooks:ensure": "pnpm --filter @certifier/worker webhooks:ensure"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.6",
