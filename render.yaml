@@ -15,7 +15,8 @@ services:
     # --prod=false: NODE_ENV=production would otherwise skip devDependencies, including tsx,
     # which the start command needs.
     buildCommand: corepack enable && pnpm install --frozen-lockfile --prod=false
-    startCommand: pnpm --filter @certifier/api start
+    # Start with node directly: pnpm (enabled via corepack at build time) may not exist at runtime.
+    startCommand: node node_modules/tsx/dist/cli.mjs apps/api/src/main.ts
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
@@ -50,7 +51,8 @@ services:
     # --prod=false: NODE_ENV=production would otherwise skip devDependencies, including tsx,
     # which the start command needs.
     buildCommand: corepack enable && pnpm install --frozen-lockfile --prod=false
-    startCommand: pnpm --filter @certifier/demo-stores start:good
+    # Start with node directly: pnpm (enabled via corepack at build time) may not exist at runtime.
+    startCommand: node node_modules/tsx/dist/cli.mjs apps/demo-stores/src/good/main.ts
     healthCheckPath: /api/catalog
     envVars:
       - key: NODE_ENV
