@@ -63,6 +63,14 @@ export const CERTIFIER_MIGRATIONS: Migration[] = [
       CREATE INDEX webhook_events_resource ON webhook_events (resource_id);
     `,
   },
+  {
+    id: "002_certifier_recorded_evidence",
+    sql: `
+      ALTER TABLE evidence DROP CONSTRAINT IF EXISTS evidence_strength_check;
+      ALTER TABLE evidence ADD CONSTRAINT evidence_strength_check
+        CHECK (strength IN ('paypal-signed','paypal-api','store-reported','certifier-recorded'));
+    `,
+  },
 ];
 
 export const migrateCertifier = (db: Db) => migrate(db, CERTIFIER_SCHEMA, CERTIFIER_MIGRATIONS);
