@@ -106,6 +106,35 @@ export const CERTIFIER_MIGRATIONS: Migration[] = [
       ALTER TABLE stores ADD COLUMN certifier_webhook_id text;
     `,
   },
+  {
+    id: "006_agent_trials",
+    sql: `
+      -- One AI-shopper trial (model scorecard, Agent-ready pillar). Outcomes are judged by the
+      -- truth checker from PayPal records; null means not judged (e.g. trial error).
+      CREATE TABLE agent_trials (
+        id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        batch_id      text NOT NULL,
+        run_id        uuid REFERENCES runs(id) ON DELETE SET NULL,
+        provider      text NOT NULL,
+        model         text NOT NULL,
+        scenario      text NOT NULL,
+        trial_no      int  NOT NULL,
+        status        text NOT NULL CHECK (status IN ('judged','error')),
+        verdict       text CHECK (verdict IN ('pass','fail','inconclusive')),
+        bypassed      boolean,
+        wrong_payee   boolean,
+        trap_followed boolean,
+        safe_stop     boolean NOT NULL DEFAULT false,
+        task_success  boolean,
+        order_ids     text[] NOT NULL DEFAULT '{}',
+        summary       text,
+        steps         jsonb NOT NULL DEFAULT '[]'::jsonb,
+        error         text,
+        created_at    timestamptz NOT NULL DEFAULT now()
+      );
+      CREATE INDEX agent_trials_model ON agent_trials (provider, model, scenario);
+    `,
+  },
 ];
 
 export const migrateCertifier = (db: Db) => migrate(db, CERTIFIER_SCHEMA, CERTIFIER_MIGRATIONS);
@@ -234,6 +263,105 @@ export function certifierRepo(db: Db) {
     /** Webhook IDs of the certifier's listener across registered stores' PayPal apps. */
     async certifierWebhookIds(): Promise<string[]> {
       return (await db.query<{ id: string }>(`SELECT DISTINCT certifier_webhook_id AS id FROM ${S}.stores WHERE certifier_webhook_id IS NOT NULL`)).rows.map((r) => r.id);
+    },
+
+    async saveTrial(t: {
+      batchId: string;
+      runId?: string;
+      provider: string;
+      model: string;
+      scenario: string;
+      trialNo: number;
+      status: "judged" | "error";
+      verdict?: string;
+      bypassed?: boolean | null;
+      wrongPayee?: boolean | null;
+      trapFollowed?: boolean | null;
+      safeStop: boolean;
+      taskSuccess?: boolean | null;
+      orderIds: string[];
+      summary?: string;
+      steps: unknown[];
+      error?: string;
+    }) {
+      await db.query(
+        `INSERT INTO ${S}.agent_trials (batch_id, run_id, provider, model, scenario, trial_no, status, verdict, bypassed, wrong_payee, trap_followed, safe_stop, task_success, order_ids, summary, steps, error)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
+        [
+          t.batchId,
+          t.runId ?? null,
+          t.provider,
+          t.model,
+          t.scenario,
+          t.trialNo,
+          t.status,
+          t.verdict ?? null,
+          t.bypassed ?? null,
+          t.wrongPayee ?? null,
+          t.trapFollowed ?? null,
+          t.safeStop,
+          t.taskSuccess ?? null,
+          t.orderIds,
+          t.summary ?? null,
+          JSON.stringify(t.steps),
+          t.error ?? null,
+        ],
+      );
+    },
+
+    async listTrials(limit = 2000) {
+      return (
+        await db.query<{
+          id: string;
+          batch_id: string;
+          provider: string;
+          model: string;
+          scenario: string;
+          trial_no: number;
+          status: string;
+          verdict: string | null;
+          bypassed: boolean | null;
+          wrong_payee: boolean | null;
+          trap_followed: boolean | null;
+          safe_stop: boolean;
+          task_success: boolean | null;
+          order_ids: string[];
+          summary: string | null;
+          created_at: Date;
+        }>(
+          `SELECT id, batch_id, provider, model, scenario, trial_no, status, verdict, bypassed, wrong_payee, trap_followed, safe_stop, task_success, order_ids, summary, created_at
+           FROM ${S}.agent_trials ORDER BY created_at DESC LIMIT $1`,
+          [limit],
+        )
+      ).rows;
+    },
+
+    async getTrialSteps(id: string) {
+      return (await db.query<{ steps: unknown[] }>(`SELECT steps FROM ${S}.agent_trials WHERE id=$1`, [id])).rows[0]?.steps;
+    },
+
+    async listRuns(limit = 200) {
+      return (
+        await db.query<{
+          id: string;
+          store_url: string;
+          status: string;
+          started_at: Date;
+          finished_at: Date | null;
+          requests_used: number;
+          passed: number;
+          failed: number;
+          inconclusive: number;
+        }>(
+          `SELECT r.id, r.store_url, r.status, r.started_at, r.finished_at, r.requests_used,
+                  count(*) FILTER (WHERE c.status='pass')::int AS passed,
+                  count(*) FILTER (WHERE c.status='fail')::int AS failed,
+                  count(*) FILTER (WHERE c.status='inconclusive')::int AS inconclusive
+           FROM ${S}.runs r LEFT JOIN ${S}.checks c ON c.run_id = r.id
+           GROUP BY r.id ORDER BY r.started_at DESC LIMIT $1`,
+          [limit],
+        )
+      ).rows;
     },
 
     async listStores() {

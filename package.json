@@ -25,7 +25,9 @@
     "webhooks:ensure": "pnpm --filter @certifier/worker webhooks:ensure",
     "env:copy": "tsx packages/config/src/copy-cli.ts",
     "render:sync": "tsx packages/config/src/render-sync.ts",
-    "probe:page": "pnpm --filter @certifier/probes probe:page"
+    "probe:page": "pnpm --filter @certifier/probes probe:page",
+    "scorecard": "pnpm --filter @certifier/worker scorecard",
+    "vault:setup": "pnpm --filter @certifier/worker vault:setup"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.6",

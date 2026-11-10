@@ -45,16 +45,25 @@ export const defaultSleep = (ms: number) => new Promise<void>((r) => setTimeout(
 async function rawJson(cfg: LlmConfig, messages: ChatMessage[], fetcher: Fetcher, sleep: (ms: number) => Promise<void> = defaultSleep): Promise<string> {
   const signal = AbortSignal.timeout(cfg.timeoutMs ?? 60_000);
   if (cfg.provider === "groq") {
-    const res = await withRetry(
-      () =>
-        fetcher("https://api.groq.com/openai/v1/chat/completions", {
-          method: "POST",
-          headers: { authorization: `Bearer ${cfg.apiKey}`, "content-type": "application/json" },
-          body: JSON.stringify({ model: cfg.model, messages, temperature: 0, response_format: { type: "json_object" } }),
-          signal,
-        }),
-      sleep,
-    );
+    const call = (jsonMode: boolean) =>
+      withRetry(
+        () =>
+          fetcher("https://api.groq.com/openai/v1/chat/completions", {
+            method: "POST",
+            headers: { authorization: `Bearer ${cfg.apiKey}`, "content-type": "application/json" },
+            body: JSON.stringify({ model: cfg.model, messages, temperature: 0, ...(jsonMode ? { response_format: { type: "json_object" } } : {}) }),
+            signal,
+          }),
+        sleep,
+      );
+    let res = await call(true);
+    if (res.status === 400) {
+      // Groq's JSON mode answers 400 (json_validate_failed) when the model's output is not valid
+      // JSON. Ask again without JSON mode; the reply is still parsed and schema-validated below.
+      const detail = await res.text().catch(() => "");
+      if (!/json_validate_failed|json/i.test(detail)) throw new LlmError(`groq HTTP 400 (${detail.slice(0, 120)})`, 400);
+      res = await call(false);
+    }
     if (!res.ok) throw new LlmError(`groq HTTP ${res.status}`, res.status);
     const body = (await res.json()) as { choices?: { message?: { content?: string } }[] };
     return body.choices?.[0]?.message?.content ?? "";

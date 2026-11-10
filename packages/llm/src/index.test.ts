@@ -53,6 +53,18 @@ describe("askJson", () => {
     expect(waits).toEqual([3000]);
   });
 
+  it("retries once without JSON mode when Groq rejects malformed JSON (400)", async () => {
+    const bodies: Record<string, unknown>[] = [];
+    const f = (async (_url: string, init: RequestInit) => {
+      bodies.push(JSON.parse(String(init.body)));
+      if (bodies.length === 1) return new Response('{"error":{"code":"json_validate_failed"}}', { status: 400 });
+      return new Response(JSON.stringify({ choices: [{ message: { content: '{"action":"done"}' } }] }), { status: 200 });
+    }) as unknown as typeof fetch;
+    expect(await askJson(groq, [{ role: "user", content: "go" }], schema, f, async () => {})).toEqual({ action: "done" });
+    expect(bodies[0]).toHaveProperty("response_format");
+    expect(bodies[1]).not.toHaveProperty("response_format");
+  });
+
   it("gives up on persistent rate limits", async () => {
     const f = (async () => new Response("no", { status: 429 })) as unknown as typeof fetch;
     await expect(askJson(groq, [{ role: "user", content: "go" }], schema, f, async () => {})).rejects.toThrow("groq HTTP 429");
