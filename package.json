@@ -22,7 +22,8 @@
     "paypal:cross-read": "pnpm --filter @certifier/worker paypal:cross-read",
     "webhooks:sync": "pnpm --filter @certifier/worker webhooks:sync",
     "agent:shop": "pnpm --filter @certifier/browser-agent agent:shop",
-    "webhooks:ensure": "pnpm --filter @certifier/worker webhooks:ensure"
+    "webhooks:ensure": "pnpm --filter @certifier/worker webhooks:ensure",
+    "env:copy": "tsx packages/config/src/copy-cli.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.6",
