@@ -99,7 +99,7 @@ async function approveWithAgent(links: [string, string, string | undefined][]): 
       const result = await runJourney({
         context: session.context,
         startUrl: link,
-        mission: `This is a PayPal sandbox checkout page for order ${id}, which already exists. Log in as the buyer if asked, then approve and complete the payment. Reply done once PayPal hands you back to the store.`,
+        mission: `This is a PayPal sandbox checkout page for order ${id}, which already exists. Log in as the buyer if asked, then approve and complete the payment. Reply done as soon as you are back on the store and it shows any final result, including "Payment not completed" (some of these orders are meant to fail).`,
         llm: { provider: a.LLM_PROVIDER as Provider, model: a.LLM_MODEL, apiKey: a.LLM_API_KEY },
         buyer: { email: a.PAYPAL_SANDBOX_BUYER_EMAIL, password: a.PAYPAL_SANDBOX_BUYER_PASSWORD },
         scrub: (t) => redact(t, config),
