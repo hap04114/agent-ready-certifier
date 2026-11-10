@@ -9,6 +9,7 @@ import {
   type Order,
   OrdersController,
   PaymentsController,
+  VaultController,
   type Refund,
 } from "@paypal/paypal-server-sdk";
 import { ConfigError, SANDBOX_API_BASE, redact, requireConfig, type Config } from "@certifier/config";
@@ -26,6 +27,8 @@ export type PaypalOperation =
   | "webhooks.getEvent"
   | "webhooks.resendEvent"
   | "webhooks.list"
+  | "vault.createSetupToken"
+  | "vault.createPaymentToken"
   | "webhooks.create";
 
 /**
@@ -69,6 +72,7 @@ export class PaypalCallError extends Error {
 /** Subsets of the SDK controllers we use. Lets tests run without network. */
 export type OrdersApi = Pick<OrdersController, "createOrder" | "getOrder" | "captureOrder">;
 export type PaymentsApi = Pick<PaymentsController, "getCapturedPayment" | "refundCapturedPayment" | "getRefund">;
+export type VaultApi = Pick<VaultController, "createSetupToken" | "createPaymentToken">;
 
 /**
  * Raw REST for the Notifications API, which the Server SDK does not cover.
@@ -97,6 +101,10 @@ export interface CreateOrderInput {
   /** Reuse a request ID only to test idempotency (S7) or to retry safely. Otherwise generated. */
   requestId?: string;
   mock?: MockCode;
+  /** Pay from the buyer's saved PayPal wallet (vault payment token): no approval popup. */
+  vaultId?: string;
+  /** Send the money to another sandbox merchant (used only by the A3 lookalike trap). */
+  payeeEmail?: string;
 }
 
 export interface CallOptions {
@@ -119,6 +127,7 @@ export interface SandboxPaypalOptions {
   /** Inject fakes for tests. Production code lets these default to the real SDK / REST. */
   orders?: OrdersApi;
   payments?: PaymentsApi;
+  vault?: VaultApi;
   rest?: RestCall;
   timeoutMs?: number;
 }
@@ -136,6 +145,7 @@ const mockHeader = (code: MockCode | undefined) =>
 export class SandboxPaypal {
   private readonly orders: OrdersApi;
   private readonly payments: PaymentsApi;
+  private readonly vault: VaultApi;
   private readonly rest: RestCall;
   private readonly audit: AuditSink;
 
@@ -164,10 +174,11 @@ export class SandboxPaypal {
       return client;
     };
     // Fail fast on missing credentials unless every dependency is injected.
-    if (!options.orders || !options.payments || !options.rest) sdk();
+    if (!options.orders || !options.payments || !options.rest || !options.vault) sdk();
 
     this.orders = options.orders ?? new OrdersController(sdk());
     this.payments = options.payments ?? new PaymentsController(sdk());
+    this.vault = options.vault ?? new VaultController(sdk());
     this.rest = options.rest ?? sandboxRest(sdk, options.timeoutMs ?? 30_000);
   }
 
@@ -183,6 +194,7 @@ export class SandboxPaypal {
           purchaseUnits: [
             {
               referenceId: input.referenceId,
+              payee: input.payeeEmail ? { emailAddress: input.payeeEmail } : undefined,
               amount: {
                 currencyCode: input.amount.currencyCode,
                 value: input.amount.value,
@@ -191,8 +203,9 @@ export class SandboxPaypal {
               items: input.items?.map((i) => ({ name: i.name, sku: i.sku, quantity: String(i.quantity), unitAmount: i.unitAmount })),
             },
           ],
-          paymentSource:
-            input.returnUrl || input.cancelUrl
+          paymentSource: input.vaultId
+            ? { paypal: { vaultId: input.vaultId } }
+            : input.returnUrl || input.cancelUrl
               ? { paypal: { experienceContext: { returnUrl: input.returnUrl, cancelUrl: input.cancelUrl } } }
               : undefined,
         },
@@ -259,6 +272,42 @@ export class SandboxPaypal {
     return this.call("webhooks.getEvent", {}, (e) => ({ resourceId: e.id, resourceStatus: e.event_type }), async () => {
       const res = await this.rest("GET", `/v1/notifications/webhooks-events/${encodeURIComponent(eventId)}`, {});
       return res.json as WebhookEventDetail;
+    });
+  }
+
+  /**
+   * Start saving the buyer's PayPal wallet (vault). Returns the setup token and the link the
+   * buyer opens once to approve. Needs "Save payment methods" enabled on the sandbox app.
+   */
+  async createVaultSetupToken(urls: { returnUrl: string; cancelUrl: string }): Promise<{ id: string; approveUrl?: string; status?: string }> {
+    const requestId = randomUUID();
+    return this.call("vault.createSetupToken", { requestId }, (t) => ({ resourceId: t.id, resourceStatus: t.status }), async () => {
+      const res = await this.vault.createSetupToken({
+        paypalRequestId: requestId,
+        body: {
+          paymentSource: {
+            paypal: {
+              usageType: "MERCHANT" as never,
+              usagePattern: "IMMEDIATE" as never,
+              experienceContext: { returnUrl: urls.returnUrl, cancelUrl: urls.cancelUrl },
+            },
+          },
+        },
+      });
+      const r = res.result;
+      return { id: r.id ?? "", status: r.status, approveUrl: r.links?.find((l) => l.rel === "approve")?.href };
+    });
+  }
+
+  /** Turn an approved setup token into a reusable payment token (the vault ID). */
+  async createVaultPaymentToken(setupTokenId: string): Promise<{ id: string }> {
+    const requestId = randomUUID();
+    return this.call("vault.createPaymentToken", { requestId }, (t) => ({ resourceId: t.id }), async () => {
+      const res = await this.vault.createPaymentToken({
+        paypalRequestId: requestId,
+        body: { paymentSource: { token: { id: setupTokenId, type: "SETUP_TOKEN" as never } } },
+      });
+      return { id: res.result.id ?? "" };
     });
   }
 

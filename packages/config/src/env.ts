@@ -18,6 +18,7 @@ export const SENSITIVE_KEYS = [
   "PAYPAL_CLIENT_SECRET",
   "PAYPAL_SANDBOX_BUYER_EMAIL",
   "PAYPAL_SANDBOX_BUYER_PASSWORD",
+  "PAYPAL_SANDBOX_BUYER_VAULT_ID",
   "PAYPAL_WEBHOOK_ID",
   "DEMO_STORE_GOOD_WEBHOOK_ID",
   "DEMO_STORE_GOOD_STATUS_KEY",
@@ -77,6 +78,10 @@ export const envSchema = z.object({
   PAYPAL_CLIENT_SECRET: optionalString,
   PAYPAL_SANDBOX_BUYER_EMAIL: optionalString,
   PAYPAL_SANDBOX_BUYER_PASSWORD: optionalString,
+  /** The sandbox buyer's saved PayPal wallet (vault payment token) for the AI shopper tests. */
+  PAYPAL_SANDBOX_BUYER_VAULT_ID: optionalString,
+  /** Email of a second sandbox business account: the A3 lookalike merchant (not a secret). */
+  LOOKALIKE_MERCHANT_EMAIL: optionalString,
 
   // Webhooks (Milestone 2)
   PAYPAL_WEBHOOK_ID: optionalString,
