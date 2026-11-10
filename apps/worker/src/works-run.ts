@@ -8,16 +8,19 @@ import { ConfigError, bootConfig, requireConfig } from "@certifier/config";
 import { certifierRepo, createPgDb, migrateCertifier } from "@certifier/db";
 import type { Provider } from "@certifier/llm";
 import { RunBudget } from "./budget.js";
+import { type StoreName, storeProfile } from "./stores.js";
 import { type AgentSettings, runWorksPillar } from "./works.js";
 
 const config = bootConfig("works:run");
 const manual = process.argv.includes("--manual");
 const resumeIdx = process.argv.indexOf("--resume");
+const storeIdx = process.argv.indexOf("--store");
+const storeName = (storeIdx > 0 ? process.argv[storeIdx + 1] : "good") as StoreName;
 
-let env: { DATABASE_URL: string; DEMO_STORE_GOOD_STATUS_KEY: string };
+let env: { DATABASE_URL: string };
 let agent: AgentSettings | undefined;
 try {
-  env = requireConfig(config, "works:run", ["PAYPAL_CLIENT_ID", "PAYPAL_CLIENT_SECRET", "DATABASE_URL", "DEMO_STORE_GOOD_STATUS_KEY"]);
+  env = requireConfig(config, "works:run", ["PAYPAL_CLIENT_ID", "PAYPAL_CLIENT_SECRET", "DATABASE_URL"]);
   if (!manual) {
     const a = requireConfig(config, "the browser agent (or pass --manual)", [
       "KERNEL_API_KEY",
@@ -41,6 +44,11 @@ try {
   throw err;
 }
 
+const profile = storeProfile(config, storeName);
+if ("missing" in profile) {
+  console.error(`works:run --store ${storeName} needs: ${profile.missing.join(", ")}`);
+  process.exit(1);
+}
 const budget = new RunBudget(config.RUN_MAX_REQUESTS, config.RUN_MAX_MINUTES);
 process.on("SIGINT", () => {
   console.log("\nKill switch: stopping the run.");
@@ -54,7 +62,7 @@ try {
     config,
     repo: certifierRepo(db),
     budget,
-    store: { url: config.DEMO_STORE_GOOD_URL, statusKey: env.DEMO_STORE_GOOD_STATUS_KEY, webhookId: config.DEMO_STORE_GOOD_WEBHOOK_ID, demoHooks: true },
+    ...profile,
     certifierWebhookUrl: config.WEBHOOK_PUBLIC_URL,
     agent,
     resumeFrom: resumeIdx > 0 ? process.argv[resumeIdx + 1] : undefined,
@@ -63,7 +71,7 @@ try {
       console.log(`  [paypal] ${e.operation} ${e.ok ? "ok" : "FAILED"} ${e.resourceId ?? ""} ${e.resourceStatus ?? ""}${e.requestId ? ` request-id=${e.requestId}` : ""}`),
   });
 
-  console.log(`\n=== Works pillar — run ${result.runId} — ${result.status} — ${budget.used}/${config.RUN_MAX_REQUESTS} requests ===`);
+  console.log(`\n=== Certification — ${storeName} store — run ${result.runId} — ${result.status} — ${budget.used}/${config.RUN_MAX_REQUESTS} requests ===`);
   for (const v of result.verdicts) {
     console.log(`${v.status.toUpperCase().padEnd(12)} ${v.check}  ${v.summary}`);
     for (const r of v.reasons) console.log(`               - ${r}`);

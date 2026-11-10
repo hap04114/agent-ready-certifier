@@ -30,7 +30,8 @@
     "vault:setup": "pnpm --filter @certifier/worker vault:setup",
     "demo:export": "pnpm --filter @certifier/api demo:export",
     "diagnose": "pnpm --filter @certifier/worker diagnose",
-    "apimatic:register": "pnpm --filter @certifier/diagnosis apimatic:register"
+    "apimatic:register": "pnpm --filter @certifier/diagnosis apimatic:register",
+    "benchmark": "pnpm --filter @certifier/worker benchmark"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.6",
