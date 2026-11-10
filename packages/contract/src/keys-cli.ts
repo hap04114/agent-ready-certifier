@@ -38,5 +38,8 @@ if (!config.CERTIFIER_ADMIN_TOKEN) {
 }
 text = setVar(text, "DEMO_STORE_GOOD_STATUS_KEY", deriveStatusKey(config.OWNERSHIP_TOKEN_SECRET!, config.DEMO_STORE_GOOD_URL));
 text = setVar(text, "DEMO_STORE_GOOD_OWNERSHIP_TOKEN", deriveOwnershipToken(config.OWNERSHIP_TOKEN_SECRET!, config.DEMO_STORE_GOOD_URL));
+text = setVar(text, "DEMO_STORE_BUGGY_STATUS_KEY", deriveStatusKey(config.OWNERSHIP_TOKEN_SECRET!, config.DEMO_STORE_BUGGY_URL));
+text = setVar(text, "DEMO_STORE_BUGGY_OWNERSHIP_TOKEN", deriveOwnershipToken(config.OWNERSHIP_TOKEN_SECRET!, config.DEMO_STORE_BUGGY_URL));
 writeFileSync(envPath, text);
 console.log(`store:keys: wrote DEMO_STORE_GOOD_STATUS_KEY and DEMO_STORE_GOOD_OWNERSHIP_TOKEN for ${new URL(config.DEMO_STORE_GOOD_URL).origin}`);
+console.log(`store:keys: wrote DEMO_STORE_BUGGY_STATUS_KEY and DEMO_STORE_BUGGY_OWNERSHIP_TOKEN for ${new URL(config.DEMO_STORE_BUGGY_URL).origin}`);
