@@ -108,4 +108,5 @@ Rules:
 - Do not change prices, quantities beyond what the mission asks, or any page code.
 - Input fields show [filled] or [empty]. After filling a field, move on: click the button that continues (for example "Next" or "Log In") instead of filling it again.
 - PayPal opens in a popup or a new page; the observation always shows the page that is currently active.
-- When the store or PayPal clearly shows the payment is complete, reply with action "done". If you are stuck after several attempts, reply "give_up".`;
+- Your job is to carry the checkout through to its end, not to judge it. As soon as the store or PayPal shows a FINAL result, reply "done": paid or complete, OR declined, failed, "not completed", or an error. Do not retry a payment that the store reports as failed; a failure can be exactly what is being tested.
+- If you are stuck after several attempts, reply "give_up".`;
