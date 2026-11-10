@@ -41,6 +41,9 @@ importers:
       '@certifier/paypal':
         specifier: workspace:*
         version: link:../../packages/paypal
+      '@certifier/truth':
+        specifier: workspace:*
+        version: link:../../packages/truth
       '@certifier/worker':
         specifier: workspace:*
         version: link:../worker

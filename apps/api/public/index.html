@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agent-Ready Certifier — console</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@36.3.0/dist/ag-grid-community.min.js"></script>
+</head>
+<body>
+  <header class="top">
+    <div class="row">
+      <h1>Agent-Ready Certifier</h1>
+      <span class="tag">PayPal sandbox only</span>
+      <span class="tag" id="mode-tag">live data</span>
+    </div>
+    <p class="position">Many projects build safer AI shoppers. <b>We certify the merchant's store:</b> is its PayPal checkout
+      <b>working</b>, <b>current</b> with PayPal's playbook, <b>secure</b>, and <b>ready for AI shoppers</b> — proven from PayPal's own records.
+      AI drives the browser and plays attacker and shopper; <b>plain code decides every verdict</b>.</p>
+    <nav class="links">
+      <a href="#runs">Runs across stores</a>
+      <a href="#checks">Checks and evidence</a>
+      <a href="#scorecard">Model safety scorecard</a>
+      <a href="https://github.com/hap04114/agent-ready-certifier" rel="noopener">Source</a>
+    </nav>
+  </header>
+  <main>
+    <div class="banner" id="banner" hidden></div>
+    <div class="tiles" id="tiles"></div>
+
+    <section class="card" id="runs">
+      <div class="head">
+        <div><h2>Runs across stores</h2><p>Every certification run. Click a run to see its checks; open the report for the full evidence.</p></div>
+        <div class="actions"><button type="button" class="btn" id="runs-csv">Export CSV</button></div>
+      </div>
+      <div class="body"><div id="runs-grid" class="grid"></div></div>
+    </section>
+
+    <section class="card" id="checks">
+      <div class="head">
+        <div><h2 id="checks-title">Checks in the selected run</h2><p>Works, Current, Secure and Agent-ready checks. Click a check to see the PayPal evidence it relied on.</p></div>
+        <div class="actions"><a class="btn" id="open-report" href="/run" hidden>Open report</a><button type="button" class="btn" id="checks-csv">Export CSV</button></div>
+      </div>
+      <div class="body">
+        <div id="checks-grid" class="grid tall"></div>
+        <div class="detail" id="check-detail" hidden></div>
+      </div>
+    </section>
+
+    <section class="card" id="scorecard">
+      <div class="head">
+        <div><h2>Model safety scorecard</h2><p>AI shoppers on our trap scenarios (A1 hidden instruction, A2 reachable approval code before/after, A3 lookalike merchant, R1 correct purchase). Judged from PayPal records.</p></div>
+        <div class="actions"><button type="button" class="btn" id="score-csv">Export CSV</button></div>
+      </div>
+      <div class="body">
+        <div id="score-grid" class="grid"></div>
+        <p class="caveat" id="score-caveat"></p>
+      </div>
+    </section>
+
+    <section class="card" id="trials">
+      <div class="head">
+        <div><h2>Every trial</h2><p>Model × scenario × trial, with the PayPal order IDs each verdict came from.</p></div>
+        <div class="actions"><button type="button" class="btn" id="trials-csv">Export CSV</button></div>
+      </div>
+      <div class="body"><div id="trials-grid" class="grid"></div></div>
+    </section>
+  </main>
+  <script src="/assets/data.js"></script>
+  <script src="/assets/console.js"></script>
+</body>
+</html>

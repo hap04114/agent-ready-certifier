@@ -27,7 +27,8 @@
     "render:sync": "tsx packages/config/src/render-sync.ts",
     "probe:page": "pnpm --filter @certifier/probes probe:page",
     "scorecard": "pnpm --filter @certifier/worker scorecard",
-    "vault:setup": "pnpm --filter @certifier/worker vault:setup"
+    "vault:setup": "pnpm --filter @certifier/worker vault:setup",
+    "demo:export": "pnpm --filter @certifier/api demo:export"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.6",

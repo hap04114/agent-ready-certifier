@@ -1,0 +1,23 @@
+name: Keep the hosted demo awake
+
+# Render's free plan puts services to sleep when idle; a sleeping store takes ~50 s to answer.
+# Pinging every 10 minutes keeps the judges' first click fast. Read-only GETs, no secrets.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping the certifier and the demo store
+        run: |
+          for url in https://certifier-api.onrender.com/health https://demo-store-good.onrender.com/api/catalog; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 90 "$url" || true)
+            echo "$url -> $code"
+          done

@@ -4,6 +4,8 @@
  * verifies each signature itself using PAYPAL_WEBHOOK_ID, without any merchant secret.
  * Payloads are stored as untrusted data; nothing here interprets them beyond IDs and types.
  */
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import Fastify from "fastify";
 import { z } from "zod";
 import type { Config } from "@certifier/config";
@@ -32,6 +34,30 @@ const eventShape = z.object({
     .passthrough()
     .optional(),
 });
+
+const PUBLIC_DIR = fileURLToPath(new URL("../public/", import.meta.url));
+const ASSETS: Record<string, string> = {
+  "styles.css": "text/css; charset=utf-8",
+  "data.js": "application/javascript; charset=utf-8",
+  "console.js": "application/javascript; charset=utf-8",
+  "run.js": "application/javascript; charset=utf-8",
+  "demo-snapshot.json": "application/json; charset=utf-8",
+};
+/** Pages load only our own files plus the pinned AG Grid build from jsDelivr. */
+const PAGE_HEADERS = {
+  "content-security-policy":
+    "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
+  "strict-transport-security": "max-age=31536000; includeSubDomains",
+  "x-content-type-options": "nosniff",
+  "referrer-policy": "strict-origin-when-cross-origin",
+};
+const readPublic = (name: string): Buffer | undefined => {
+  try {
+    return readFileSync(`${PUBLIC_DIR}${name}`);
+  } catch {
+    return undefined;
+  }
+};
 
 export function buildApi(config: Config, deps: ApiDeps = {}) {
   const app = Fastify({
@@ -67,6 +93,17 @@ export function buildApi(config: Config, deps: ApiDeps = {}) {
     } catch {
       done(Object.assign(new Error("invalid JSON body"), { statusCode: 400 }), undefined);
     }
+  });
+
+  // Console and report pages (read-only; data comes from the public /api endpoints).
+  app.get("/", async (_req, reply) => reply.headers(PAGE_HEADERS).type("text/html; charset=utf-8").send(readPublic("index.html")));
+  app.get("/run", async (_req, reply) => reply.headers(PAGE_HEADERS).type("text/html; charset=utf-8").send(readPublic("run.html")));
+  app.get("/assets/:file", async (req, reply) => {
+    const file = (req.params as { file: string }).file;
+    const type = ASSETS[file];
+    const body = type ? readPublic(file) : undefined;
+    if (!type || !body) return reply.code(404).send({ error: "not_found" });
+    return reply.headers(PAGE_HEADERS).header("cache-control", "public, max-age=300").type(type).send(body);
   });
 
   app.get("/health", async () => ({

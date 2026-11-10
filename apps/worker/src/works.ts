@@ -88,13 +88,21 @@ export interface WorksRunResult {
 
 export async function runWorksPillar(opts: WorksRunOptions): Promise<WorksRunResult> {
   const { config, repo, budget } = opts;
-  const log = opts.log ?? (() => {});
+  const notes: Record<string, unknown> = {};
+  const runLog: string[] = [];
+  notes.log = runLog;
+  const outer = opts.log ?? (() => {});
+  // Every line is also kept with the run (capped), so a judge can replay what happened.
+  const log = (line: string) => {
+    const clean = redact(line, config);
+    if (runLog.length < 600) runLog.push(`${new Date().toISOString().slice(11, 19)} ${clean}`);
+    outer(clean);
+  };
   const storeUrl = opts.store.url.replace(/\/+$/, "");
   const WAIT = config.WEBHOOK_WAIT_SECONDS;
   // Deliveries are requested only from this moment on (store contract: delivery log is per run).
   const RUN_STARTED = new Date();
   const verdicts: Verdict[] = [];
-  const notes: Record<string, unknown> = {};
   let recording: Recording | undefined;
 
   const paypal = new SandboxPaypal(config, { audit: opts.paypalAudit });
