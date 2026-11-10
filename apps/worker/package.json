@@ -11,7 +11,8 @@
     "webhooks:ensure": "tsx src/webhooks-ensure.ts",
     "scorecard": "tsx src/scorecard.ts",
     "vault:setup": "tsx src/vault-setup.ts",
-    "diagnose": "tsx src/diagnose-run.ts"
+    "diagnose": "tsx src/diagnose-run.ts",
+    "benchmark": "tsx src/benchmark.ts"
   },
   "dependencies": {
     "@certifier/config": "workspace:*",

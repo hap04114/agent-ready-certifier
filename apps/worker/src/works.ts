@@ -71,6 +71,11 @@ export interface WorksRunOptions {
   certifierWebhookUrl?: string;
   /** Without it, a human approves the printed links. */
   agent?: AgentSettings;
+  /**
+   * The store's own sandbox app credentials (store contract item 5), for reading its orders,
+   * refunding and resending events. Defaults to PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET.
+   */
+  paypalCredentials?: { clientId: string; clientSecret: string };
   /** Reuse the approved orders of an earlier run (development convenience). */
   resumeFrom?: string;
   /** Use an existing run row (the Run API creates it); otherwise one is created. */
@@ -105,7 +110,10 @@ export async function runWorksPillar(opts: WorksRunOptions): Promise<WorksRunRes
   const verdicts: Verdict[] = [];
   let recording: Recording | undefined;
 
-  const paypal = new SandboxPaypal(config, { audit: opts.paypalAudit });
+  const paypal = new SandboxPaypal(
+    opts.paypalCredentials ? { ...config, PAYPAL_CLIENT_ID: opts.paypalCredentials.clientId, PAYPAL_CLIENT_SECRET: opts.paypalCredentials.clientSecret } : config,
+    { audit: opts.paypalAudit },
+  );
   const pp = async <T>(fn: () => Promise<T>): Promise<T> => {
     budget.spend();
     return fn();

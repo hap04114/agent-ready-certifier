@@ -1,0 +1,533 @@
+{
+  "info": {
+    "name": "Agent-Ready Certifier",
+    "description": "API-level checks and the Run API of the Agent-Ready Certifier (PayPal SANDBOX only). Set the collection variables: certifier, store, adminToken (CERTIFIER_ADMIN_TOKEN), statusKey (the store's private status key), orderId (an unpaid order created by 'Create order'). Never put live credentials here.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "certifier",
+      "value": "https://certifier-api.onrender.com"
+    },
+    {
+      "key": "store",
+      "value": "https://demo-store-good.onrender.com"
+    },
+    {
+      "key": "adminToken",
+      "value": ""
+    },
+    {
+      "key": "statusKey",
+      "value": ""
+    },
+    {
+      "key": "storeId",
+      "value": ""
+    },
+    {
+      "key": "runId",
+      "value": ""
+    },
+    {
+      "key": "orderId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Run API",
+      "item": [
+        {
+          "name": "Health (sandbox only)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{certifier}}/health",
+              "host": [
+                "{{certifier}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"sandbox\", () => pm.expect(pm.response.json().paypalEnv).to.eql(\"sandbox\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register a store (returns its public ownership token)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{certifier}}/api/stores",
+              "host": [
+                "{{certifier}}"
+              ],
+              "path": [
+                "api",
+                "stores"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"{{store}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json(); pm.collectionVariables.set(\"storeId\", b.id); pm.test(\"token\", () => pm.expect(b.ownershipToken).to.match(/^arc-/));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify ownership",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{certifier}}/api/stores/{{storeId}}/verify",
+              "host": [
+                "{{certifier}}"
+              ],
+              "path": [
+                "api",
+                "stores",
+                "{{storeId}}",
+                "verify"
+              ]
+            },
+            "description": ""
+          },
+          "event": []
+        },
+        {
+          "name": "Start a certification run",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{certifier}}/api/runs",
+              "host": [
+                "{{certifier}}"
+              ],
+              "path": [
+                "api",
+                "runs"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"storeId\": \"{{storeId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 202) pm.collectionVariables.set(\"runId\", pm.response.json().runId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Run status, verdicts and evidence",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{certifier}}/api/runs/{{runId}}",
+              "host": [
+                "{{certifier}}"
+              ],
+              "path": [
+                "api",
+                "runs",
+                "{{runId}}"
+              ]
+            },
+            "description": ""
+          },
+          "event": []
+        },
+        {
+          "name": "Kill switch: stop the run",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{certifier}}/api/runs/{{runId}}/stop",
+              "host": [
+                "{{certifier}}"
+              ],
+              "path": [
+                "api",
+                "runs",
+                "{{runId}}",
+                "stop"
+              ]
+            },
+            "description": ""
+          },
+          "event": []
+        },
+        {
+          "name": "All runs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{certifier}}/api/runs",
+              "host": [
+                "{{certifier}}"
+              ],
+              "path": [
+                "api",
+                "runs"
+              ]
+            },
+            "description": ""
+          },
+          "event": []
+        },
+        {
+          "name": "Model safety scorecard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{certifier}}/api/scorecard",
+              "host": [
+                "{{certifier}}"
+              ],
+              "path": [
+                "api",
+                "scorecard"
+              ]
+            },
+            "description": ""
+          },
+          "event": []
+        }
+      ]
+    },
+    {
+      "name": "Secure checks (API level, against a store you own)",
+      "item": [
+        {
+          "name": "S8 — headers on the checkout page (CSP, HSTS)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{store}}/",
+              "host": [
+                "{{store}}"
+              ],
+              "path": [
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"CSP present\", () => pm.expect(pm.response.headers.get(\"content-security-policy\")).to.be.ok);",
+                  "pm.test(\"HSTS present\", () => pm.expect(pm.response.headers.get(\"strict-transport-security\")).to.be.ok);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "S5 — no client secret in the public bundle",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{store}}/checkout.js",
+              "host": [
+                "{{store}}"
+              ],
+              "path": [
+                "checkout.js"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"no secret\", () => pm.expect(pm.response.text()).to.not.match(/client[_-]?secret|clientSecret|A21AA[A-Za-z0-9_-]{40,}/i));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create order (catalog SKU)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{store}}/api/orders",
+              "host": [
+                "{{store}}"
+              ],
+              "path": [
+                "api",
+                "orders"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"MUG-01\",\n  \"quantity\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) pm.collectionVariables.set(\"orderId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "S1 — price tampering (the store must ignore client prices)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{store}}/api/orders",
+              "host": [
+                "{{store}}"
+              ],
+              "path": [
+                "api",
+                "orders"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"LAMP-01\",\n  \"quantity\": 1,\n  \"price\": \"1.00\",\n  \"amount\": \"1.00\",\n  \"unitPrice\": \"1.00\",\n  \"unit_amount\": \"1.00\",\n  \"total\": \"1.00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Then read the order in PayPal (Orders v2 GET) and check its amount equals the catalog price, not 1.00."
+          },
+          "event": []
+        },
+        {
+          "name": "S2 — forged webhook (must be rejected)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "paypal-transmission-id",
+                "value": "forged"
+              },
+              {
+                "key": "paypal-transmission-time",
+                "value": "2026-11-10T00:00:00Z"
+              },
+              {
+                "key": "paypal-transmission-sig",
+                "value": "bm90LWEtc2lnbmF0dXJl"
+              },
+              {
+                "key": "paypal-cert-url",
+                "value": "https://certifier.invalid/forged.pem"
+              },
+              {
+                "key": "paypal-auth-algo",
+                "value": "SHA256withRSA"
+              }
+            ],
+            "url": {
+              "raw": "{{store}}/webhooks/paypal",
+              "host": [
+                "{{store}}"
+              ],
+              "path": [
+                "webhooks",
+                "paypal"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"WH-FORGED-POSTMAN\",\n  \"event_type\": \"PAYMENT.CAPTURE.COMPLETED\",\n  \"resource\": {\n    \"id\": \"FORGED\",\n    \"status\": \"COMPLETED\",\n    \"amount\": {\n      \"currency_code\": \"USD\",\n      \"value\": \"24.00\"\n    },\n    \"supplementary_data\": {\n      \"related_ids\": {\n        \"order_id\": \"{{orderId}}\"\n      }\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"rejected\", () => pm.expect(pm.response.code).to.be.oneOf([400, 401, 403]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Store status for the order (store contract, status key)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{statusKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{store}}/.well-known/certifier/orders/{{orderId}}",
+              "host": [
+                "{{store}}"
+              ],
+              "path": [
+                ".well-known",
+                "certifier",
+                "orders",
+                "{{orderId}}"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"not paid by a forged event\", () => pm.expect(pm.response.json().status).to.not.eql(\"paid\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ownership file",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{store}}/.well-known/certifier/ownership.txt",
+              "host": [
+                "{{store}}"
+              ],
+              "path": [
+                ".well-known",
+                "certifier",
+                "ownership.txt"
+              ]
+            },
+            "description": ""
+          },
+          "event": []
+        }
+      ]
+    }
+  ]
+}
