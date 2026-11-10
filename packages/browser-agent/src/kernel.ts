@@ -35,6 +35,9 @@ export async function openKernelSession(apiKey: string, opts: { timeoutSeconds?:
   }
   const browser = await chromium.connectOverCDP(kb.cdp_ws_url);
   const context = browser.contexts()[0] ?? (await browser.newContext());
+  // Cloud browsers can get localized PayPal pages (e.g. Portuguese); ask for English so the
+  // agent sees the same wording on every run.
+  await context.setExtraHTTPHeaders({ "accept-language": "en-US,en;q=0.9" }).catch(() => {});
 
   return {
     sessionId: kb.session_id,

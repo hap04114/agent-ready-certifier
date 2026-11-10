@@ -35,6 +35,9 @@ const eventRef = (e: SignedEventSnap): EvidenceRef => ({
 });
 
 const completed = (o: PaypalOrderSnap) => o.captures.filter((c) => c.status === "COMPLETED");
+/** PayPal statuses meaning the buyer never approved: the test journey failed, not the store. */
+const NOT_APPROVED = new Set(["CREATED", "PAYER_ACTION_REQUIRED", "SAVED", "VOIDED"]);
+const notApproved = (o: PaypalOrderSnap) => NOT_APPROVED.has(o.status) && o.captures.length === 0;
 const is2xx = (n: number | undefined) => n !== undefined && n >= 200 && n < 300;
 
 // ---------------------------------------------------------------------------------------------
@@ -44,6 +47,9 @@ export function judgeW1(input: { order?: PaypalOrderSnap; store?: StoreRecordSna
   const { order, store } = input;
   if (!order) return verdict("W1", "inconclusive", "PayPal order record unavailable.", ["Could not read the order from PayPal."], []);
   const evidence = [orderRef(order), ...captureRefs(order)];
+  if (notApproved(order)) {
+    return verdict("W1", "inconclusive", "The test buyer never approved the order, so the purchase was not exercised.", [`PayPal order status is ${order.status}.`], evidence);
+  }
   if (!store) return verdict("W1", "inconclusive", "Store record unavailable.", ["The store status endpoint did not return this order."], evidence);
   evidence.push(storeRef(store));
 
@@ -85,6 +91,9 @@ function judgeForcedError(check: "W2" | "W3", label: string, input: ForcedErrorI
   const { order, store } = input;
   if (!order) return verdict(check, "inconclusive", "PayPal order record unavailable.", [], []);
   const evidence = [orderRef(order), ...captureRefs(order)];
+  if (notApproved(order)) {
+    return verdict(check, "inconclusive", `The test buyer never approved the order, so the ${label} was not exercised.`, [`PayPal order status is ${order.status}.`], evidence);
+  }
   if (!store) return verdict(check, "inconclusive", "Store record unavailable.", [], evidence);
   evidence.push(storeRef(store));
 
