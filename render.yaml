@@ -41,6 +41,23 @@ services:
         sync: false
       - key: WEBHOOK_PUBLIC_URL
         sync: false
+      # Run API, ownership verifier and the AI buyer agent (Milestone 4)
+      - key: OWNERSHIP_TOKEN_SECRET
+        sync: false
+      - key: CERTIFIER_ADMIN_TOKEN
+        sync: false
+      - key: KERNEL_API_KEY
+        sync: false
+      - key: LLM_PROVIDER
+        sync: false
+      - key: LLM_MODEL
+        sync: false
+      - key: LLM_API_KEY
+        sync: false
+      - key: PAYPAL_SANDBOX_BUYER_EMAIL
+        sync: false
+      - key: PAYPAL_SANDBOX_BUYER_PASSWORD
+        sync: false
 
   # Demo target: the correct, current, secure store. It is a separate merchant system with
   # its own schema in the same database.
@@ -76,4 +93,7 @@ services:
       - key: DEMO_STORE_GOOD_WEBHOOK_ID
         sync: false
       - key: DEMO_STORE_GOOD_STATUS_KEY
+        sync: false
+      # Public ownership token the store serves
+      - key: DEMO_STORE_GOOD_OWNERSHIP_TOKEN
         sync: false
