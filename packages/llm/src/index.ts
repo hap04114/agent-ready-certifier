@@ -109,7 +109,12 @@ export async function askJson<T>(
 ): Promise<T> {
   let convo = messages;
   for (let attempt = 0; attempt < 2; attempt++) {
-    const text = await rawJson(cfg, convo, fetcher, sleep);
+    let text = await rawJson(cfg, convo, fetcher, sleep);
+    // An EMPTY answer means the model produced nothing usable. Ask again unchanged (a correction
+    // prompt would push it to invent an action), and if it is still empty, fail loudly: the caller
+    // records an error, which is never counted as a decision.
+    if (text.trim() === "") text = await rawJson(cfg, convo, fetcher, sleep);
+    if (text.trim() === "") throw new LlmError(`${cfg.provider} returned an empty response`);
     let parsed: unknown;
     try {
       parsed = extractJson(text);

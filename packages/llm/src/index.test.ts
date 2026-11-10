@@ -70,6 +70,18 @@ describe("askJson", () => {
     await expect(askJson(groq, [{ role: "user", content: "go" }], schema, f, async () => {})).rejects.toThrow("groq HTTP 429");
   });
 
+  it("treats a twice-empty answer as an error, never as a nudged guess", async () => {
+    const seen: { url: string; body: unknown }[] = [];
+    await expect(askJson(groq, [{ role: "user", content: "go" }], schema, fakeFetch(["", ""], seen), async () => {})).rejects.toThrow("groq returned an empty response");
+    // The second request is the SAME conversation, with no correction prompt added.
+    expect(seen).toHaveLength(2);
+    expect(seen[0]!.body).toEqual(seen[1]!.body);
+  });
+
+  it("recovers when only the first answer is empty", async () => {
+    expect(await askJson(groq, [{ role: "user", content: "go" }], schema, fakeFetch(["", '{"action":"done"}']), async () => {})).toEqual({ action: "done" });
+  });
+
   it("extracts JSON from a fenced block", () => {
     expect(extractJson('```json\n{"a":1}\n```')).toEqual({ a: 1 });
   });
