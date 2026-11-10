@@ -9,11 +9,14 @@ import { z } from "zod";
 import type { Config } from "@certifier/config";
 import type { CertifierRepo } from "@certifier/db";
 import { type VerifyResult, verifyWebhook, webhookHeadersFrom } from "@certifier/paypal";
+import { type OwnershipVerifier, type RunStarter, registerRunApi } from "./runs.js";
 
 export type WebhookVerifier = (headers: Record<string, string | string[] | undefined>, rawBody: Buffer) => Promise<VerifyResult>;
 
 export interface ApiDeps {
   repo?: CertifierRepo;
+  runner?: RunStarter;
+  verifyOwnership?: OwnershipVerifier;
   verifyWebhook?: WebhookVerifier;
   logger?: boolean;
 }
@@ -76,6 +79,8 @@ export function buildApi(config: Config, deps: ApiDeps = {}) {
       return result.valid ? reply.code(200).send({ ok: true }) : reply.code(400).send({ error: "invalid_signature" });
     });
   });
+
+  if (deps.repo) registerRunApi(app, { config, repo: deps.repo, runner: deps.runner, verifyOwnership: deps.verifyOwnership });
 
   return app;
 }

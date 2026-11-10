@@ -18,5 +18,9 @@
     "@certifier/truth": "workspace:*",
     "@certifier/browser-agent": "workspace:*",
     "@certifier/llm": "workspace:*"
+  },
+  "exports": {
+    "./works": "./src/works.ts",
+    "./budget": "./src/budget.ts"
   }
 }

@@ -56,6 +56,7 @@ function store(opts: Parameters<typeof fakePaypal>[0] & { signatureValid?: boole
     paypal: fake.paypal,
     clientId: "public-client-id",
     statusKey: opts.statusKey === null ? undefined : (opts.statusKey ?? KEY),
+    ownershipToken: "arc-test-ownership-token",
     publicUrl: "http://localhost:5001",
     verifyWebhook: async () => (opts.signatureValid === false ? { valid: false, reason: "bad_signature" } : { valid: true }),
     logger: false,
@@ -341,6 +342,16 @@ describe("delivery log and fail-ack (W6)", () => {
     const { app } = store();
     expect((await app.inject({ method: "POST", url: "/__demo/fail-ack", payload: { paypalOrderId: "ORDER1", eventType: "PAYMENT.CAPTURE.REFUNDED" } })).statusCode).toBe(401);
     expect((await app.inject({ method: "POST", url: "/__demo/fail-ack", headers: auth, payload: { paypalOrderId: "UNKNOWN1", eventType: "PAYMENT.CAPTURE.REFUNDED" } })).statusCode).toBe(404);
+  });
+});
+
+describe("ownership token", () => {
+  it("is served as a meta tag and as a file, so the certifier can verify the store", async () => {
+    const { app } = store();
+    expect((await app.inject({ method: "GET", url: "/" })).body).toContain('<meta name="agent-ready-certifier" content="arc-test-ownership-token">');
+    const file = await app.inject({ method: "GET", url: "/.well-known/certifier/ownership.txt" });
+    expect(file.statusCode).toBe(200);
+    expect(file.body).toBe("arc-test-ownership-token");
   });
 });
 

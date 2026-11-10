@@ -5,6 +5,7 @@
 import { bootConfig } from "@certifier/config";
 import { certifierRepo, createPgDb, describeDbError, migrateCertifier } from "@certifier/db";
 import { buildApi } from "./server.js";
+import { makeRunner } from "./runner.js";
 
 const config = bootConfig("api");
 
@@ -24,7 +25,7 @@ if (config.DATABASE_URL) {
 }
 if (!config.PAYPAL_WEBHOOK_ID) console.warn("[api] PAYPAL_WEBHOOK_ID not set: webhook listener disabled");
 
-const app = buildApi(config, { repo });
+const app = buildApi(config, { repo, runner: repo ? makeRunner(config, repo) : undefined });
 // Render injects PORT; locally we use the port in API_BASE_URL.
 const port = Number(process.env.PORT || new URL(config.API_BASE_URL).port || 4000);
 

@@ -71,6 +71,25 @@ export const CERTIFIER_MIGRATIONS: Migration[] = [
         CHECK (strength IN ('paypal-signed','paypal-api','store-reported','certifier-recorded'));
     `,
   },
+  {
+    id: "003_stores",
+    sql: `
+      -- Stores under test. A run may only start on a verified store (CLAUDE.md rule 3).
+      CREATE TABLE stores (
+        id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        url              text NOT NULL UNIQUE,
+        ownership_token  text NOT NULL,
+        verified_at      timestamptz,
+        verify_method    text,
+        last_check       text,
+        -- Extended contract: kept as configuration, never shown in reports or API responses.
+        store_webhook_id text,
+        demo_hooks       boolean NOT NULL DEFAULT false,
+        created_at       timestamptz NOT NULL DEFAULT now()
+      );
+      ALTER TABLE runs ADD COLUMN store_id uuid REFERENCES stores(id);
+    `,
+  },
 ];
 
 export const migrateCertifier = (db: Db) => migrate(db, CERTIFIER_SCHEMA, CERTIFIER_MIGRATIONS);
@@ -131,14 +150,82 @@ export function certifierRepo(db: Db) {
       ).rows[0];
     },
 
-    async createRun(r: { storeUrl: string; budgetRequests: number; timeLimitMin: number }): Promise<string> {
+    async createRun(r: { storeUrl: string; budgetRequests: number; timeLimitMin: number; storeId?: string; status?: string }): Promise<string> {
       return (
-        await db.query<{ id: string }>(`INSERT INTO ${S}.runs (store_url, status, budget_requests, time_limit_min) VALUES ($1,'running',$2,$3) RETURNING id`, [
-          r.storeUrl,
-          r.budgetRequests,
-          r.timeLimitMin,
-        ])
+        await db.query<{ id: string }>(
+          `INSERT INTO ${S}.runs (store_url, status, budget_requests, time_limit_min, store_id) VALUES ($1,$2,$3,$4,$5) RETURNING id`,
+          [r.storeUrl, r.status ?? "running", r.budgetRequests, r.timeLimitMin, r.storeId ?? null],
+        )
       ).rows[0]!.id;
+    },
+
+    async setRunStatus(id: string, status: string) {
+      await db.query(`UPDATE ${S}.runs SET status=$2 WHERE id=$1`, [id, status]);
+    },
+
+    /** Runs still in progress (one at a time is allowed by the Run API). */
+    async activeRuns(): Promise<{ id: string }[]> {
+      return (await db.query<{ id: string }>(`SELECT id FROM ${S}.runs WHERE status IN ('requested','ownership_verified','running')`)).rows;
+    },
+
+    async getRun(id: string) {
+      const run = (
+        await db.query<{ id: string; store_id: string | null; store_url: string; status: string; started_at: Date; finished_at: Date | null; requests_used: number; budget_requests: number }>(
+          `SELECT id, store_id, store_url, status, started_at, finished_at, requests_used, budget_requests FROM ${S}.runs WHERE id=$1`,
+          [id],
+        )
+      ).rows[0];
+      if (!run) return undefined;
+      const checks = (
+        await db.query<{ id: string; code: string; pillar: string; status: string; summary: string; reasons: string[] }>(
+          `SELECT id, code, pillar, status, summary, reasons FROM ${S}.checks WHERE run_id=$1 ORDER BY code`,
+          [id],
+        )
+      ).rows;
+      const evidence = (
+        await db.query<{ check_id: string; kind: string; paypal_id: string; strength: string; note: string | null }>(
+          `SELECT e.check_id, e.kind, e.paypal_id, e.strength, e.note FROM ${S}.evidence e JOIN ${S}.checks c ON c.id = e.check_id WHERE c.run_id=$1 ORDER BY e.created_at`,
+          [id],
+        )
+      ).rows;
+      return {
+        ...run,
+        checks: checks.map((ch) => ({
+          code: ch.code,
+          pillar: ch.pillar,
+          status: ch.status,
+          summary: ch.summary,
+          reasons: ch.reasons,
+          evidence: evidence.filter((e) => e.check_id === ch.id).map((e) => ({ kind: e.kind, id: e.paypal_id, strength: e.strength, note: e.note })),
+        })),
+      };
+    },
+
+    async createStore(s: { url: string; ownershipToken: string; storeWebhookId?: string; demoHooks?: boolean }) {
+      return (
+        await db.query<{ id: string }>(
+          `INSERT INTO ${S}.stores (url, ownership_token, store_webhook_id, demo_hooks) VALUES ($1,$2,$3,$4)
+           ON CONFLICT (url) DO UPDATE SET store_webhook_id = COALESCE(EXCLUDED.store_webhook_id, ${S}.stores.store_webhook_id)
+           RETURNING id`,
+          [s.url, s.ownershipToken, s.storeWebhookId ?? null, s.demoHooks ?? false],
+        )
+      ).rows[0]!.id;
+    },
+
+    async getStore(id: string) {
+      return (
+        await db.query<{ id: string; url: string; ownership_token: string; verified_at: Date | null; verify_method: string | null; last_check: string | null; store_webhook_id: string | null; demo_hooks: boolean }>(
+          `SELECT id, url, ownership_token, verified_at, verify_method, last_check, store_webhook_id, demo_hooks FROM ${S}.stores WHERE id=$1`,
+          [id],
+        )
+      ).rows[0];
+    },
+
+    async recordOwnershipCheck(id: string, r: { verified: boolean; method?: string; detail: string }) {
+      await db.query(
+        `UPDATE ${S}.stores SET verified_at = CASE WHEN $2 THEN now() ELSE NULL END, verify_method = $3, last_check = $4 WHERE id=$1`,
+        [id, r.verified, r.method ?? null, r.detail],
+      );
     },
 
     async getRunNotes(id: string): Promise<Record<string, unknown> | undefined> {

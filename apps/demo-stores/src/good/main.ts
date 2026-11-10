@@ -33,6 +33,7 @@ try {
     clientId: config.PAYPAL_CLIENT_ID!,
     webhookId: config.DEMO_STORE_GOOD_WEBHOOK_ID,
     statusKey: config.DEMO_STORE_GOOD_STATUS_KEY,
+    ownershipToken: config.DEMO_STORE_GOOD_OWNERSHIP_TOKEN,
     publicUrl: config.DEMO_STORE_GOOD_URL.replace(/\/+$/, ""),
   });
   // Render injects PORT; locally the port comes from DEMO_STORE_GOOD_URL (default 5001).

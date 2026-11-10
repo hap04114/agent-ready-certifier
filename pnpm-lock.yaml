@@ -29,12 +29,21 @@ importers:
       '@certifier/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@certifier/contract':
+        specifier: workspace:*
+        version: link:../../packages/contract
       '@certifier/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@certifier/llm':
+        specifier: workspace:*
+        version: link:../../packages/llm
       '@certifier/paypal':
         specifier: workspace:*
         version: link:../../packages/paypal
+      '@certifier/worker':
+        specifier: workspace:*
+        version: link:../worker
       fastify:
         specifier: ^5.12.8
         version: 5.12.8
