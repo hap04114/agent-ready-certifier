@@ -10,7 +10,8 @@
     "webhooks:sync": "tsx src/webhooks-sync.ts",
     "webhooks:ensure": "tsx src/webhooks-ensure.ts",
     "scorecard": "tsx src/scorecard.ts",
-    "vault:setup": "tsx src/vault-setup.ts"
+    "vault:setup": "tsx src/vault-setup.ts",
+    "diagnose": "tsx src/diagnose-run.ts"
   },
   "dependencies": {
     "@certifier/config": "workspace:*",
@@ -21,7 +22,8 @@
     "@certifier/browser-agent": "workspace:*",
     "@certifier/llm": "workspace:*",
     "@certifier/probes": "workspace:*",
-    "@certifier/shopper": "workspace:*"
+    "@certifier/shopper": "workspace:*",
+    "@certifier/diagnosis": "workspace:*"
   },
   "exports": {
     "./works": "./src/works.ts",

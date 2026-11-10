@@ -1,0 +1,19 @@
+{
+  "name": "@certifier/diagnosis",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "apimatic:register": "tsx src/register-cli.ts"
+  },
+  "dependencies": {
+    "@certifier/config": "workspace:*",
+    "@certifier/llm": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "zod": "^4.6.7"
+  }
+}

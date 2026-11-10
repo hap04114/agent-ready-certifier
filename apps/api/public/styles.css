@@ -95,3 +95,9 @@ details summary { cursor: pointer; font-weight: 600; }
   header.top { padding: 16px; }
   .grid { height: 320px; }
 }
+
+.diag { margin-top: 10px; border: 1px solid #c9dcff; background: #f3f7ff; border-radius: 8px; padding: 10px 12px; font-size: 13.5px; }
+.diag .diag-h { font-weight: 650; margin-bottom: 4px; }
+.diag-text { margin: 4px 0; }
+.diag ol { margin: 4px 0 6px; padding-left: 20px; }
+.codeblock { background: #0b1220; color: #d6e4ff; padding: 10px 12px; border-radius: 6px; overflow: auto; font-size: 12px; }

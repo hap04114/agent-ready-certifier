@@ -134,6 +134,7 @@ export function registerRunApi(app: FastifyInstance, deps: RunApiDeps) {
     const run = await repo.getRun(p.data.id);
     if (!run) return reply.code(404).send({ error: "unknown_run" });
     const notes = (run.notes ?? {}) as { log?: string[]; recording?: unknown; orders?: unknown; error?: unknown };
+    const findings = new Map((await repo.findingsForRun(run.id).catch(() => [])).map((f) => [f.check_code, f]));
     return reply.send({
       ...run,
       notes: undefined,
@@ -141,7 +142,16 @@ export function registerRunApi(app: FastifyInstance, deps: RunApiDeps) {
       orders: notes.orders ?? null,
       log: notes.log ?? [],
       error: typeof notes.error === "string" ? notes.error : null,
-      checks: run.checks.map((c) => ({ ...c, businessImpact: c.status === "fail" ? (impactOf(c.code) ?? null) : null })),
+      checks: run.checks.map((c) => {
+        const f = findings.get(c.code);
+        return {
+          ...c,
+          businessImpact: c.status === "fail" ? (impactOf(c.code) ?? null) : null,
+          diagnosis: f
+            ? { explanation: f.explanation, fixSteps: f.fix_steps, codeSnippet: f.code_snippet, sdkVerified: f.sdk_verified, sdkUnverified: f.sdk_unverified, source: f.sdk_source, model: f.model }
+            : null,
+        };
+      }),
     });
   });
 

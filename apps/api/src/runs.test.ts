@@ -118,7 +118,7 @@ describe("Run API", () => {
     await repo.saveVerdict(runId, "works", { check: "W1", status: "pass", summary: "ok", reasons: [], evidence: [{ kind: "order", id: "O1", strength: "paypal-api" }] });
     const res = await app.inject({ method: "GET", url: `/api/runs/${runId}` });
     expect(res.statusCode).toBe(200);
-    expect(res.json().checks).toEqual([{ code: "W1", pillar: "works", status: "pass", summary: "ok", reasons: [], businessImpact: null, evidence: [{ kind: "order", id: "O1", strength: "paypal-api", note: null }] }]);
+    expect(res.json().checks).toEqual([{ code: "W1", pillar: "works", status: "pass", summary: "ok", reasons: [], businessImpact: null, diagnosis: null, evidence: [{ kind: "order", id: "O1", strength: "paypal-api", note: null }] }]);
     expect(res.json()).toMatchObject({ log: [], recording: null });
     expect((await app.inject({ method: "GET", url: "/api/runs/not-a-uuid" })).statusCode).toBe(400);
   });

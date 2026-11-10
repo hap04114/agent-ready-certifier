@@ -35,6 +35,8 @@ export const SENSITIVE_KEYS = [
   "GEMINI_API_KEY",
   "KERNEL_API_KEY",
   "CHANNEL3_API_KEY",
+  "APIMATIC_CLIENT_ID",
+  "APIMATIC_CLIENT_SECRET",
   "OWNERSHIP_TOKEN_SECRET",
   "CERTIFIER_ADMIN_TOKEN",
   "CERT_SIGNING_PRIVATE_KEY",
@@ -125,6 +127,9 @@ export const envSchema = z.object({
   KERNEL_API_KEY: optionalString,
   CHANNEL3_API_KEY: optionalString,
   APIMATIC_CONTEXT_MCP_URL: optionalUrl,
+  /** OAuth client of the ContextMatic MCP server (pnpm apimatic:register writes these). */
+  APIMATIC_CLIENT_ID: optionalString,
+  APIMATIC_CLIENT_SECRET: optionalString,
 
   // Safety limits
   RUN_MAX_REQUESTS: positiveInt(300),
