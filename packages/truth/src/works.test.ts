@@ -69,6 +69,14 @@ describe("W1 happy path", () => {
     expect(judgeW1({ order: paidOrder() }).status).toBe("inconclusive");
   });
 
+  it("is inconclusive, not a store failure, when the buyer never approved", () => {
+    for (const status of ["CREATED", "PAYER_ACTION_REQUIRED"]) {
+      const v = judgeW1({ order: paidOrder({ status, captures: [] }), store: store({ status: "created" }) });
+      expect(v.status).toBe("inconclusive");
+      expect(v.summary).toMatch(/never approved/);
+    }
+  });
+
   it("fails when the order is not completed", () => {
     const v = judgeW1({ order: paidOrder({ status: "APPROVED", captures: [] }), store: store({ status: "created" }) });
     expect(v.status).toBe("fail");
@@ -103,6 +111,11 @@ describe.each([
     const v = judge({ hookSupported: true, order: approvedOrder(), store: store({ status: "created", captureIds: [] }), storeCaptureHttpStatus: 422 });
     expect(v.check).toBe(code);
     expect(v.status).toBe("pass");
+  });
+
+  it("is inconclusive when the buyer never approved the order", () => {
+    const v = judge({ hookSupported: true, order: { ...approvedOrder(), status: "PAYER_ACTION_REQUIRED" }, store: store({ status: "created", captureIds: [] }) });
+    expect(v.status).toBe("inconclusive");
   });
 
   it("is inconclusive when the store has no test hook", () => {

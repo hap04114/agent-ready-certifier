@@ -150,6 +150,7 @@ export async function runWorksPillar(opts: WorksRunOptions): Promise<WorksRunRes
           buyer: agent.buyer,
           scrub: (t) => redact(t, config),
           maxSteps: 20,
+          log: (line) => log(`  ${line.trim()}`),
         });
         log(`  ${label}: agent finished in ${result.steps.length} steps (${result.outcome}; the agent's own report, not evidence)`);
       }
@@ -210,10 +211,13 @@ export async function runWorksPillar(opts: WorksRunOptions): Promise<WorksRunRes
         const s = await storeStatus(id);
         return s && s.status !== "created" && s.status !== "capturing" ? s : undefined;
       };
-      await budget.waitFor(async () => ((await settled(A)) && (await settled(B)) && (await settled(C)) ? true : undefined), {
-        seconds: config.RUN_MAX_MINUTES * 60,
+      // Bounded: if the buyer journey failed, the run still judges what it can (an unapproved
+      // order is "inconclusive", never blamed on the store) instead of waiting out the time limit.
+      const allSettled = await budget.waitFor(async () => ((await settled(A)) && (await settled(B)) && (await settled(C)) ? true : undefined), {
+        seconds: opts.agent ? 180 : Math.min(config.RUN_MAX_MINUTES * 60, 900),
         everyMs: 5000,
       });
+      if (!allSettled) log("Not every checkout finished; continuing so the checks that can be judged are judged.");
     }
 
     // 3. Order A: purchase, signed capture event, delivery to the store.
