@@ -21,6 +21,11 @@ export const SENSITIVE_KEYS = [
   "PAYPAL_WEBHOOK_ID",
   "DEMO_STORE_GOOD_WEBHOOK_ID",
   "DEMO_STORE_GOOD_STATUS_KEY",
+  "DEMO_STORE_BUGGY_PAYPAL_CLIENT_ID",
+  "DEMO_STORE_BUGGY_PAYPAL_CLIENT_SECRET",
+  "DEMO_STORE_BUGGY_WEBHOOK_ID",
+  "DEMO_STORE_BUGGY_CERTIFIER_WEBHOOK_ID",
+  "DEMO_STORE_BUGGY_STATUS_KEY",
   "PAYPAL_LOOKALIKE_CLIENT_ID",
   "PAYPAL_LOOKALIKE_CLIENT_SECRET",
   "DATABASE_URL",
@@ -86,6 +91,16 @@ export const envSchema = z.object({
   DEMO_STORE_GOOD_STATUS_KEY: optionalString,
   /** Public by design: the store serves it so the certifier can verify ownership. */
   DEMO_STORE_GOOD_OWNERSHIP_TOKEN: optionalString,
+
+  // Demo store "buggy": a separate merchant system with seeded bugs and its OWN throwaway
+  // sandbox app (one seeded bug exposes that app's secret on purpose).
+  DEMO_STORE_BUGGY_URL: urlWithDefault("http://localhost:5002"),
+  DEMO_STORE_BUGGY_PAYPAL_CLIENT_ID: optionalString,
+  DEMO_STORE_BUGGY_PAYPAL_CLIENT_SECRET: optionalString,
+  DEMO_STORE_BUGGY_WEBHOOK_ID: optionalString,
+  DEMO_STORE_BUGGY_CERTIFIER_WEBHOOK_ID: optionalString,
+  DEMO_STORE_BUGGY_STATUS_KEY: optionalString,
+  DEMO_STORE_BUGGY_OWNERSHIP_TOKEN: optionalString,
 
   // Lookalike merchant (Milestone 6)
   PAYPAL_LOOKALIKE_CLIENT_ID: optionalString,

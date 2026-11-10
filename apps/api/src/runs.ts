@@ -32,6 +32,7 @@ const uuid = z.object({ id: z.uuid() });
 const newStore = z.object({
   url: z.url().max(300),
   storeWebhookId: z.string().regex(/^[A-Z0-9-]{5,40}$/).optional(),
+  certifierWebhookId: z.string().regex(/^[A-Z0-9-]{5,40}$/).optional(),
   demoHooks: z.boolean().optional(),
 });
 
@@ -67,7 +68,13 @@ export function registerRunApi(app: FastifyInstance, deps: RunApiDeps) {
     if (!body.success) return reply.code(400).send({ error: "invalid_request" });
     const url = storeOrigin(body.data.url);
     const token = deriveOwnershipToken(s, url);
-    const id = await repo.createStore({ url, ownershipToken: token, storeWebhookId: body.data.storeWebhookId, demoHooks: body.data.demoHooks });
+    const id = await repo.createStore({
+      url,
+      ownershipToken: token,
+      storeWebhookId: body.data.storeWebhookId,
+      certifierWebhookId: body.data.certifierWebhookId,
+      demoHooks: body.data.demoHooks,
+    });
     return reply.code(201).send({
       id,
       url,

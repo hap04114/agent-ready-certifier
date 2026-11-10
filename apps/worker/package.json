@@ -17,7 +17,8 @@
     "@certifier/paypal": "workspace:*",
     "@certifier/truth": "workspace:*",
     "@certifier/browser-agent": "workspace:*",
-    "@certifier/llm": "workspace:*"
+    "@certifier/llm": "workspace:*",
+    "@certifier/probes": "workspace:*"
   },
   "exports": {
     "./works": "./src/works.ts",

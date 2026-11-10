@@ -53,10 +53,11 @@ export type StoreDelivery = z.infer<typeof storeDelivery>;
 export const TEST_HOOK_CODES = ["INSTRUMENT_DECLINED", "INTERNAL_SERVER_ERROR"] as const;
 export type TestHookCode = (typeof TEST_HOOK_CODES)[number];
 
-export const testHookRequest = z.object({
-  paypalOrderId: z.string().regex(/^[A-Z0-9]{5,40}$/),
-  mock: z.enum(TEST_HOOK_CODES),
-});
+export const testHookRequest = z.union([
+  z.object({ paypalOrderId: z.string().regex(/^[A-Z0-9]{5,40}$/), mock: z.enum(TEST_HOOK_CODES) }),
+  /** S7: the next checkout behaves as if its first create-order response was lost, and retries. */
+  z.object({ simulate: z.literal("create_retry") }),
+]);
 
 const money = z.object({ currencyCode: z.string().length(3), value: z.string().regex(/^\d+(\.\d{1,2})?$/) });
 
@@ -72,6 +73,8 @@ export const storeOrderStatus = z.object({
     z.object({ eventId: z.string(), type: z.string(), deliveries: z.number().int().min(0), processed: z.number().int().min(0) }),
   ),
   updatedAt: z.string().optional(),
+  /** PayPal order IDs received while creating this order (more than one = a retry happened). */
+  createAttempts: z.array(z.string()).optional(),
 });
 export type StoreOrderStatus = z.infer<typeof storeOrderStatus>;
 

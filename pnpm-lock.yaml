@@ -103,6 +103,9 @@ importers:
       '@certifier/paypal':
         specifier: workspace:*
         version: link:../../packages/paypal
+      '@certifier/probes':
+        specifier: workspace:*
+        version: link:../../packages/probes
       '@certifier/truth':
         specifier: workspace:*
         version: link:../../packages/truth
@@ -174,6 +177,18 @@ importers:
       selfsigned:
         specifier: ^5.5.0
         version: 5.5.0
+
+  packages/probes:
+    dependencies:
+      '@certifier/contract':
+        specifier: workspace:*
+        version: link:../contract
+      '@certifier/truth':
+        specifier: workspace:*
+        version: link:../truth
+      playwright-core:
+        specifier: ^1.65.0
+        version: 1.65.0
 
   packages/truth: {}
 

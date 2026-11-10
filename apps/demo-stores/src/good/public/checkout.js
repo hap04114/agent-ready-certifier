@@ -33,7 +33,12 @@
       createOrder: () => fetch("/api/orders", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ sku: sku.value, quantity: parseInt(qty.value, 10) || 1 }),
+          body: JSON.stringify(
+            Object.assign(
+              { sku: sku.value, quantity: parseInt(qty.value, 10) || 1 },
+              window.STORE_CONFIG?.sendPrice ? { price: sku.options[sku.selectedIndex].dataset.price } : {},
+            ),
+          ),
         })
           .then((r) => r.json().then((d) => { if (!r.ok) throw new Error(d.error || "create failed"); return d.id; })),
       onApprove: (data) => fetch(`/api/orders/${encodeURIComponent(data.orderID)}/capture`, { method: "POST" })

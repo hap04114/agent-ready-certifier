@@ -7,7 +7,9 @@
     "dev:good": "tsx watch src/good/main.ts",
     "start:good": "tsx src/good/main.ts",
     "verify:order": "tsx src/good/verify-order.ts",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "dev:buggy": "tsx watch src/buggy/main.ts",
+    "start:buggy": "tsx src/buggy/main.ts"
   },
   "dependencies": {
     "@certifier/config": "workspace:*",
