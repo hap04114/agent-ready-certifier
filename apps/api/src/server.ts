@@ -41,6 +41,19 @@ export function buildApi(config: Config, deps: ApiDeps = {}) {
   const verify: WebhookVerifier =
     deps.verifyWebhook ?? ((headers, rawBody) => verifyWebhook({ headers: webhookHeadersFrom(headers), rawBody, webhookId: webhookId ?? "" }));
 
+  // Accept an empty JSON body (e.g. POST .../verify sent with content-type but no body).
+  // The webhook route keeps its own raw-body parser in its own scope.
+  app.removeContentTypeParser("application/json");
+  app.addContentTypeParser("application/json", { parseAs: "string" }, (_req, body, done) => {
+    const text = typeof body === "string" ? body : body.toString("utf8");
+    if (text.trim() === "") return done(null, {});
+    try {
+      done(null, JSON.parse(text));
+    } catch {
+      done(Object.assign(new Error("invalid JSON body"), { statusCode: 400 }), undefined);
+    }
+  });
+
   app.get("/health", async () => ({
     ok: true,
     paypalEnv: config.PAYPAL_ENV,
@@ -50,6 +63,7 @@ export function buildApi(config: Config, deps: ApiDeps = {}) {
 
   app.register(async (scope) => {
     // Keep the exact bytes: the signature covers the raw body.
+    scope.removeContentTypeParser("application/json");
     scope.addContentTypeParser("application/json", { parseAs: "buffer" }, (_req, body, done) => done(null, body));
 
     scope.post("/webhooks/paypal", async (req, reply) => {
