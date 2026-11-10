@@ -67,10 +67,11 @@ describe("Run API", () => {
     expect(JSON.stringify(s)).not.toContain("WH-STORE-123");
   });
 
-  it("verifies ownership and records the result", async () => {
+  it("verifies ownership and records the result, even with an empty JSON body", async () => {
     const { app } = api();
     const s = await register(app);
-    expect((await app.inject({ method: "POST", url: `/api/stores/${s.id}/verify`, headers: auth })).json()).toEqual({ verified: true, method: "meta" });
+    const res = await app.inject({ method: "POST", url: `/api/stores/${s.id}/verify`, headers: { ...auth, "content-type": "application/json" }, payload: "" });
+    expect(res.json()).toEqual({ verified: true, method: "meta" });
     expect((await repo.getStore(s.id))?.verified_at).not.toBeNull();
   });
 
