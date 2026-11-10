@@ -1,14 +1,15 @@
 /**
  * `pnpm store:keys` — prepare the demo store's private status key in the local .env.
  * - Generates OWNERSHIP_TOKEN_SECRET (48 random bytes) if it is empty.
- * - Derives DEMO_STORE_GOOD_STATUS_KEY for DEMO_STORE_GOOD_URL.
+ * - Generates CERTIFIER_ADMIN_TOKEN if it is empty.
+ * - Derives DEMO_STORE_GOOD_STATUS_KEY (private) and DEMO_STORE_GOOD_OWNERSHIP_TOKEN (public) for DEMO_STORE_GOOD_URL.
  * Writes .env in place and never prints either value.
  */
 import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { findRepoRoot, loadConfig } from "@certifier/config";
-import { deriveStatusKey } from "./index.js";
+import { deriveOwnershipToken, deriveStatusKey } from "./index.js";
 
 const root = findRepoRoot();
 const envPath = root && join(root, ".env");
@@ -31,6 +32,11 @@ if (!config.OWNERSHIP_TOKEN_SECRET) {
   config = loadConfig();
   console.log("store:keys: generated OWNERSHIP_TOKEN_SECRET");
 }
-const key = deriveStatusKey(config.OWNERSHIP_TOKEN_SECRET!, config.DEMO_STORE_GOOD_URL);
-writeFileSync(envPath, setVar(text, "DEMO_STORE_GOOD_STATUS_KEY", key));
-console.log(`store:keys: wrote DEMO_STORE_GOOD_STATUS_KEY for ${new URL(config.DEMO_STORE_GOOD_URL).origin}`);
+if (!config.CERTIFIER_ADMIN_TOKEN) {
+  text = setVar(text, "CERTIFIER_ADMIN_TOKEN", randomBytes(32).toString("base64url"));
+  console.log("store:keys: generated CERTIFIER_ADMIN_TOKEN");
+}
+text = setVar(text, "DEMO_STORE_GOOD_STATUS_KEY", deriveStatusKey(config.OWNERSHIP_TOKEN_SECRET!, config.DEMO_STORE_GOOD_URL));
+text = setVar(text, "DEMO_STORE_GOOD_OWNERSHIP_TOKEN", deriveOwnershipToken(config.OWNERSHIP_TOKEN_SECRET!, config.DEMO_STORE_GOOD_URL));
+writeFileSync(envPath, text);
+console.log(`store:keys: wrote DEMO_STORE_GOOD_STATUS_KEY and DEMO_STORE_GOOD_OWNERSHIP_TOKEN for ${new URL(config.DEMO_STORE_GOOD_URL).origin}`);

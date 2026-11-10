@@ -17,7 +17,7 @@ import { fileURLToPath } from "node:url";
 import Fastify, { type FastifyReply } from "fastify";
 import { z } from "zod";
 import type { Config } from "@certifier/config";
-import { CONTRACT_BASE, DELIVERY_HEADERS, TEST_HOOK_PATH, bearerMatches, testHookRequest } from "@certifier/contract";
+import { CONTRACT_BASE, DELIVERY_HEADERS, OWNERSHIP_FILE_PATH, OWNERSHIP_META_NAME, TEST_HOOK_PATH, bearerMatches, testHookRequest } from "@certifier/contract";
 import type { Db } from "@certifier/db";
 import { PaypalCallError, type SandboxPaypal, type VerifyResult, captureIdsOf, verifyWebhook, webhookHeadersFrom } from "@certifier/paypal";
 import { CATALOG, CURRENCY, MAX_QUANTITY, centsToValue, findProduct, valueToCents } from "./catalog.js";
@@ -35,6 +35,8 @@ export interface StoreDeps {
   webhookId?: string;
   /** Private status key from the store contract; without it contract endpoints answer 503. */
   statusKey?: string;
+  /** Public ownership token (store contract item 1), served as a meta tag and a file. */
+  ownershipToken?: string;
   /** Base URL buyers see, used for PayPal return/cancel links. */
   publicUrl: string;
   /** Override signature verification in tests. */
@@ -123,9 +125,18 @@ export function buildGoodStore(deps: StoreDeps) {
     const html = pageTemplate
       .replace("{{SDK_URL}}", escapeHtml(sdkUrl))
       .replace("{{OPTIONS}}", options)
-      .replaceAll("{{INITIAL_AMOUNT}}", centsToValue(first.priceCents));
+      .replaceAll("{{INITIAL_AMOUNT}}", centsToValue(first.priceCents))
+      .replace(
+        "</head>",
+        deps.ownershipToken ? `  <meta name="${OWNERSHIP_META_NAME}" content="${escapeHtml(deps.ownershipToken)}">
+</head>` : "</head>",
+      );
     return reply.type("text/html; charset=utf-8").send(html);
   });
+
+  app.get(OWNERSHIP_FILE_PATH, async (_req, reply) =>
+    deps.ownershipToken ? reply.type("text/plain; charset=utf-8").send(deps.ownershipToken) : reply.code(404).send({ error: "no_ownership_token" }),
+  );
 
   app.get("/checkout.js", async (_req, reply) => reply.type("application/javascript; charset=utf-8").send(checkoutJs));
 

@@ -95,3 +95,5 @@ export function bearerMatches(header: string | undefined, expected: string | und
   const b = Buffer.from(expected);
   return a.length === b.length && timingSafeEqual(a, b);
 }
+
+export * from "./ownership.js";

@@ -30,6 +30,7 @@ export const SENSITIVE_KEYS = [
   "KERNEL_API_KEY",
   "CHANNEL3_API_KEY",
   "OWNERSHIP_TOKEN_SECRET",
+  "CERTIFIER_ADMIN_TOKEN",
   "CERT_SIGNING_PRIVATE_KEY",
   "TESTNET_RPC_URL",
   "TESTNET_WALLET_PRIVATE_KEY",
@@ -83,6 +84,8 @@ export const envSchema = z.object({
   DEMO_STORE_GOOD_URL: urlWithDefault("http://localhost:5001"),
   DEMO_STORE_GOOD_WEBHOOK_ID: optionalString,
   DEMO_STORE_GOOD_STATUS_KEY: optionalString,
+  /** Public by design: the store serves it so the certifier can verify ownership. */
+  DEMO_STORE_GOOD_OWNERSHIP_TOKEN: optionalString,
 
   // Lookalike merchant (Milestone 6)
   PAYPAL_LOOKALIKE_CLIENT_ID: optionalString,
@@ -108,8 +111,10 @@ export const envSchema = z.object({
   RUN_MAX_MINUTES: positiveInt(20),
   WEBHOOK_WAIT_SECONDS: positiveInt(180),
 
-  // Ownership verification
+  // Ownership verification and Run API
   OWNERSHIP_TOKEN_SECRET: optionalString,
+  /** Protects the Run API endpoints that start or stop runs. */
+  CERTIFIER_ADMIN_TOKEN: optionalString,
 
   // Trust layer
   CERT_SIGNING_PRIVATE_KEY: optionalString,
