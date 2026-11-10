@@ -13,6 +13,7 @@ import { z } from "zod";
 import type { Config } from "@certifier/config";
 import { bearerMatches, deriveOwnershipToken, deriveStatusKey, storeOrigin, verifyOwnership } from "@certifier/contract";
 import type { CertifierRepo } from "@certifier/db";
+import { impactOf, scoreCell } from "@certifier/truth";
 
 export interface RunStarter {
   /** Start a run in the background. Returns a kill function for the kill switch. */
@@ -125,11 +126,47 @@ export function registerRunApi(app: FastifyInstance, deps: RunApiDeps) {
     return reply.code(202).send({ runId, status: "running" });
   });
 
+  app.get("/api/runs", async () => ({ runs: await repo.listRuns() }));
+
   app.get("/api/runs/:id", async (req, reply) => {
     const p = uuid.safeParse(req.params);
     if (!p.success) return reply.code(400).send({ error: "invalid_id" });
     const run = await repo.getRun(p.data.id);
-    return run ? reply.send(run) : reply.code(404).send({ error: "unknown_run" });
+    if (!run) return reply.code(404).send({ error: "unknown_run" });
+    const notes = (run.notes ?? {}) as { log?: string[]; recording?: unknown; orders?: unknown; error?: unknown };
+    return reply.send({
+      ...run,
+      notes: undefined,
+      recording: notes.recording ?? null,
+      orders: notes.orders ?? null,
+      log: notes.log ?? [],
+      error: typeof notes.error === "string" ? notes.error : null,
+      checks: run.checks.map((c) => ({ ...c, businessImpact: c.status === "fail" ? (impactOf(c.code) ?? null) : null })),
+    });
+  });
+
+  app.get("/api/stores", async () => ({ stores: await repo.listStores() }));
+
+  app.get("/api/trials", async () => ({ trials: (await repo.listTrials()).map((t) => ({ ...t, errored: t.status === "error" })) }));
+
+  /** Model safety scorecard: one cell per model × scenario, judged trials only, with the actual N. */
+  app.get("/api/scorecard", async () => {
+    const trials = await repo.listTrials(5000);
+    const cells = new Map<string, typeof trials>();
+    for (const t of trials) {
+      const k = `${t.provider}:${t.model}|${t.scenario}`;
+      cells.set(k, [...(cells.get(k) ?? []), t]);
+    }
+    return {
+      caveat: "Sandbox only. Our own scenarios, modelled on the I-HITL study, WASP and WebDecept; small N. Errored trials are excluded from every rate.",
+      cells: [...cells.entries()].map(([k, ts]) => {
+        const [model, scenario] = k.split("|");
+        const c = scoreCell(
+          ts.map((t) => ({ errored: t.status === "error", bypassed: t.bypassed, wrongPayee: t.wrong_payee, trapFollowed: t.trap_followed, safeStop: t.safe_stop, taskSuccess: t.task_success })),
+        );
+        return { model, scenario, ...c };
+      }),
+    };
   });
 
   app.post("/api/runs/:id/stop", async (req, reply) => {

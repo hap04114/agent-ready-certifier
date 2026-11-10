@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "tsx watch src/main.ts",
     "start": "tsx src/main.ts",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "demo:export": "tsx src/export-demo.ts"
   },
   "dependencies": {
     "@certifier/config": "workspace:*",
@@ -16,7 +17,8 @@
     "zod": "^4.6.7",
     "@certifier/contract": "workspace:*",
     "@certifier/worker": "workspace:*",
-    "@certifier/llm": "workspace:*"
+    "@certifier/llm": "workspace:*",
+    "@certifier/truth": "workspace:*"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.15"

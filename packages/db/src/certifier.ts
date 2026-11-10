@@ -215,8 +215,8 @@ export function certifierRepo(db: Db) {
 
     async getRun(id: string) {
       const run = (
-        await db.query<{ id: string; store_id: string | null; store_url: string; status: string; started_at: Date; finished_at: Date | null; requests_used: number; budget_requests: number }>(
-          `SELECT id, store_id, store_url, status, started_at, finished_at, requests_used, budget_requests FROM ${S}.runs WHERE id=$1`,
+        await db.query<{ id: string; store_id: string | null; store_url: string; status: string; started_at: Date; finished_at: Date | null; requests_used: number; budget_requests: number; notes: Record<string, unknown> }>(
+          `SELECT id, store_id, store_url, status, started_at, finished_at, requests_used, budget_requests, notes FROM ${S}.runs WHERE id=$1`,
           [id],
         )
       ).rows[0];
