@@ -28,7 +28,9 @@
     "probe:page": "pnpm --filter @certifier/probes probe:page",
     "scorecard": "pnpm --filter @certifier/worker scorecard",
     "vault:setup": "pnpm --filter @certifier/worker vault:setup",
-    "demo:export": "pnpm --filter @certifier/api demo:export"
+    "demo:export": "pnpm --filter @certifier/api demo:export",
+    "diagnose": "pnpm --filter @certifier/worker diagnose",
+    "apimatic:register": "pnpm --filter @certifier/diagnosis apimatic:register"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.6",

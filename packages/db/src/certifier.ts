@@ -135,6 +135,26 @@ export const CERTIFIER_MIGRATIONS: Migration[] = [
       CREATE INDEX agent_trials_model ON agent_trials (provider, model, scenario);
     `,
   },
+  {
+    id: "007_findings",
+    sql: `
+      -- Written by the diagnosis agent for FAILED checks. Explanations only: verdicts stay in checks.
+      CREATE TABLE findings (
+        id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        run_id        uuid NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
+        check_code    text NOT NULL,
+        explanation   text NOT NULL,
+        fix_steps     jsonb NOT NULL DEFAULT '[]'::jsonb,
+        code_snippet  text,
+        sdk_verified  jsonb NOT NULL DEFAULT '[]'::jsonb,
+        sdk_unverified jsonb NOT NULL DEFAULT '[]'::jsonb,
+        sdk_source    text NOT NULL,
+        model         text NOT NULL,
+        created_at    timestamptz NOT NULL DEFAULT now(),
+        UNIQUE (run_id, check_code)
+      );
+    `,
+  },
 ];
 
 export const migrateCertifier = (db: Db) => migrate(db, CERTIFIER_SCHEMA, CERTIFIER_MIGRATIONS);
@@ -360,6 +380,35 @@ export function certifierRepo(db: Db) {
            FROM ${S}.runs r LEFT JOIN ${S}.checks c ON c.run_id = r.id
            GROUP BY r.id ORDER BY r.started_at DESC LIMIT $1`,
           [limit],
+        )
+      ).rows;
+    },
+
+    async saveFinding(f: {
+      runId: string;
+      code: string;
+      explanation: string;
+      fixSteps: string[];
+      codeSnippet: string;
+      verified: string[];
+      unverified: string[];
+      source: string;
+      model: string;
+    }) {
+      await db.query(
+        `INSERT INTO ${S}.findings (run_id, check_code, explanation, fix_steps, code_snippet, sdk_verified, sdk_unverified, sdk_source, model)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+         ON CONFLICT (run_id, check_code) DO UPDATE SET explanation=EXCLUDED.explanation, fix_steps=EXCLUDED.fix_steps, code_snippet=EXCLUDED.code_snippet,
+           sdk_verified=EXCLUDED.sdk_verified, sdk_unverified=EXCLUDED.sdk_unverified, sdk_source=EXCLUDED.sdk_source, model=EXCLUDED.model, created_at=now()`,
+        [f.runId, f.code, f.explanation, JSON.stringify(f.fixSteps), f.codeSnippet, JSON.stringify(f.verified), JSON.stringify(f.unverified), f.source, f.model],
+      );
+    },
+
+    async findingsForRun(runId: string) {
+      return (
+        await db.query<{ check_code: string; explanation: string; fix_steps: string[]; code_snippet: string | null; sdk_verified: string[]; sdk_unverified: string[]; sdk_source: string; model: string }>(
+          `SELECT check_code, explanation, fix_steps, code_snippet, sdk_verified, sdk_unverified, sdk_source, model FROM ${S}.findings WHERE run_id=$1`,
+          [runId],
         )
       ).rows;
     },

@@ -17,6 +17,13 @@
   }
 
   const count = (checks, s) => checks.filter((c) => c.status === s).length;
+  const diag = (d) => `<div class="diag"><div class="diag-h">Suggested fix <span class="muted">(AI explanation, ${esc(d.model)}; the verdict above is rule-based)</span></div>
+    <p class="diag-text">${esc(d.explanation)}</p>
+    ${d.fixSteps?.length ? `<ol>${d.fixSteps.map((s) => `<li>${esc(s)}</li>`).join("")}</ol>` : ""}
+    ${d.codeSnippet ? `<pre class="codeblock">${esc(d.codeSnippet)}</pre>` : ""}
+    <div class="muted">PayPal SDK context: ${d.source === "contextmatic" ? "APIMatic ContextMatic" : "none available"}.
+      ${d.sdkVerified?.length ? `Verified against ContextMatic: ${d.sdkVerified.map((m) => `<code>${esc(m)}</code>`).join(", ")}.` : ""}
+      ${d.sdkUnverified?.length ? `Not found in the SDK context (check before using): ${d.sdkUnverified.map((m) => `<code>${esc(m)}</code>`).join(", ")}.` : ""}</div></div>`;
   const dur = run.finished_at ? Math.round((new Date(run.finished_at) - new Date(run.started_at)) / 1000) : null;
   summary.innerHTML = `
     <div class="line" style="display:flex;gap:12px;flex-wrap:wrap;align-items:baseline">
@@ -50,6 +57,7 @@
               <div class="line"><span class="code">${esc(c.code)}</span>${badge(c.status)}<span class="sum">${esc(c.summary)}</span></div>
               ${c.reasons?.length ? `<ul class="reasons">${c.reasons.map((r) => `<li>${esc(r)}</li>`).join("")}</ul>` : ""}
               ${c.businessImpact ? `<div class="impact"><b>Business impact:</b> ${esc(c.businessImpact)}</div>` : ""}
+              ${c.diagnosis ? diag(c.diagnosis) : ""}
               <div class="ev">${c.evidence.map((e) => `<div><span class="chip ${esc(e.strength)}">${esc(e.strength)}</span>${esc(e.kind)} <code>${esc(e.id)}</code>${e.note ? ` — ${esc(e.note)}` : ""}</div>`).join("")}</div>
             </div>`,
           )
