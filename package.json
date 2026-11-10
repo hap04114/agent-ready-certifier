@@ -24,7 +24,8 @@
     "agent:shop": "pnpm --filter @certifier/browser-agent agent:shop",
     "webhooks:ensure": "pnpm --filter @certifier/worker webhooks:ensure",
     "env:copy": "tsx packages/config/src/copy-cli.ts",
-    "render:sync": "tsx packages/config/src/render-sync.ts"
+    "render:sync": "tsx packages/config/src/render-sync.ts",
+    "probe:page": "pnpm --filter @certifier/probes probe:page"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.6",

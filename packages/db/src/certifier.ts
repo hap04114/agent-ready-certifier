@@ -90,6 +90,22 @@ export const CERTIFIER_MIGRATIONS: Migration[] = [
       ALTER TABLE runs ADD COLUMN store_id uuid REFERENCES stores(id);
     `,
   },
+  {
+    id: "004_observed_evidence",
+    sql: `
+      ALTER TABLE evidence DROP CONSTRAINT IF EXISTS evidence_strength_check;
+      ALTER TABLE evidence ADD CONSTRAINT evidence_strength_check
+        CHECK (strength IN ('paypal-signed','paypal-api','store-reported','certifier-observed','certifier-recorded'));
+    `,
+  },
+  {
+    id: "005_store_certifier_webhook_id",
+    sql: `
+      -- The webhook ID of the certifier's listener on THIS store's PayPal app (store contract
+      -- item 2). PayPal signs each app's deliveries with that ID. Not a secret; never shown.
+      ALTER TABLE stores ADD COLUMN certifier_webhook_id text;
+    `,
+  },
 ];
 
 export const migrateCertifier = (db: Db) => migrate(db, CERTIFIER_SCHEMA, CERTIFIER_MIGRATIONS);
@@ -201,15 +217,31 @@ export function certifierRepo(db: Db) {
       };
     },
 
-    async createStore(s: { url: string; ownershipToken: string; storeWebhookId?: string; demoHooks?: boolean }) {
+    async createStore(s: { url: string; ownershipToken: string; storeWebhookId?: string; certifierWebhookId?: string; demoHooks?: boolean }) {
       return (
         await db.query<{ id: string }>(
-          `INSERT INTO ${S}.stores (url, ownership_token, store_webhook_id, demo_hooks) VALUES ($1,$2,$3,$4)
-           ON CONFLICT (url) DO UPDATE SET store_webhook_id = COALESCE(EXCLUDED.store_webhook_id, ${S}.stores.store_webhook_id)
+          `INSERT INTO ${S}.stores (url, ownership_token, store_webhook_id, certifier_webhook_id, demo_hooks) VALUES ($1,$2,$3,$4,$5)
+           ON CONFLICT (url) DO UPDATE SET
+             store_webhook_id = COALESCE(EXCLUDED.store_webhook_id, ${S}.stores.store_webhook_id),
+             certifier_webhook_id = COALESCE(EXCLUDED.certifier_webhook_id, ${S}.stores.certifier_webhook_id),
+             demo_hooks = EXCLUDED.demo_hooks OR ${S}.stores.demo_hooks
            RETURNING id`,
-          [s.url, s.ownershipToken, s.storeWebhookId ?? null, s.demoHooks ?? false],
+          [s.url, s.ownershipToken, s.storeWebhookId ?? null, s.certifierWebhookId ?? null, s.demoHooks ?? false],
         )
       ).rows[0]!.id;
+    },
+
+    /** Webhook IDs of the certifier's listener across registered stores' PayPal apps. */
+    async certifierWebhookIds(): Promise<string[]> {
+      return (await db.query<{ id: string }>(`SELECT DISTINCT certifier_webhook_id AS id FROM ${S}.stores WHERE certifier_webhook_id IS NOT NULL`)).rows.map((r) => r.id);
+    },
+
+    async listStores() {
+      return (
+        await db.query<{ id: string; url: string; verified_at: Date | null; verify_method: string | null; last_check: string | null; created_at: Date }>(
+          `SELECT id, url, verified_at, verify_method, last_check, created_at FROM ${S}.stores ORDER BY created_at`,
+        )
+      ).rows;
     },
 
     async getStore(id: string) {

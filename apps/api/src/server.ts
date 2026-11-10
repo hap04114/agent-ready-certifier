@@ -38,8 +38,23 @@ export function buildApi(config: Config, deps: ApiDeps = {}) {
     logger: deps.logger === false ? false : { redact: ["req.headers.authorization", "req.headers.cookie"] },
   });
   const webhookId = config.PAYPAL_WEBHOOK_ID;
+  // Each merchant app signs deliveries to our listener with the webhook ID it gave us, so a
+  // delivery is genuine if it verifies against ANY known certifier webhook ID.
+  let known: { ids: string[]; at: number } = { ids: [], at: 0 };
+  const knownIds = async () => {
+    if (Date.now() - known.at > 60_000 && deps.repo) known = { ids: await deps.repo.certifierWebhookIds().catch(() => []), at: Date.now() };
+    return [...new Set([webhookId, config.DEMO_STORE_BUGGY_CERTIFIER_WEBHOOK_ID, ...known.ids].filter((x): x is string => !!x))];
+  };
   const verify: WebhookVerifier =
-    deps.verifyWebhook ?? ((headers, rawBody) => verifyWebhook({ headers: webhookHeadersFrom(headers), rawBody, webhookId: webhookId ?? "" }));
+    deps.verifyWebhook ??
+    (async (headers, rawBody) => {
+      let last: VerifyResult = { valid: false, reason: "missing_headers" };
+      for (const id of await knownIds()) {
+        last = await verifyWebhook({ headers: webhookHeadersFrom(headers), rawBody, webhookId: id });
+        if (last.valid || last.reason !== "bad_signature") return last;
+      }
+      return last;
+    });
 
   // Accept an empty JSON body (e.g. POST .../verify sent with content-type but no body).
   // The webhook route keeps its own raw-body parser in its own scope.

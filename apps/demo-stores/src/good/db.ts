@@ -68,9 +68,18 @@ export const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    id: "003_create_attempts",
+    sql: `
+      -- Every PayPal order ID received while creating this order (more than one only when a
+      -- create call was retried). Reported in the contract status record for S7.
+      ALTER TABLE orders ADD COLUMN create_attempts text[] NOT NULL DEFAULT '{}';
+    `,
+  },
 ];
 
-export const migrateStore = (db: Db) => migrate(db, SCHEMA, MIGRATIONS);
+/** Each demo store keeps its own schema (good: demo_store_good, buggy: demo_store_buggy). */
+export const migrateStore = (db: Db, schema = SCHEMA) => migrate(db, schema, MIGRATIONS);
 
 export interface OrderRow {
   paypal_order_id: string;
@@ -87,19 +96,22 @@ export interface OrderRow {
   updated_at: Date | string;
 }
 
-const T = `${SCHEMA}.orders`;
-const W = `${SCHEMA}.webhook_events`;
+export interface RepoOptions {
+  /** SEEDED BUG (buggy store only): process every delivery, even duplicates. */
+  noWebhookDedup?: boolean;
+}
 
-export function storeRepo(db: Db) {
+export function storeRepo(db: Db, schema = SCHEMA, opts: RepoOptions = {}) {
+  const T = `${schema}.orders`;
+  const W = `${schema}.webhook_events`;
+  const D = `${schema}.webhook_deliveries`;
+  const F = `${schema}.fail_ack`;
   return {
-    async insertOrder(o: { paypalOrderId: string; sku: string; quantity: number; amountCents: number; currency: string }) {
-      await db.query(`INSERT INTO ${T} (paypal_order_id, sku, quantity, amount_cents, currency, status) VALUES ($1,$2,$3,$4,$5,'created')`, [
-        o.paypalOrderId,
-        o.sku,
-        o.quantity,
-        o.amountCents,
-        o.currency,
-      ]);
+    async insertOrder(o: { paypalOrderId: string; sku: string; quantity: number; amountCents: number; currency: string; createAttempts?: string[] }) {
+      await db.query(
+        `INSERT INTO ${T} (paypal_order_id, sku, quantity, amount_cents, currency, status, create_attempts) VALUES ($1,$2,$3,$4,$5,'created',$6)`,
+        [o.paypalOrderId, o.sku, o.quantity, o.amountCents, o.currency, o.createAttempts ?? [o.paypalOrderId]],
+      );
     },
 
     async getOrder(id: string): Promise<OrderRow | undefined> {
@@ -132,9 +144,12 @@ export function storeRepo(db: Db) {
 
     /** Idempotent: fulfils exactly once, on the first transition to paid. */
     async markPaid(id: string, captureId: string): Promise<boolean> {
+      // SEEDED BUG (no_webhook_dedup): the buggy store also "ships" again for an order that is
+      // already paid, so a duplicate event means a double fulfilment.
+      const from = opts.noWebhookDedup ? "('created','capturing','capture_failed','paid')" : "('created','capturing','capture_failed')";
       const res = await db.query(
-        `UPDATE ${T} SET status='paid', capture_id=$2, paid_at=now(), updated_at=now(), fulfilment_count = fulfilment_count + 1
-         WHERE paypal_order_id=$1 AND status IN ('created','capturing','capture_failed') RETURNING paypal_order_id`,
+        `UPDATE ${T} SET status='paid', capture_id=$2, paid_at=COALESCE(paid_at, now()), updated_at=now(), fulfilment_count = fulfilment_count + 1
+         WHERE paypal_order_id=$1 AND status IN ${from} RETURNING paypal_order_id`,
         [id, captureId],
       );
       return res.rows.length === 1;
@@ -179,7 +194,7 @@ export function storeRepo(db: Db) {
             [e.eventId, e.type, e.resourceId ?? null, e.paypalOrderId ?? null],
           )
         ).rows[0]!;
-        if (row.processed > 0) return "duplicate";
+        if (row.processed > 0 && !opts.noWebhookDedup) return "duplicate";
         await process(tx);
         await tx.query(`UPDATE ${W} SET processed = processed + 1 WHERE event_id = $1`, [e.eventId]);
         return "processed";
@@ -188,23 +203,23 @@ export function storeRepo(db: Db) {
 
     async recordDelivery(e: { eventId: string; transmissionId: string; headers: Record<string, string>; rawBody: Buffer }): Promise<number> {
       // Keep the log short: deliveries exist only for a certification run.
-      await db.query(`DELETE FROM ${SCHEMA}.webhook_deliveries WHERE received_at < now() - make_interval(hours => $1)`, [DELIVERY_RETENTION_HOURS]);
+      await db.query(`DELETE FROM ${D} WHERE received_at < now() - make_interval(hours => $1)`, [DELIVERY_RETENTION_HOURS]);
       return (
         await db.query<{ id: number }>(
-          `INSERT INTO ${SCHEMA}.webhook_deliveries (event_id, transmission_id, headers, body_base64) VALUES ($1,$2,$3,$4) RETURNING id`,
+          `INSERT INTO ${D} (event_id, transmission_id, headers, body_base64) VALUES ($1,$2,$3,$4) RETURNING id`,
           [e.eventId, e.transmissionId, JSON.stringify(e.headers), e.rawBody.toString("base64")],
         )
       ).rows[0]!.id;
     },
 
     async setDeliveryResponse(id: number, status: number) {
-      await db.query(`UPDATE ${SCHEMA}.webhook_deliveries SET response_status=$2 WHERE id=$1`, [id, status]);
+      await db.query(`UPDATE ${D} SET response_status=$2 WHERE id=$1`, [id, status]);
     },
 
     async deliveries(eventId: string, since: Date) {
       const rows = (
         await db.query<{ transmission_id: string; headers: Record<string, string>; body_base64: string; received_at: Date | string; response_status: number | null }>(
-          `SELECT transmission_id, headers, body_base64, received_at, response_status FROM ${SCHEMA}.webhook_deliveries WHERE event_id=$1 AND received_at >= $2 ORDER BY id`,
+          `SELECT transmission_id, headers, body_base64, received_at, response_status FROM ${D} WHERE event_id=$1 AND received_at >= $2 ORDER BY id`,
           [eventId, since.toISOString()],
         )
       ).rows;
@@ -222,12 +237,12 @@ export function storeRepo(db: Db) {
     },
 
     async armFailAck(paypalOrderId: string, eventType: string) {
-      await db.query(`INSERT INTO ${SCHEMA}.fail_ack (paypal_order_id, event_type) VALUES ($1,$2) ON CONFLICT DO NOTHING`, [paypalOrderId, eventType]);
+      await db.query(`INSERT INTO ${F} (paypal_order_id, event_type) VALUES ($1,$2) ON CONFLICT DO NOTHING`, [paypalOrderId, eventType]);
     },
 
     /** True once per armed (order, event type), then disarmed. */
     async consumeFailAck(paypalOrderId: string, eventType: string): Promise<boolean> {
-      const res = await db.query(`DELETE FROM ${SCHEMA}.fail_ack WHERE paypal_order_id=$1 AND event_type=$2 RETURNING paypal_order_id`, [paypalOrderId, eventType]);
+      const res = await db.query(`DELETE FROM ${F} WHERE paypal_order_id=$1 AND event_type=$2 RETURNING paypal_order_id`, [paypalOrderId, eventType]);
       return res.rows.length === 1;
     },
 
@@ -253,6 +268,7 @@ export function storeRepo(db: Db) {
         refundIds: o.refund_id ? [o.refund_id] : [],
         fulfilmentCount: o.fulfilment_count,
         webhookEvents: events.map((e) => ({ eventId: e.event_id, type: e.type, deliveries: e.deliveries, processed: e.processed })),
+        createAttempts: (o as OrderRow & { create_attempts?: string[] }).create_attempts ?? [o.paypal_order_id],
         updatedAt: new Date(o.updated_at).toISOString(),
       };
     },

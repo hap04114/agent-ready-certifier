@@ -43,6 +43,17 @@ export interface StoreDeps {
   verifyWebhook?: WebhookVerifier;
   /** Request logging; tests turn it off. */
   logger?: boolean;
+  /** Postgres schema for this store's records (default demo_store_good). */
+  schema?: string;
+  /** Store name shown on the page. */
+  brand?: string;
+  /**
+   * SEEDED BUGS (demo-store-buggy only). Each one breaks exactly one certifier check, for the
+   * accuracy benchmark. See docs/seeded-bugs.md. The good store runs with none.
+   */
+  bugs?: ReadonlySet<SeededBug>;
+  /** Only with the expose_client_secret bug: the (sandbox, throwaway) secret it leaks. */
+  exposedSecret?: string;
 }
 
 const PAYPAL_SOURCES = "https://*.paypal.com https://*.paypalobjects.com";
@@ -100,8 +111,26 @@ export function captureIdFromRefundLinks(links: { rel: string; href: string }[] 
   return up?.href.split("/captures/")[1]?.split(/[/?#]/)[0];
 }
 
+export const SEEDED_BUGS = [
+  "refund_webhook_broken", // W4
+  "trust_client_price", // S1
+  "accept_unsigned_webhooks", // S2
+  "no_webhook_dedup", // S3, W6
+  "expose_client_secret", // S5
+  "no_request_id_on_retry", // S7
+  "no_security_headers", // S8
+  "no_pay_later", // C2
+] as const;
+export type SeededBug = (typeof SEEDED_BUGS)[number];
+
 export function buildGoodStore(deps: StoreDeps) {
-  const repo = storeRepo(deps.db);
+  const bugs = deps.bugs ?? new Set<SeededBug>();
+  const has = (b: SeededBug) => bugs.has(b);
+  const schema = deps.schema ?? "demo_store_good";
+  const repoFor = (db: Db) => storeRepo(db, schema, { noWebhookDedup: has("no_webhook_dedup") });
+  const repo = repoFor(deps.db);
+  // S7 test hook: the next order creation behaves as if its first response was lost and retries.
+  let simulateCreateRetryUntil = 0;
   const verify: WebhookVerifier =
     deps.verifyWebhook ??
     ((headers, rawBody) =>
@@ -112,18 +141,23 @@ export function buildGoodStore(deps: StoreDeps) {
   const app = Fastify({ logger: deps.logger === false ? false : { redact: ["req.headers.authorization", "req.headers.cookie"] } });
 
   app.addHook("onSend", async (_req, reply) => {
+    if (has("no_security_headers")) return; // SEEDED BUG: no CSP, no HSTS
     for (const [k, v] of Object.entries(SECURITY_HEADERS)) reply.header(k, v);
   });
 
   // ------------------------------------------------------------------ shop pages
   app.get("/", async (_req, reply) => {
-    const sdkUrl = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(deps.clientId)}&currency=${CURRENCY}&components=buttons,messages&enable-funding=paylater`;
+    // SEEDED BUG no_pay_later: the SDK loads without the messages component and no placement.
+    const sdkUrl = has("no_pay_later")
+      ? `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(deps.clientId)}&currency=${CURRENCY}&components=buttons&enable-funding=venmo`
+      : `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(deps.clientId)}&currency=${CURRENCY}&components=buttons,messages&enable-funding=paylater,venmo`;
     const options = CATALOG.map(
       (p) => `<option value="${escapeHtml(p.sku)}" data-price="${centsToValue(p.priceCents)}">${escapeHtml(p.name)} — $${centsToValue(p.priceCents)}</option>`,
     ).join("");
     const first = CATALOG[0]!;
-    const html = pageTemplate
+    let html = pageTemplate
       .replace("{{SDK_URL}}", escapeHtml(sdkUrl))
+      .replaceAll("{{BRAND}}", escapeHtml(deps.brand ?? "Demo Store"))
       .replace("{{OPTIONS}}", options)
       .replaceAll("{{INITIAL_AMOUNT}}", centsToValue(first.priceCents))
       .replace(
@@ -131,6 +165,7 @@ export function buildGoodStore(deps: StoreDeps) {
         deps.ownershipToken ? `  <meta name="${OWNERSHIP_META_NAME}" content="${escapeHtml(deps.ownershipToken)}">
 </head>` : "</head>",
       );
+    if (has("no_pay_later")) html = html.replace(/<div id="paylater"[^>]*><\/div>/, "");
     return reply.type("text/html; charset=utf-8").send(html);
   });
 
@@ -138,7 +173,14 @@ export function buildGoodStore(deps: StoreDeps) {
     deps.ownershipToken ? reply.type("text/plain; charset=utf-8").send(deps.ownershipToken) : reply.code(404).send({ error: "no_ownership_token" }),
   );
 
-  app.get("/checkout.js", async (_req, reply) => reply.type("application/javascript; charset=utf-8").send(checkoutJs));
+  app.get("/checkout.js", async (_req, reply) => {
+    // SEEDED BUG expose_client_secret: the bundle ships the app's client secret to every visitor.
+    // The buggy store also sends the page price to the server (used by trust_client_price).
+    const prefix = has("expose_client_secret")
+      ? `window.STORE_CONFIG = { clientId: ${JSON.stringify(deps.clientId)}, clientSecret: ${JSON.stringify(deps.exposedSecret ?? "")}, sendPrice: ${has("trust_client_price")} };\n`
+      : `window.STORE_CONFIG = { sendPrice: ${has("trust_client_price")} };\n`;
+    return reply.type("application/javascript; charset=utf-8").send(prefix + checkoutJs);
+  });
 
   app.get("/api/catalog", async () =>
     CATALOG.map((p) => ({ sku: p.sku, name: p.name, price: centsToValue(p.priceCents), currency: CURRENCY, placeholder: true })),
@@ -153,17 +195,42 @@ export function buildGoodStore(deps: StoreDeps) {
     if (!product) return reply.code(404).send({ error: "unknown_sku" });
 
     const { quantity } = parsed.data;
-    const amountCents = product.priceCents * quantity;
-    const unit = { currencyCode: CURRENCY, value: centsToValue(product.priceCents) };
-    try {
-      const { order } = await deps.paypal.createOrder({
+    // SEEDED BUG trust_client_price: a price sent by the browser overrides the catalog.
+    const clientPrice = has("trust_client_price") ? valueToCents(String((req.body as { price?: unknown }).price ?? "")) : undefined;
+    const unitCents = clientPrice ?? product.priceCents;
+    const amountCents = unitCents * quantity;
+    const unit = { currencyCode: CURRENCY, value: centsToValue(unitCents) };
+    const create = (requestId: string) =>
+      deps.paypal.createOrder({
         amount: { currencyCode: CURRENCY, value: centsToValue(amountCents) },
         items: [{ name: product.name, sku: product.sku, quantity, unitAmount: unit }],
         returnUrl: `${deps.publicUrl}/paypal/return`,
         cancelUrl: `${deps.publicUrl}/paypal/cancel`,
+        requestId,
       });
+    // A retry must reuse the PayPal-Request-Id so PayPal returns the same order instead of a
+    // second one. SEEDED BUG no_request_id_on_retry: the buggy store makes a new ID each time.
+    const requestId = randomUUID();
+    const retryId = () => (has("no_request_id_on_retry") ? randomUUID() : requestId);
+    try {
+      const attempts: string[] = [];
+      let result: Awaited<ReturnType<typeof create>>;
+      try {
+        result = await create(requestId);
+      } catch (err) {
+        if (!(err instanceof PaypalCallError) || (err.statusCode ?? 0) < 500) throw err;
+        result = await create(retryId());
+      }
+      if (result.order.id) attempts.push(result.order.id);
+      if (simulateCreateRetryUntil > Date.now()) {
+        // Test hook: behave as if the first response was lost (a timeout) and retry.
+        simulateCreateRetryUntil = 0;
+        result = await create(retryId());
+        if (result.order.id) attempts.push(result.order.id);
+      }
+      const { order } = result;
       if (!order.id) return reply.code(502).send({ error: "paypal_no_order_id" });
-      await repo.insertOrder({ paypalOrderId: order.id, sku: product.sku, quantity, amountCents, currency: CURRENCY });
+      await repo.insertOrder({ paypalOrderId: order.id, sku: product.sku, quantity, amountCents, currency: CURRENCY, createAttempts: attempts });
       return reply.code(201).send({ id: order.id });
     } catch (err) {
       return sendPaypalError(reply, err);
@@ -242,7 +309,8 @@ export function buildGoodStore(deps: StoreDeps) {
 
     scope.post("/webhooks/paypal", async (req, reply) => {
       const raw = req.body as Buffer;
-      const check = await verify(req.headers, raw);
+      // SEEDED BUG accept_unsigned_webhooks: the buggy store never checks PayPal's signature.
+      const check = has("accept_unsigned_webhooks") ? { valid: true as const } : await verify(req.headers, raw);
       if (!check.valid) {
         req.log.warn({ reason: check.reason }, "webhook rejected");
         return reply.code(400).send({ error: "invalid_signature" });
@@ -266,14 +334,15 @@ export function buildGoodStore(deps: StoreDeps) {
       const outcome = await repo.handleDelivery(
         { eventId: parsed.id, type: parsed.event_type, resourceId: r.id, paypalOrderId: relatedOrder },
         async (tx) => {
-          const txRepo = storeRepo(tx);
+          const txRepo = repoFor(tx);
           if (parsed.event_type === "PAYMENT.CAPTURE.COMPLETED" && r.id) {
             const order = relatedOrder ? await txRepo.getOrder(relatedOrder) : await txRepo.findByCapture(r.id);
             if (order && r.status === "COMPLETED" && valueToCents(r.amount?.value) === order.amount_cents && r.amount?.currency_code === order.currency) {
               await txRepo.markPaid(order.paypal_order_id, r.id);
               await txRepo.setEventOrder(parsed.id, order.paypal_order_id);
             }
-          } else if (parsed.event_type === "PAYMENT.CAPTURE.REFUNDED" && r.id) {
+          } else if (parsed.event_type === "PAYMENT.CAPTURE.REFUNDED" && r.id && !has("refund_webhook_broken")) {
+            // (SEEDED BUG refund_webhook_broken: the buggy store acknowledges refunds but never records them.)
             const captureId = captureIdFromRefundLinks(r.links);
             const order = captureId ? await txRepo.findByCapture(captureId) : undefined;
             if (order) {
@@ -337,7 +406,12 @@ export function buildGoodStore(deps: StoreDeps) {
     // Sandbox-only by construction: config refuses to boot unless PAYPAL_ENV=sandbox.
     if (deps.config.PAYPAL_ENV !== "sandbox") return reply.code(403).send({ error: "sandbox_only" });
     const parsed = testHookRequest.safeParse(req.body);
+    if (parsed.success && "simulate" in parsed.data) {
+      simulateCreateRetryUntil = Date.now() + 120_000;
+      return reply.code(204).send();
+    }
     if (!parsed.success) return reply.code(400).send({ error: "invalid_request" });
+    if (!("mock" in parsed.data)) return reply.code(400).send({ error: "invalid_request" });
     const armed = await repo.armTestHook(parsed.data.paypalOrderId, parsed.data.mock);
     return armed ? reply.code(204).send() : reply.code(409).send({ error: "order_not_armable" });
   });

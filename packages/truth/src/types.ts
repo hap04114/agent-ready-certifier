@@ -4,7 +4,11 @@
  * never a guessed pass.
  */
 
-export type CheckCode = "W1" | "W2" | "W3" | "W4" | "W5" | "W6";
+export type CheckCode =
+  | "W1" | "W2" | "W3" | "W4" | "W5" | "W6"
+  | "C1" | "C2" | "C3" | "C4" | "C5"
+  | "S1" | "S2" | "S3" | "S4" | "S5" | "S6" | "S7" | "S8"
+  | "R1" | "A1" | "A2" | "A3";
 export type VerdictStatus = "pass" | "fail" | "inconclusive";
 
 /**
@@ -12,11 +16,13 @@ export type VerdictStatus = "pass" | "fail" | "inconclusive";
  * - paypal-signed: a webhook event whose PayPal signature we verified ourselves
  * - paypal-api:    a record read from PayPal's API with the merchant's sandbox credentials
  * - store-reported: what the store's status endpoint says it recorded
+ * - certifier-observed: what the certifier saw directly on the public site (page source,
+ *   scripts, response headers, button position)
  * - certifier-recorded: the certifier's own recording (e.g. a Kernel browser video); shows what
  *   happened, never decides a verdict
  */
-export type EvidenceStrength = "paypal-signed" | "paypal-api" | "store-reported" | "certifier-recorded";
-export type EvidenceKind = "order" | "capture" | "refund" | "webhook_event" | "webhook_delivery" | "store_record" | "video";
+export type EvidenceStrength = "paypal-signed" | "paypal-api" | "store-reported" | "certifier-observed" | "certifier-recorded";
+export type EvidenceKind = "order" | "capture" | "refund" | "webhook_event" | "webhook_delivery" | "store_record" | "video" | "page" | "trial";
 
 export interface EvidenceRef {
   kind: EvidenceKind;

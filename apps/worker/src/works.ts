@@ -29,7 +29,24 @@ import {
   orderSnap,
   refundSnap,
 } from "@certifier/truth";
+import {
+  catalog as storeCatalog,
+  createOrder as storeCreateRaw,
+  findLiveHosts,
+  findSecrets,
+  measureStorefront,
+  observe,
+  probeS1,
+  probeS2,
+  probeS4,
+  probeS7,
+  scanStorefront,
+} from "@certifier/probes";
+import type { StorefrontObservation } from "@certifier/truth";
+import { judgeC1, judgeC2, judgeC3, judgeC4, judgeC5, judgeS1, judgeS2, judgeS3, judgeS4, judgeS5, judgeS6, judgeS7, judgeS8 } from "@certifier/truth";
 import { type RunBudget, RunStopped } from "./budget.js";
+
+export const pillarOf = (code: string) => (code.startsWith("W") ? "works" : code.startsWith("C") ? "current" : code.startsWith("S") ? "secure" : "agent-ready");
 
 export interface AgentSettings {
   kernelApiKey: string;
@@ -136,6 +153,12 @@ export async function runWorksPillar(opts: WorksRunOptions): Promise<WorksRunRes
     const session = await openKernelSession(agent.kernelApiKey);
     log(`AI buyer agent approving ${links.length} orders in Kernel browser ${session.sessionId} (recorded)…`);
     try {
+      try {
+        rendered = await measureStorefront(session.context, storeUrl);
+        log(`Storefront measured: PayPal button ${rendered.paypalButton ? `at ${Math.round(rendered.paypalButton.top)}px` : "not found"}, Pay Later rendered: ${rendered.payLaterMessageRendered}, Venmo rendered: ${rendered.venmoButtonRendered}`);
+      } catch {
+        log("Storefront measurement failed; C3 will be inconclusive.");
+      }
       for (const [label, id, link] of links) {
         budget.check();
         if (!link) {
@@ -162,10 +185,18 @@ export async function runWorksPillar(opts: WorksRunOptions): Promise<WorksRunRes
     return rec;
   };
 
+  let rendered: StorefrontObservation["rendered"];
+
   // ------------------------------------------------------------ the run
   const runId = opts.runId ?? (await repo.createRun({ storeUrl, budgetRequests: budget.maxRequests, timeLimitMin: config.RUN_MAX_MINUTES }));
   log(`Run ${runId} against ${storeUrl} (budget ${budget.maxRequests} requests, ${config.RUN_MAX_MINUTES} min)`);
   try {
+    // 0. Read-only storefront scan (Current pillar and front-end Secure checks).
+    const scan = await scanStorefront(`${storeUrl}/`, { spend: () => budget.spend() });
+    log(`Storefront scanned: HTTP ${scan.status ?? "?"}, ${scan.files.length} public file(s)${scan.error ? ` (${scan.error})` : ""}`);
+    const storeTarget = { url: storeUrl, statusKey: opts.store.statusKey };
+    const probeDeps = { spend: () => budget.spend() };
+
     // 1. Three orders through the store's own checkout API (or an earlier run's orders).
     let A: string, B: string, C: string, hookB: boolean, hookC: boolean;
     if (opts.resumeFrom) {
@@ -244,6 +275,16 @@ export async function runWorksPillar(opts: WorksRunOptions): Promise<WorksRunRes
     }
     const delivery1 = captureEvent ? await deliveryOf(captureEvent.eventId) : undefined;
     verdicts.push(judgeW5({ captureEvent, delivery: delivery1, certifierWebhookUrl: opts.certifierWebhookUrl, store: storeA1 ?? storeA0 }));
+
+    // S4 Order replay: ask the store to capture order A a second time.
+    if (capA) {
+      const s4Before = (await storeStatus(A)) ?? storeA1 ?? storeA0;
+      const s4 = await probeS4(storeTarget, probeDeps, A);
+      const s4After = await storeStatus(A);
+      verdicts.push(judgeS4({ secondCaptureHttpStatus: s4.secondCaptureHttpStatus, order: orderSnap(await pp(() => paypal.getOrder(A))), before: s4Before, after: s4After }));
+    } else {
+      verdicts.push(judgeS4({}));
+    }
 
     // 4. W6 part 1 (no waiting): ask PayPal to re-send, then replay the store's own signed
     //    delivery byte for byte — only after verifying PayPal's signature on it ourselves.
@@ -343,7 +384,59 @@ export async function runWorksPillar(opts: WorksRunOptions): Promise<WorksRunRes
         }
       }
     }
-    verdicts.push(judgeW6({ duplicates, before: w6Before, after: await storeStatus(A), notes: dupNotes }));
+    const w6After = await storeStatus(A);
+    verdicts.push(judgeW6({ duplicates, before: w6Before, after: w6After, notes: dupNotes }));
+    verdicts.push(judgeS3({ duplicates, before: w6Before, after: w6After, notes: dupNotes }));
+
+    // S1 Price tampering: the most expensive item, every common price field set to 1.00.
+    const items = await storeCatalog(storeTarget, probeDeps);
+    const priciest = [...items].sort((a, b) => Number(b.price) - Number(a.price))[0];
+    if (priciest) {
+      const s1 = await probeS1(storeTarget, probeDeps, priciest);
+      const s1Order = s1.id ? orderSnap(await pp(() => paypal.getOrder(s1.id!))) : undefined;
+      verdicts.push(
+        judgeS1({ serverPrice: { currencyCode: priciest.currency, value: priciest.price }, tamperedValue: s1.tamperedValue, tamperedFields: s1.tamperedFields, order: s1Order, storeRejected: s1.rejected }),
+      );
+    } else {
+      verdicts.push(judgeS1({ tamperedValue: "1.00", tamperedFields: [] }));
+    }
+
+    // S2 Forged webhook: an unsigned "payment completed" for a fresh, unpaid order.
+    const s2Item = items[0];
+    const s2Created = s2Item ? await storeCreateRaw(storeTarget, probeDeps, { sku: s2Item.sku, quantity: 1 }) : undefined;
+    if (s2Created?.id && s2Item) {
+      const s2Before = await storeStatus(s2Created.id);
+      const s2 = await probeS2(storeTarget, probeDeps, s2Created.id, { currencyCode: s2Item.currency, value: s2Item.price });
+      await new Promise((r) => setTimeout(r, 1500));
+      const s2After = await storeStatus(s2Created.id);
+      verdicts.push(judgeS2({ ...s2, before: s2Before, after: s2After, order: orderSnap(await pp(() => paypal.getOrder(s2Created.id!))) }));
+    } else {
+      verdicts.push(judgeS2({ sent: false }));
+    }
+
+    // S7 Retry safety: the store's test hook makes its next checkout retry order creation.
+    if (s2Item) {
+      const s7 = await probeS7(storeTarget, probeDeps, s2Item);
+      const resolved = [];
+      for (const id of [...new Set(s7.hookSupported ? (s7.createAttempts ?? []) : [])]) {
+        try {
+          resolved.push(orderSnap(await pp(() => paypal.getOrder(id))));
+        } catch (err) {
+          if (!(err instanceof PaypalCallError)) throw err;
+        }
+      }
+      verdicts.push(judgeS7({ hookSupported: s7.hookSupported, createAttempts: s7.hookSupported ? s7.createAttempts : undefined, resolved }));
+    } else {
+      verdicts.push(judgeS7({ hookSupported: false }));
+    }
+
+    // Page-level checks from the scan (and the browser measurement, when there was one).
+    const page: StorefrontObservation = { ...observe(scan), rendered };
+    const scanned = scan.files.map((x) => x.url);
+    verdicts.push(judgeC1(page), judgeC2(page), judgeC3(page), judgeC4({ configured: false, url: page.url }), judgeC5(page));
+    verdicts.push(judgeS5({ scanned, findings: findSecrets(scan.files) }));
+    verdicts.push(judgeS6({ scanned, liveHostHits: findLiveHosts(scan.files), sandboxOrderId: orderA.id || undefined, sandboxOrderResolved: orderA.id ? true : undefined }));
+    verdicts.push(judgeS8({ url: `${storeUrl}/`, status: scan.status, csp: scan.headers["content-security-policy"], hsts: scan.headers["strict-transport-security"] }));
 
     // The recording shows the buyer approvals behind W1–W4. It is our own record, labelled as such.
     if (recording) {
@@ -354,8 +447,9 @@ export async function runWorksPillar(opts: WorksRunOptions): Promise<WorksRunRes
       }
     }
 
-    verdicts.sort((a, b) => a.check.localeCompare(b.check));
-    for (const v of verdicts) await repo.saveVerdict(runId, "works", v);
+    const order = ["works", "current", "secure", "agent-ready"];
+    verdicts.sort((a, b) => order.indexOf(pillarOf(a.check)) - order.indexOf(pillarOf(b.check)) || a.check.localeCompare(b.check));
+    for (const v of verdicts) await repo.saveVerdict(runId, pillarOf(v.check), v);
     await repo.finishRun(runId, "judged", budget.used, notes);
     return { runId, status: "judged", verdicts };
   } catch (err) {
