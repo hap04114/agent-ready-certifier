@@ -12,9 +12,11 @@ export type VerdictStatus = "pass" | "fail" | "inconclusive";
  * - paypal-signed: a webhook event whose PayPal signature we verified ourselves
  * - paypal-api:    a record read from PayPal's API with the merchant's sandbox credentials
  * - store-reported: what the store's status endpoint says it recorded
+ * - certifier-recorded: the certifier's own recording (e.g. a Kernel browser video); shows what
+ *   happened, never decides a verdict
  */
-export type EvidenceStrength = "paypal-signed" | "paypal-api" | "store-reported";
-export type EvidenceKind = "order" | "capture" | "refund" | "webhook_event" | "webhook_delivery" | "store_record";
+export type EvidenceStrength = "paypal-signed" | "paypal-api" | "store-reported" | "certifier-recorded";
+export type EvidenceKind = "order" | "capture" | "refund" | "webhook_event" | "webhook_delivery" | "store_record" | "video";
 
 export interface EvidenceRef {
   kind: EvidenceKind;

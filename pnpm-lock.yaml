@@ -76,6 +76,9 @@ importers:
 
   apps/worker:
     dependencies:
+      '@certifier/browser-agent':
+        specifier: workspace:*
+        version: link:../../packages/browser-agent
       '@certifier/config':
         specifier: workspace:*
         version: link:../../packages/config
@@ -85,6 +88,9 @@ importers:
       '@certifier/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@certifier/llm':
+        specifier: workspace:*
+        version: link:../../packages/llm
       '@certifier/paypal':
         specifier: workspace:*
         version: link:../../packages/paypal

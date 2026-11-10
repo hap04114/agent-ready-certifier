@@ -1,11 +1,14 @@
 /**
  * `pnpm works:run` — run the Works pillar (W1–W6) against demo-store-good.
  *
- * Milestone 2 runner. Until the browser agent exists (Milestone 3), a human approves the
- * three sandbox orders using the printed links. Everything after approval is automatic,
- * and every verdict comes from the truth checker (plain code), stored with its evidence.
+ * The AI browser agent approves the three sandbox orders in a recorded Kernel cloud browser
+ * (or a human does, with --manual). Everything after approval is automatic, and every
+ * verdict comes from the truth checker (plain code), stored with its evidence.
  */
-import { ConfigError, bootConfig, requireConfig } from "@certifier/config";
+import { join } from "node:path";
+import { type Recording, openKernelSession, runJourney } from "@certifier/browser-agent";
+import { ConfigError, bootConfig, findRepoRoot, redact, requireConfig } from "@certifier/config";
+import type { Provider } from "@certifier/llm";
 import { TEST_HOOK_PATH, type TestHookCode, type StoreDelivery, deliveriesPath, statusPath, storeDeliveries, storeOrderStatus } from "@certifier/contract";
 import { certifierRepo, createPgDb, migrateCertifier } from "@certifier/db";
 import { PaypalCallError, SandboxPaypal, verifyWebhook, webhookHeadersFrom } from "@certifier/paypal";
@@ -53,6 +56,64 @@ try {
 
 const storeUrl = config.DEMO_STORE_GOOD_URL.replace(/\/+$/, "");
 const budget = new RunBudget(config.RUN_MAX_REQUESTS, config.RUN_MAX_MINUTES);
+
+// The agent approves orders unless --manual is given (it then needs Kernel, an LLM and the buyer).
+const useAgent = !process.argv.includes("--manual");
+function requireAgentEnv() {
+  return requireConfig(config, "the browser agent (or pass --manual)", [
+    "KERNEL_API_KEY",
+    "LLM_PROVIDER",
+    "LLM_MODEL",
+    "LLM_API_KEY",
+    "PAYPAL_SANDBOX_BUYER_EMAIL",
+    "PAYPAL_SANDBOX_BUYER_PASSWORD",
+  ]);
+}
+let agentEnv: ReturnType<typeof requireAgentEnv> | undefined;
+if (useAgent) {
+  try {
+    agentEnv = requireAgentEnv();
+  } catch (err) {
+    if (err instanceof ConfigError) {
+      console.error(err.message);
+      process.exit(1);
+    }
+    throw err;
+  }
+}
+let recording: Recording | undefined;
+
+/** One recorded Kernel browser approves every order in turn. Returns the recording. */
+async function approveWithAgent(links: [string, string, string | undefined][]): Promise<Recording | undefined> {
+  const a = agentEnv!;
+  let rec: Recording | undefined;
+  const session = await openKernelSession(a.KERNEL_API_KEY);
+  console.log(`AI buyer agent approving ${links.length} orders in Kernel browser ${session.sessionId} (recorded)…`);
+  try {
+    for (const [label, id, link] of links) {
+      budget.check();
+      if (!link) {
+        console.log(`  ${label}: no approval link; skipped`);
+        continue;
+      }
+      const result = await runJourney({
+        context: session.context,
+        startUrl: link,
+        mission: `This is a PayPal sandbox checkout page for order ${id}, which already exists. Log in as the buyer if asked, then approve and complete the payment. Reply done once PayPal hands you back to the store.`,
+        llm: { provider: a.LLM_PROVIDER as Provider, model: a.LLM_MODEL, apiKey: a.LLM_API_KEY },
+        buyer: { email: a.PAYPAL_SANDBOX_BUYER_EMAIL, password: a.PAYPAL_SANDBOX_BUYER_PASSWORD },
+        scrub: (t) => redact(t, config),
+        maxSteps: 20,
+      });
+      console.log(`  ${label}: agent finished in ${result.steps.length} steps (${result.outcome}; the agent's own report, not evidence)`);
+    }
+  } finally {
+    rec = await session.close(join(findRepoRoot()!, "recordings"));
+    console.log(rec ? `Recording saved: replay ${rec.replayId}` : "Recording: not available");
+    notes.recording = rec ? { replayId: rec.replayId, file: rec.file ?? null } : null;
+  }
+  return rec;
+}
 process.on("SIGINT", () => {
   console.log("\nKill switch: stopping the run.");
   budget.kill();
@@ -162,13 +223,19 @@ try {
   }
   Object.assign(notes, { orders: { A, B, C }, hookB, hookC, resumedFrom: resumeFrom ?? null });
 
-  // 2. Human approval (until the browser agent exists).
+  // 2. Buyer approval: the AI browser agent in a Kernel cloud browser (recorded), or a human
+  //    with --manual. The agent's own "done" is not evidence; the store and PayPal records are.
   if (!resumeFrom) {
-  console.log("Approve these three sandbox orders as the sandbox BUYER (any order, one browser tab each):");
+  const links: [string, string, string | undefined][] = [];
   for (const [label, id] of [["A (purchase, then refund)", A], ["B (will be declined)", B], ["C (server error)", C]] as const) {
     const order = await pp(() => paypal.getOrder(id));
-    const link = order.links?.find((l) => l.rel === "payer-action" || l.rel === "approve")?.href;
-    console.log(`  ${label}: ${link ?? "(no approval link returned)"}`);
+    links.push([label, id, order.links?.find((l) => l.rel === "payer-action" || l.rel === "approve")?.href]);
+  }
+  if (useAgent) {
+    recording = await approveWithAgent(links);
+  } else {
+    console.log("Approve these three sandbox orders as the sandbox BUYER (any order, one browser tab each):");
+    for (const [label, , link] of links) console.log(`  ${label}: ${link ?? "(no approval link returned)"}`);
   }
   console.log(`\nWaiting for the store to finish each checkout (up to ${config.RUN_MAX_MINUTES} min)…`);
   const settled = async (id: string) => {
@@ -289,6 +356,15 @@ try {
     }
   }
   verdicts.push(judgeW6({ duplicates, before: w6Before, after: await storeStatus(A), notes: dupNotes }));
+
+  // The recording shows the buyer approvals behind W1–W4. It is our own record, labelled as such.
+  if (recording) {
+    for (const v of verdicts) {
+      if (["W1", "W2", "W3", "W4"].includes(v.check)) {
+        v.evidence.push({ kind: "video", id: recording.replayId, strength: "certifier-recorded", note: "Kernel recording of the AI buyer approving the orders" });
+      }
+    }
+  }
 
   verdicts.sort((a, b) => a.check.localeCompare(b.check));
   for (const v of verdicts) await repo.saveVerdict(runId, "works", v);
