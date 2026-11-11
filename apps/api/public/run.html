@@ -22,6 +22,10 @@
     <section class="card"><div class="body" id="summary">Loading…</div></section>
     <div class="pillars" id="pillars"></div>
     <div id="sections"></div>
+    <section class="card" id="cert-card" hidden>
+      <div class="head"><div><h2>Signed certificate</h2><p>Signed with the certifier's Ed25519 key, chained in a public hash log and timestamped with OpenTimestamps. Anyone can check it without trusting this page.</p></div></div>
+      <div class="body" id="cert"></div>
+    </section>
     <section class="card" id="timeline-card" hidden>
       <div class="head"><div><h2>Run timeline</h2><p>Every step of the run as a bar, in seconds from the start. Orange bars are waits for PayPal's signed webhooks, so delivery delays stand out. Built with Bryntum Scheduler (Community edition, MIT).</p></div></div>
       <div class="body"><p id="timeline-summary"></p><div id="timeline"></div></div>
