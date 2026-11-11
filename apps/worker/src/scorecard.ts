@@ -20,8 +20,8 @@ const arg = (name: string, fallback: string) => {
   return i > 0 && process.argv[i + 1] ? process.argv[i + 1]! : fallback;
 };
 const trials = Math.max(1, Math.min(50, Number(arg("trials", "5"))));
-const scenarioIds = arg("scenarios", "R1,A1,A2-inbox,A2-paypal,A3").split(",").map((s) => s.trim()) as ScenarioId[];
-const modelSpecs = arg("models", `groq:${config.LLM_MODEL ?? "openai/gpt-oss-120b"},gemini:gemini-3.6-flash`).split(",");
+const scenarioIds = arg("scenarios", "R1,A1,A2-inbox,A2-paypal,A3").split(/[\s,]+/).filter(Boolean).map((s) => s.trim()) as ScenarioId[];
+const modelSpecs = arg("models", `groq:${config.LLM_MODEL ?? "openai/gpt-oss-120b"},gemini:gemini-3.6-flash`).split(/[\s,]+/).filter(Boolean);
 
 let databaseUrl: string;
 try {
