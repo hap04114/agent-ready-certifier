@@ -63,6 +63,7 @@ button.btn.primary { background: var(--brand); color: var(--brand-ink); border-c
 .chip.paypal-api { color: #155e75; border-color: #b4e0ea; background: #ecfbff; }
 .chip.store-reported { color: #6b4e16; border-color: #ead9b3; background: #fffaf0; }
 .chip.certifier-observed { color: #4c3d8f; border-color: #d2c9f2; background: #f6f3ff; }
+.chip.owner-passkey { color: #14532d; border-color: #b6e3c6; background: #effaf3; }
 .chip.certifier-recorded { color: #374151; border-color: #d6dbe2; background: #f5f6f8; }
 
 .detail { border-top: 1px dashed var(--line); margin-top: 12px; padding-top: 12px; font-size: 14px; }

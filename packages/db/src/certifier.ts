@@ -180,6 +180,47 @@ export const CERTIFIER_MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    id: "009_passkeys_owner_approvals",
+    sql: `
+      -- The store owner's passkeys. Public data only: the private key never leaves the device.
+      CREATE TABLE passkeys (
+        credential_id   text PRIMARY KEY,
+        public_key      bytea NOT NULL,
+        counter         bigint NOT NULL DEFAULT 0,
+        transports      text[] NOT NULL DEFAULT '{}',
+        label           text NOT NULL,
+        created_at      timestamptz NOT NULL DEFAULT now(),
+        last_used_at    timestamptz
+      );
+      -- One-time links to register a passkey (pnpm passkey:invite). Only the SHA-256 is stored.
+      CREATE TABLE passkey_invites (
+        token_sha256    text PRIMARY KEY,
+        expires_at      timestamptz NOT NULL,
+        used_at         timestamptz
+      );
+      -- An AI shopper's request for more budget. Only a verified passkey signature over this exact
+      -- request approves it; the signature is kept so anyone can re-check it later.
+      CREATE TABLE owner_approvals (
+        id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        batch_id        text NOT NULL,
+        scenario        text NOT NULL,
+        trial_no        int  NOT NULL,
+        model           text NOT NULL,
+        currency        text NOT NULL,
+        current_limit   text NOT NULL,
+        requested_limit text NOT NULL,
+        agent_reason    text,
+        status          text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','denied','expired')),
+        nonce           text,
+        credential_id   text REFERENCES passkeys(credential_id),
+        assertion       jsonb,
+        created_at      timestamptz NOT NULL DEFAULT now(),
+        expires_at      timestamptz NOT NULL,
+        decided_at      timestamptz
+      );
+    `,
+  },
 ];
 
 export const migrateCertifier = (db: Db) => migrate(db, CERTIFIER_SCHEMA, CERTIFIER_MIGRATIONS);
@@ -194,6 +235,30 @@ export interface StoredEvent {
   signature_valid: boolean;
   received_at: Date | string;
 }
+
+export interface ApprovalRow {
+  id: string;
+  batch_id: string;
+  scenario: string;
+  trial_no: number;
+  model: string;
+  currency: string;
+  current_limit: string;
+  requested_limit: string;
+  agent_reason: string | null;
+  /** 'pending' past its expiry is reported as 'expired'. */
+  status: "pending" | "approved" | "denied" | "expired";
+  nonce: string | null;
+  credential_id: string | null;
+  passkey_label: string | null;
+  assertion: unknown;
+  created_at: Date;
+  expires_at: Date;
+  decided_at: Date | null;
+}
+const APPROVAL_COLS = `a.id, a.batch_id, a.scenario, a.trial_no, a.model, a.currency, a.current_limit, a.requested_limit, a.agent_reason,
+  CASE WHEN a.status='pending' AND a.expires_at <= now() THEN 'expired' ELSE a.status END AS status,
+  a.nonce, a.credential_id, p.label AS passkey_label, a.assertion, a.created_at, a.expires_at, a.decided_at`;
 
 export function certifierRepo(db: Db) {
   return {
@@ -440,6 +505,82 @@ export function certifierRepo(db: Db) {
           [runId],
         )
       ).rows[0];
+    },
+
+    // ---------------------------------------------------------------- passkeys and owner approvals
+    async listPasskeys() {
+      const rows = (
+        await db.query<{ credential_id: string; public_key: Uint8Array; counter: number; transports: string[]; label: string; created_at: Date; last_used_at: Date | null }>(
+          `SELECT credential_id, public_key, counter::float8 AS counter, transports, label, created_at, last_used_at FROM ${S}.passkeys ORDER BY created_at`,
+        )
+      ).rows;
+      return rows.map((r) => ({ ...r, public_key: new Uint8Array(r.public_key) }));
+    },
+
+    async savePasskey(p: { credentialId: string; publicKey: Uint8Array; counter: number; transports: string[]; label: string }) {
+      await db.query(`INSERT INTO ${S}.passkeys (credential_id, public_key, counter, transports, label) VALUES ($1,$2,$3,$4,$5)`, [
+        p.credentialId,
+        Buffer.from(p.publicKey),
+        p.counter,
+        p.transports,
+        p.label,
+      ]);
+    },
+
+    async createPasskeyInvite(tokenSha256: string, ttlMinutes: number) {
+      await db.query(`INSERT INTO ${S}.passkey_invites (token_sha256, expires_at) VALUES ($1, now() + make_interval(mins => $2))`, [tokenSha256, ttlMinutes]);
+    },
+
+    /** True when the invite exists, is unused and unexpired. `consume` marks it used (single use). */
+    async checkPasskeyInvite(tokenSha256: string, consume: boolean) {
+      const sql = consume
+        ? `UPDATE ${S}.passkey_invites SET used_at = now() WHERE token_sha256=$1 AND used_at IS NULL AND expires_at > now() RETURNING token_sha256`
+        : `SELECT token_sha256 FROM ${S}.passkey_invites WHERE token_sha256=$1 AND used_at IS NULL AND expires_at > now()`;
+      return (await db.query(sql, [tokenSha256])).rows.length === 1;
+    },
+
+    async createApproval(a: { batchId: string; scenario: string; trialNo: number; model: string; currency: string; currentLimit: string; requestedLimit: string; agentReason?: string; ttlMinutes: number }) {
+      return (
+        await db.query<{ id: string }>(
+          `INSERT INTO ${S}.owner_approvals (batch_id, scenario, trial_no, model, currency, current_limit, requested_limit, agent_reason, expires_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8, now() + make_interval(mins => $9)) RETURNING id`,
+          [a.batchId, a.scenario, a.trialNo, a.model, a.currency, a.currentLimit, a.requestedLimit, a.agentReason ?? null, a.ttlMinutes],
+        )
+      ).rows[0]!.id;
+    },
+
+    async getApproval(id: string) {
+      return (
+        await db.query<ApprovalRow>(`SELECT ${APPROVAL_COLS} FROM ${S}.owner_approvals a LEFT JOIN ${S}.passkeys p ON p.credential_id = a.credential_id WHERE a.id=$1`, [id])
+      ).rows[0];
+    },
+
+    async listApprovals(limit = 50) {
+      return (await db.query<ApprovalRow>(`SELECT ${APPROVAL_COLS} FROM ${S}.owner_approvals a LEFT JOIN ${S}.passkeys p ON p.credential_id = a.credential_id ORDER BY a.created_at DESC LIMIT $1`, [limit])).rows;
+    },
+
+    /** Set the nonce the passkey challenge is built from (only while the request is open). */
+    async setApprovalNonce(id: string, nonce: string) {
+      return (await db.query(`UPDATE ${S}.owner_approvals SET nonce=$2 WHERE id=$1 AND status='pending' AND expires_at > now() RETURNING id`, [id, nonce])).rows.length === 1;
+    },
+
+    /** Record a verified passkey approval and advance the passkey's signature counter, atomically. */
+    async approveWithPasskey(id: string, a: { nonce: string; credentialId: string; assertion: unknown; newCounter: number }) {
+      return db.transaction(async (tx) => {
+        const done = await tx.query(
+          `UPDATE ${S}.owner_approvals SET status='approved', credential_id=$3, assertion=$4, decided_at=now()
+           WHERE id=$1 AND nonce=$2 AND status='pending' AND expires_at > now() RETURNING id`,
+          [id, a.nonce, a.credentialId, JSON.stringify(a.assertion)],
+        );
+        if (done.rows.length !== 1) return false;
+        await tx.query(`UPDATE ${S}.passkeys SET counter=$2, last_used_at=now() WHERE credential_id=$1`, [a.credentialId, a.newCounter]);
+        return true;
+      });
+    },
+
+    /** Deny or expire an open request. Either way nothing is approved. */
+    async closeApproval(id: string, status: "denied" | "expired") {
+      return (await db.query(`UPDATE ${S}.owner_approvals SET status=$2, decided_at=now() WHERE id=$1 AND status='pending' RETURNING id`, [id, status])).rows.length === 1;
     },
 
     async listRuns(limit = 200) {

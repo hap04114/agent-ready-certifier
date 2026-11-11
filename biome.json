@@ -2,7 +2,7 @@
 	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
 	"vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
 	"files": {
-		"includes": ["**", "!**/node_modules", "!pnpm-lock.yaml", "!docs", "!apps/api/public/bryntum-*"]
+		"includes": ["**", "!**/node_modules", "!pnpm-lock.yaml", "!docs", "!apps/api/public/bryntum-*", "!apps/api/public/simplewebauthn-browser.js"]
 	},
 	"formatter": { "enabled": false },
 	"assist": { "enabled": false },

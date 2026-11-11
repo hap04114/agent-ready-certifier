@@ -15,7 +15,8 @@
     "benchmark": "tsx src/benchmark.ts",
     "certify:page": "tsx src/certify-page.ts",
     "realworld:serve": "tsx src/realworld-serve.ts",
-    "merchant-agent": "tsx src/merchant-agent-trials.ts"
+    "merchant-agent": "tsx src/merchant-agent-trials.ts",
+    "funnel": "tsx src/funnel.ts"
   },
   "dependencies": {
     "@certifier/config": "workspace:*",
@@ -27,7 +28,8 @@
     "@certifier/llm": "workspace:*",
     "@certifier/probes": "workspace:*",
     "@certifier/shopper": "workspace:*",
-    "@certifier/diagnosis": "workspace:*"
+    "@certifier/diagnosis": "workspace:*",
+    "@certifier/trust": "workspace:*"
   },
   "exports": {
     "./works": "./src/works.ts",

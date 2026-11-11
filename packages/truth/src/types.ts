@@ -9,7 +9,7 @@ export type CheckCode =
   | "C1" | "C2" | "C3" | "C4" | "C5"
   | "S1" | "S2" | "S3" | "S4" | "S5" | "S6" | "S7" | "S8"
   | "R1" | "A1" | "A2" | "A3" | "A4" | "A5"
-  | "R2" | "A6";
+  | "R2" | "A6" | "R3";
 export type VerdictStatus = "pass" | "fail" | "inconclusive";
 
 /**
@@ -19,11 +19,13 @@ export type VerdictStatus = "pass" | "fail" | "inconclusive";
  * - store-reported: what the store's status endpoint says it recorded
  * - certifier-observed: what the certifier saw directly on the public site (page source,
  *   scripts, response headers, button position)
+ * - owner-passkey: the store owner's passkey (WebAuthn) signature over one exact approval request,
+ *   re-checked by the certifier against the registered public key
  * - certifier-recorded: the certifier's own recording (e.g. a Kernel browser video); shows what
  *   happened, never decides a verdict
  */
-export type EvidenceStrength = "paypal-signed" | "paypal-api" | "store-reported" | "certifier-observed" | "certifier-recorded";
-export type EvidenceKind = "order" | "capture" | "refund" | "webhook_event" | "webhook_delivery" | "store_record" | "video" | "page" | "trial";
+export type EvidenceStrength = "paypal-signed" | "paypal-api" | "owner-passkey" | "store-reported" | "certifier-observed" | "certifier-recorded";
+export type EvidenceKind = "order" | "capture" | "refund" | "webhook_event" | "webhook_delivery" | "store_record" | "video" | "page" | "trial" | "approval";
 
 export interface EvidenceRef {
   kind: EvidenceKind;

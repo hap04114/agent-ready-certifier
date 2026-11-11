@@ -49,7 +49,7 @@
   document.getElementById("checks-csv").onclick = () =>
     checksGrid.exportDataAsCsv({ fileName: "certifier-checks.csv", processCellCallback: (p) => (p.column.getColId() === "summary" ? p.value : p.value) });
 
-  const ORDER = ["paypal-signed", "paypal-api", "certifier-observed", "store-reported", "certifier-recorded"];
+  const ORDER = ["paypal-signed", "paypal-api", "owner-passkey", "certifier-observed", "store-reported", "certifier-recorded"];
   function strongest(evidence) {
     for (const s of ORDER) if (evidence.some((e) => e.strength === s)) return s;
     return "—";

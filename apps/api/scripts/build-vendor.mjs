@@ -21,6 +21,17 @@ await build({
   legalComments: "eof",
   outfile: join(out, "bryntum-scheduler.js"),
 });
+// SimpleWebAuthn browser helpers (MIT) for the owner-approval page.
+await build({
+  stdin: { contents: 'import * as W from "@simplewebauthn/browser"; window.SimpleWebAuthnBrowser = W;', resolveDir: here, loader: "js" },
+  bundle: true,
+  minify: true,
+  format: "iife",
+  target: "es2022",
+  legalComments: "eof",
+  banner: { js: "/*! @simplewebauthn/browser 14.0.0 | MIT License | https://github.com/MasterKale/SimpleWebAuthn */" },
+  outfile: join(out, "simplewebauthn-browser.js"),
+});
 copyFileSync(join(pkgDir, "scheduler.css"), join(out, "bryntum-scheduler.css"));
 copyFileSync(join(pkgDir, "stockholm-light.css"), join(out, "bryntum-theme.css"));
 copyFileSync(join(pkgDir, "LICENSE"), join(out, "bryntum-LICENSE.txt"));
