@@ -35,7 +35,8 @@
     "cert:keygen": "pnpm --filter @certifier/api cert:keygen",
     "cert:issue": "pnpm --filter @certifier/api cert:issue",
     "certify:page": "pnpm --filter @certifier/worker certify:page",
-    "realworld:serve": "pnpm --filter @certifier/worker realworld:serve"
+    "realworld:serve": "pnpm --filter @certifier/worker realworld:serve",
+    "merchant-agent": "pnpm --filter @certifier/worker merchant-agent"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.6",
