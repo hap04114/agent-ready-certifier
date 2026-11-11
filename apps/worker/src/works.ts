@@ -7,7 +7,7 @@
  * every verdict comes from the truth checker (plain code), stored with its evidence.
  */
 import { join } from "node:path";
-import { type Recording, openKernelSession, runJourney } from "@certifier/browser-agent";
+import { type Recording, openKernelSession, runJourney, withTimeout } from "@certifier/browser-agent";
 import { type Config, findRepoRoot, redact } from "@certifier/config";
 import {
   TEST_HOOK_PATH,
@@ -176,7 +176,8 @@ export async function runWorksPillar(opts: WorksRunOptions): Promise<WorksRunRes
   /** One recorded Kernel browser approves every order in turn. */
   const approveWithAgent = async (agent: AgentSettings, links: [string, string, string | undefined][]): Promise<Recording | undefined> => {
     let rec: Recording | undefined;
-    const session = await openKernelSession(agent.kernelApiKey);
+    let session = await openKernelSession(agent.kernelApiKey);
+    const recordingsDir = join(findRepoRoot() ?? process.cwd(), "recordings");
     log(`AI buyer agent approving ${links.length} orders in Kernel browser ${session.sessionId} (recorded)…`);
     try {
       try {
@@ -185,26 +186,43 @@ export async function runWorksPillar(opts: WorksRunOptions): Promise<WorksRunRes
       } catch {
         log("Storefront measurement failed; C3 will be inconclusive.");
       }
+      let reopened = false;
       for (const [label, id, link] of links) {
         budget.check();
         if (!link) {
           log(`  ${label}: no approval link; skipped`);
           continue;
         }
-        const result = await runJourney({
-          context: session.context,
-          startUrl: link,
-          mission: `This is a PayPal sandbox checkout page for order ${id}, which already exists. Log in as the buyer if asked, then approve and complete the payment. Reply done as soon as you are back on the store and it shows any final result, including "Payment not completed" (some of these orders are meant to fail).`,
-          llm: agent.llm,
-          buyer: agent.buyer,
-          scrub: (t) => redact(t, config),
-          maxSteps: 20,
-          log: (line) => log(`  ${line.trim()}`),
-        });
+        // Hard cap per order (20 steps normally take 1-4 minutes), so a frozen page can't stall the run.
+        const journey = () =>
+          withTimeout(
+            runJourney({
+            context: session.context,
+            startUrl: link,
+            mission: `This is a PayPal sandbox checkout page for order ${id}, which already exists. Log in as the buyer if asked, then approve and complete the payment. Reply done as soon as you are back on the store and it shows any final result, including "Payment not completed" (some of these orders are meant to fail).`,
+            llm: agent.llm,
+            buyer: agent.buyer,
+            scrub: (t) => redact(t, config),
+            maxSteps: 20,
+            log: (line) => log(`  ${line.trim()}`),
+            }),
+            6 * 60_000,
+          ).catch((err): Awaited<ReturnType<typeof runJourney>> => ({ outcome: "error", steps: [], paypalOrderIds: [], error: err instanceof Error ? err.message : "journey failed" }));
+        let result = await journey();
+        // A cloud browser that died mid-journey gets ONE fresh replacement for the rest of the run.
+        if (result.outcome === "error" && /closed|disconnected|crashed|timed out/i.test(result.error ?? "") && !reopened) {
+          reopened = true;
+          budget.check();
+          log(`  ${label}: the cloud browser closed (${result.error}); opening a fresh one and retrying this order once`);
+          const old = await session.close(recordingsDir);
+          if (old) log(`  Recording of the closed browser saved: replay ${old.replayId}`);
+          session = await openKernelSession(agent.kernelApiKey);
+          result = await journey();
+        }
         log(`  ${label}: agent finished in ${result.steps.length} steps (${result.outcome}; the agent's own report, not evidence)`);
       }
     } finally {
-      rec = await session.close(join(findRepoRoot() ?? process.cwd(), "recordings"));
+      rec = await session.close(recordingsDir);
       log(rec ? `Recording saved: replay ${rec.replayId}` : "Recording: not available");
       notes.recording = rec ? { replayId: rec.replayId, file: rec.file ?? null } : null;
     }

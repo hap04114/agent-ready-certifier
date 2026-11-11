@@ -23,6 +23,18 @@ export interface KernelSession {
   close(saveDir?: string): Promise<Recording | undefined>;
 }
 
+/** Resolve with `p`, or reject after `ms`. The underlying work is abandoned, never awaited forever. */
+export function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  return Promise.race([
+    p.finally(() => clearTimeout(timer)),
+    new Promise<T>((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`timed out after ${Math.round(ms / 1000)} s`)), ms);
+      timer.unref?.();
+    }),
+  ]);
+}
+
 export async function openKernelSession(apiKey: string, opts: { timeoutSeconds?: number; maxRecordingSeconds?: number } = {}): Promise<KernelSession> {
   const kernel = new Kernel({ apiKey });
   const kb = await kernel.browsers.create({ stealth: false, timeout_seconds: opts.timeoutSeconds ?? 900 });
@@ -46,8 +58,11 @@ export async function openKernelSession(apiKey: string, opts: { timeoutSeconds?:
     context,
     async close(saveDir) {
       let recording: Recording | undefined;
-      try {
-        if (replayId) {
+      // Every step is time-boxed: closing must never hold a run past its time limit, even when the
+      // cloud browser has already died (seen in a benchmark run that hung for 90 minutes).
+      await withTimeout(
+        (async () => {
+          if (!replayId) return;
           await kernel.browsers.replays.stop(replayId, { id_or_name: kb.session_id });
           const list = await kernel.browsers.replays.list(kb.session_id);
           const meta = list.find((r) => r.replay_id === replayId);
@@ -61,12 +76,13 @@ export async function openKernelSession(apiKey: string, opts: { timeoutSeconds?:
               recording.file = file;
             }
           }
-        }
-      } catch {
+        })(),
+        90_000,
+      ).catch(() => {
         // Keep whatever recording info we have.
-      }
-      await browser.close().catch(() => {});
-      await kernel.browsers.deleteByID(kb.session_id).catch(() => {});
+      });
+      await withTimeout(browser.close(), 10_000).catch(() => {});
+      await withTimeout(kernel.browsers.deleteByID(kb.session_id), 20_000).catch(() => {});
       return recording;
     },
   };

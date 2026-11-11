@@ -3,7 +3,7 @@
  * JSON), execute it with Playwright, repeat. The agent's own "done" is NOT a verdict; it only ends
  * the journey. Whether a purchase happened is decided later by the truth checker from PayPal records.
  */
-import type { BrowserContext, Frame, Page } from "playwright-core";
+import type { BrowserContext, Frame, Locator, Page } from "playwright-core";
 import { type ChatMessage, type LlmConfig, askJson } from "@certifier/llm";
 import { type AgentAction, type ElementInfo, type Observation, SYSTEM_PROMPT, agentAction, collectInFrame, orderIdsFromUrl, renderObservation } from "./observe.js";
 
@@ -57,15 +57,16 @@ export async function runJourney(opts: JourneyOptions): Promise<JourneyResult> {
     for (const id of orderIdsFromUrl(r.url())) orderIds.add(id);
   });
 
-  const first = context.pages()[0] ?? (await context.newPage());
-  track(first);
-
-  const active = () => [...pages].reverse().find((p) => !p.isClosed()) ?? first;
   const steps: JourneyStep[] = [];
   const history: string[] = [];
   const max = opts.maxSteps ?? 30;
+  let first: Page | undefined;
+  const active = () => [...pages].reverse().find((p) => !p.isClosed()) ?? first!;
 
   try {
+    // Inside the try: a browser that already died must come back as an "error" outcome, not throw.
+    first = context.pages().find((p) => !p.isClosed()) ?? (await context.newPage());
+    track(first);
     await first.goto(opts.startUrl, { waitUntil: "domcontentloaded", timeout: 45_000 });
     for (let n = 1; n <= max; n++) {
       const page = active();
@@ -144,6 +145,44 @@ const hostOf = (u: string) => {
   }
 };
 
+export const EMAIL_FIELDS = 'input[type="email"], input[name="login_email"], input#email, input[autocomplete="username"]';
+export const PASSWORD_FIELDS = 'input[type="password"]';
+
+/**
+ * Fill a credential. First the field the model chose; if that does not take the value (PayPal's
+ * login re-renders, or keeps the password box read-only for a moment, after the email step), code
+ * finds the visible field of that kind itself, in any frame, and types into it the way a person
+ * would. The value is never logged and the model never sees it.
+ */
+async function fillCredential(page: Page, chosen: Locator, value: string, fields: string) {
+  try {
+    await chosen.fill(value, { timeout: 6_000 });
+    return;
+  } catch (first) {
+    for (const frame of page.frames()) {
+      const candidates = frame.locator(fields).filter({ visible: true });
+      const count = await candidates.count().catch(() => 0);
+      for (let i = 0; i < count; i++) {
+        const field = candidates.nth(i);
+        try {
+          await field.fill(value, { timeout: 6_000 });
+          return;
+        } catch {
+          // Fall back to focusing it and typing, as a person would.
+          try {
+            await field.focus({ timeout: 3_000 });
+            await page.keyboard.insertText(value);
+            if (await field.evaluate((el) => (el as HTMLInputElement).value.length > 0).catch(() => false)) return;
+          } catch {
+            // Try the next candidate.
+          }
+        }
+      }
+    }
+    throw first;
+  }
+}
+
 async function execute(page: Page, frames: Map<number, Frame>, elements: ElementInfo[], act: AgentAction, buyer: BuyerCredentials) {
   const needsElement = ["click", "type", "select", "fill_buyer_email", "fill_buyer_password"].includes(act.action);
   const frame = act.element !== undefined ? frames.get(act.element) : undefined;
@@ -161,10 +200,10 @@ async function execute(page: Page, frames: Map<number, Frame>, elements: Element
       break;
     // Credentials are filled by code. The model never sees or types them.
     case "fill_buyer_email":
-      await target!.fill(buyer.email, { timeout: 10_000 });
+      await fillCredential(page, target!, buyer.email, EMAIL_FIELDS);
       break;
     case "fill_buyer_password":
-      await target!.fill(buyer.password, { timeout: 10_000 });
+      await fillCredential(page, target!, buyer.password, PASSWORD_FIELDS);
       break;
     case "press_enter":
       if (target) await target.press("Enter", { timeout: 10_000 });
