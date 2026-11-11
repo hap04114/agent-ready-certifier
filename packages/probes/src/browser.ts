@@ -7,6 +7,24 @@ import type { ControlFacts, StorefrontObservation } from "@certifier/truth";
 
 export const DESKTOP = { width: 1280, height: 800 };
 
+/**
+ * Text PayPal shows in a Pay Later MESSAGE ("Pay in 4", "4 interest-free payments"). Not "Pay
+ * Later" alone: that is also the label of the Pay Later funding button, which is not a message.
+ */
+export const PAY_LATER_TEXT = /pay in 4\b|interest-free payments|pay monthly with/i;
+
+async function anyFrameText(frames: Frame[], pattern: RegExp): Promise<boolean> {
+  for (const f of frames) {
+    try {
+      // biome-ignore lint/performance/useDomNodeTextContent: innerText is what a shopper sees.
+      if (pattern.test(await f.evaluate(() => document.body?.innerText ?? ""))) return true;
+    } catch {
+      // detached or not ready
+    }
+  }
+  return false;
+}
+
 async function anyFrame(frames: Frame[], selector: string): Promise<boolean> {
   for (const f of frames) {
     try {
@@ -68,6 +86,25 @@ export async function evaluateInPage<T>(page: Page, fn: () => T): Promise<T> {
   return page.evaluate(fn);
 }
 
+/** A local Chromium-family browser (Edge or Chrome), for sites a cloud browser cannot reach (localhost staging). */
+export async function launchLocalBrowser() {
+  const { chromium } = await import("playwright-core");
+  const { existsSync } = await import("node:fs");
+  const candidates = [
+    "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+    "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
+    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "/usr/bin/google-chrome",
+    "/usr/bin/chromium",
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+  ];
+  const executablePath = candidates.find((p) => existsSync(p));
+  if (!executablePath) throw new Error("no local Edge or Chrome found");
+  const browser = await chromium.launch({ executablePath, headless: true });
+  const context = await browser.newContext({ locale: "en-US", extraHTTPHeaders: { "accept-language": "en-US,en;q=0.9" } });
+  return { browser, context, name: executablePath.toLowerCase().includes("edge") ? "local Edge" : "local Chrome" };
+}
+
 export async function measureStorefront(context: BrowserContext, url: string): Promise<NonNullable<StorefrontObservation["rendered"]>> {
   const page = await context.newPage();
   try {
@@ -80,8 +117,13 @@ export async function measureStorefront(context: BrowserContext, url: string): P
     const box = await buttonFrame.boundingBox().catch(() => null);
     const scrollY = await page.evaluate(() => window.scrollY).catch(() => 0);
     const frames = page.frames();
-    const payLaterMessageRendered =
-      (await page.locator('iframe[title*="PayPal Message" i], iframe[name^="__zoid__paypal_message"], [data-pp-message] iframe').count().catch(() => 0)) > 0;
+    // Pay Later messaging comes two ways: the separate messages component (its own iframe), or
+    // the newer button-integrated message (Buttons({ message })) rendered INSIDE the buttons
+    // iframe. PayPal's own standard-integration example uses the second; missing it was a false
+    // alarm found by testing that example.
+    const messageFrame = (await page.locator('iframe[title*="PayPal Message" i], iframe[name^="__zoid__paypal_message"], [data-pp-message] iframe').count().catch(() => 0)) > 0;
+    const buttonMessage = await anyFrameText(frames.filter((f) => f.name().startsWith("__zoid__paypal_buttons")), PAY_LATER_TEXT);
+    const payLaterMessageRendered = messageFrame || buttonMessage;
     const venmoButtonRendered = await anyFrame(frames, '[data-funding-source="venmo"]');
     const controls = await evaluateInPage(page, collectControls).catch(() => undefined);
     return {

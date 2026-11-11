@@ -33,7 +33,9 @@
     "apimatic:register": "pnpm --filter @certifier/diagnosis apimatic:register",
     "benchmark": "pnpm --filter @certifier/worker benchmark",
     "cert:keygen": "pnpm --filter @certifier/api cert:keygen",
-    "cert:issue": "pnpm --filter @certifier/api cert:issue"
+    "cert:issue": "pnpm --filter @certifier/api cert:issue",
+    "certify:page": "pnpm --filter @certifier/worker certify:page",
+    "realworld:serve": "pnpm --filter @certifier/worker realworld:serve"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.6",
