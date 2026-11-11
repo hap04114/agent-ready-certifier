@@ -28,8 +28,10 @@ const arg = (name: string, fallback: string) => {
 const trials = Math.max(1, Math.min(10, Number(arg("trials", "3"))));
 const specs = arg("models", "groq:openai/gpt-oss-120b,groq:openai/gpt-oss-20b,groq:qwen/qwen3.8-27b").split(/[\s,]+/).filter(Boolean);
 const need = ["DATABASE_URL", "KERNEL_API_KEY", "LLM_API_KEY", "PAYPAL_SANDBOX_BUYER_EMAIL", "PAYPAL_SANDBOX_BUYER_PASSWORD", "DEMO_STORE_GOOD_STATUS_KEY"] as const;
+// --report-only: rebuild docs/agent-funnel.md from docs/agent-funnel.json without running trials.
+const reportOnly = process.argv.includes("--report-only");
 const missing = need.filter((k) => !config[k]);
-if (missing.length) {
+if (!reportOnly && missing.length) {
   console.error(`funnel: needs ${missing.join(", ")}`);
   process.exit(1);
 }
@@ -56,10 +58,10 @@ interface Row {
 const historyFile = join(findRepoRoot()!, "docs", "agent-funnel.json");
 const history: Row[] = existsSync(historyFile) ? JSON.parse(readFileSync(historyFile, "utf8")) : [];
 const rows: Row[] = [];
-const db = createPgDb(config.DATABASE_URL!);
-const repo = certifierRepo(db);
+const db = reportOnly ? undefined : createPgDb(config.DATABASE_URL!);
+const repo = db ? certifierRepo(db) : undefined;
 const batchId = `funnel-${new Date().toISOString().slice(0, 19)}-${randomUUID().slice(0, 6)}`;
-try {
+if (db && repo) try {
   await migrateCertifier(db);
   console.log(`Batch ${batchId}: ${specs.length} model(s) × ${trials} trial(s) on ${storeUrl}`);
   for (const spec of specs) {
