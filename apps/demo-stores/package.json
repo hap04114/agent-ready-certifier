@@ -9,7 +9,8 @@
     "verify:order": "tsx src/good/verify-order.ts",
     "typecheck": "tsc -p tsconfig.json",
     "dev:buggy": "tsx watch src/buggy/main.ts",
-    "start:buggy": "tsx src/buggy/main.ts"
+    "start:buggy": "tsx src/buggy/main.ts",
+    "catalog:sync": "tsx src/good/catalog-sync.ts"
   },
   "dependencies": {
     "@certifier/config": "workspace:*",

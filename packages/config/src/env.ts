@@ -125,6 +125,8 @@ export const envSchema = z.object({
   LLM_FALLBACK_MODELS: optionalString,
   /** Feature switch: "off" hides the Bryntum run timeline in reports (default on). */
   FEATURE_RUN_TIMELINE: optionalString,
+  /** Feature switch for the demo stores: "placeholder" replaces the Channel3 product snapshot. */
+  DEMO_CATALOG: optionalString,
   GEMINI_API_KEY: optionalString,
 
   // Sponsor tools

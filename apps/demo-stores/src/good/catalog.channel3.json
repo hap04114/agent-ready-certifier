@@ -1,0 +1,30 @@
+{
+  "source": "Channel3 product search API",
+  "fetchedAt": "2026-11-11T07:45:51.527Z",
+  "products": [
+    {
+      "sku": "MUG-01",
+      "name": "Blomus KUMI Ceramic Stoneware Coffee Mug",
+      "brand": "Blomus",
+      "priceCents": 2099,
+      "imageUrl": "https://cdn.trychannel3.com/972b702e-2cb2-4770-8762-af9c91e9c730?aid=01M74S3VNA5FB8HZAG7HQC4KPQ&mid=BIP9",
+      "channel3Id": "t49w3Sv"
+    },
+    {
+      "sku": "NOTE-01",
+      "name": "Dotted Journal Notebook for Women A5 Dotted Grid Notebook for Writing 190 Pages Thick Pape",
+      "brand": "TIEFOSSI",
+      "priceCents": 1880,
+      "imageUrl": "https://cdn.trychannel3.com/0a9956c5-b844-4835-b711-e7bb1c4f5bc6?aid=01M74S3WMMMW259F6BNKK39F1R&mid=BsaX",
+      "channel3Id": "f53rJM1"
+    },
+    {
+      "sku": "LAMP-01",
+      "name": "LED Desk Lamp E3",
+      "brand": "UPLIFT Desk",
+      "priceCents": 6400,
+      "imageUrl": "https://cdn.trychannel3.com/565e61f6-2305-4395-87ba-4003d88b81b9?aid=01M74S3XX48SCMWM8NJQXQRAXG&mid=Il9l",
+      "channel3Id": "BcP4ukm"
+    }
+  ]
+}
