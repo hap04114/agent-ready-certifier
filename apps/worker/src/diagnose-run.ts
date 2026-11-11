@@ -37,7 +37,7 @@ try {
   console.log(`Run ${runId}: ${failed.length} failed check(s)`);
   if (failed.length === 0) process.exit(0);
 
-  if (config.APIMATIC_CLIENT_ID && config.APIMATIC_CLIENT_SECRET) {
+  if (config.APIMATIC_CLIENT_ID) {
     try {
       session = await openContextMatic({ clientId: config.APIMATIC_CLIENT_ID, clientSecret: config.APIMATIC_CLIENT_SECRET, mcpUrl: config.APIMATIC_CONTEXT_MCP_URL });
       console.log(`ContextMatic connected (tools: ${session.tools.join(", ")})`);
