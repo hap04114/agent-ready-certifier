@@ -1,0 +1,7 @@
+# gitleaks: default rules, plus one narrow allowlist.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Vendored third-party bundle (Bryntum Scheduler Community, MIT): minified identifiers trip the generic-api-key heuristic. Contains no project secrets; rebuilt by `pnpm --filter @certifier/api build:vendor`."
+paths = ['''^apps/api/public/bryntum-scheduler\.js$''']
