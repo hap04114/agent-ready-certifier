@@ -123,6 +123,8 @@ export const envSchema = z.object({
   LLM_MODEL: optionalString,
   /** Comma-separated same-provider models to use when LLM_MODEL's daily quota is used up. */
   LLM_FALLBACK_MODELS: optionalString,
+  /** Feature switch: "off" hides the Bryntum run timeline in reports (default on). */
+  FEATURE_RUN_TIMELINE: optionalString,
   GEMINI_API_KEY: optionalString,
 
   // Sponsor tools

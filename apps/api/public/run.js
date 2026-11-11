@@ -1,6 +1,65 @@
 // One run's report: four pillars, every check with its reasons, business impact and evidence.
 (async () => {
   const { get, state, fmtDate, badge, esc, PILLARS, researchLine } = window.ARC;
+
+  /** Load our own bundled copy of Bryntum Scheduler (Community, MIT) only when a timeline exists. */
+  const loadBryntum = () =>
+    window.BryntumScheduler
+      ? Promise.resolve()
+      : new Promise((resolve, reject) => {
+          for (const href of ["/assets/bryntum-scheduler.css", "/assets/bryntum-theme.css"]) {
+            const l = document.createElement("link");
+            l.rel = "stylesheet";
+            l.href = href;
+            document.head.appendChild(l);
+          }
+          const s = document.createElement("script");
+          s.src = "/assets/bryntum-scheduler.js";
+          s.onload = () => resolve();
+          s.onerror = reject;
+          document.head.appendChild(s);
+        });
+
+  const KIND_COLOR = { setup: "blue", agent: "purple", wait: "gray", webhook: "orange", attack: "red", judge: "green" };
+  async function renderTimeline(steps) {
+    document.getElementById("timeline-card").hidden = false;
+    const hooks = steps.filter((s) => s.kind === "webhook");
+    document.getElementById("timeline-summary").textContent = hooks.length
+      ? `PayPal webhook waits: ${hooks.map((h) => `${h.name.replace(/ \(.*\)$/, "")} ${Math.round(h.end - h.start)} s (${h.note ?? "done"})`).join("; ")}.`
+      : "No webhook waits in this run.";
+    await loadBryntum();
+    const base = new Date(2026, 0, 1, 0, 0, 0);
+    const at = (sec) => new Date(base.getTime() + sec * 1000);
+    const total = Math.max(...steps.map((s) => s.end)) + 5;
+    // Header shows time since the run started ("+1 min", "+30 s"), not a clock time.
+    const rel = (d) => Math.round((d.getTime() - base.getTime()) / 1000);
+    new window.BryntumScheduler({
+      appendTo: "timeline",
+      height: Math.min(70 + steps.length * 40, 720),
+      rowHeight: 38,
+      readOnly: true,
+      startDate: base,
+      endDate: at(total),
+      viewPreset: {
+        base: total > 600 ? "minuteAndHour" : "secondAndMinute",
+        headers: [
+          { unit: "minute", increment: 1, renderer: (start) => `+${Math.floor(rel(start) / 60)} min` },
+          { unit: "second", increment: total > 600 ? 60 : 10, renderer: (start) => `${rel(start) % 60} s` },
+        ],
+      },
+      columns: [{ text: "Step", field: "name", width: 300 }],
+      resources: steps.map((s, i) => ({ id: i + 1, name: s.name })),
+      events: steps.map((s, i) => ({
+        id: i + 1,
+        resourceId: i + 1,
+        name: `${Math.max(1, Math.round(s.end - s.start))} s${s.note ? ` · ${s.note}` : ""}`,
+        startDate: at(s.start),
+        endDate: at(Math.max(s.end, s.start + 0.5)),
+        eventColor: KIND_COLOR[s.kind] ?? "gray",
+      })),
+      features: { eventDrag: false, eventResize: false, eventDragCreate: false, eventEdit: false, eventMenu: false, scheduleMenu: false, cellEdit: false },
+    });
+  }
   const id = new URLSearchParams(location.search).get("id");
   const run = id ? await get("run", id) : undefined;
   const summary = document.getElementById("summary");
@@ -66,6 +125,8 @@
       </div></section>`,
     )
     .join("");
+
+  if (Array.isArray(run.timeline) && run.timeline.length) renderTimeline(run.timeline).catch(() => {});
 
   document.getElementById("log").textContent = (run.log || []).join("\n") || "No log was recorded for this run (runs before the recorded-log feature).";
 })();

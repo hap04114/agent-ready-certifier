@@ -2,7 +2,7 @@
 	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
 	"vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
 	"files": {
-		"includes": ["**", "!**/node_modules", "!pnpm-lock.yaml", "!docs"]
+		"includes": ["**", "!**/node_modules", "!pnpm-lock.yaml", "!docs", "!apps/api/public/bryntum-*"]
 	},
 	"formatter": { "enabled": false },
 	"assist": { "enabled": false },

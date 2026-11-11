@@ -133,7 +133,7 @@ export function registerRunApi(app: FastifyInstance, deps: RunApiDeps) {
     if (!p.success) return reply.code(400).send({ error: "invalid_id" });
     const run = await repo.getRun(p.data.id);
     if (!run) return reply.code(404).send({ error: "unknown_run" });
-    const notes = (run.notes ?? {}) as { log?: string[]; recording?: unknown; orders?: unknown; error?: unknown };
+    const notes = (run.notes ?? {}) as { log?: string[]; recording?: unknown; orders?: unknown; error?: unknown; timeline?: unknown };
     const findings = new Map((await repo.findingsForRun(run.id).catch(() => [])).map((f) => [f.check_code, f]));
     return reply.send({
       ...run,
@@ -141,6 +141,8 @@ export function registerRunApi(app: FastifyInstance, deps: RunApiDeps) {
       recording: notes.recording ?? null,
       orders: notes.orders ?? null,
       log: notes.log ?? [],
+      // Feature switch: FEATURE_RUN_TIMELINE=off hides the Bryntum run timeline.
+      timeline: config.FEATURE_RUN_TIMELINE === "off" ? null : (notes.timeline ?? null),
       error: typeof notes.error === "string" ? notes.error : null,
       checks: run.checks.map((c) => {
         const f = findings.get(c.code);
