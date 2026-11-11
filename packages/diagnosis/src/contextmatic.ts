@@ -11,15 +11,18 @@ export const CONTEXTMATIC_MCP_URL = `${CONTEXTMATIC_BASE}/mcp/plugins`;
 
 export interface ContextMaticCredentials {
   clientId: string;
-  clientSecret: string;
+  /** ContextMatic issues public clients (auth method "none"), so there may be no secret. */
+  clientSecret?: string;
   mcpUrl?: string;
 }
 
 export async function contextMaticToken(creds: ContextMaticCredentials, fetcher: typeof fetch = fetch): Promise<string> {
+  const form = new URLSearchParams({ grant_type: "client_credentials", client_id: creds.clientId, scope: "mcp:tools" });
+  if (creds.clientSecret) form.set("client_secret", creds.clientSecret);
   const res = await fetcher(`${CONTEXTMATIC_BASE}/token`, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ grant_type: "client_credentials", client_id: creds.clientId, client_secret: creds.clientSecret, scope: "mcp:tools" }),
+    body: form,
     signal: AbortSignal.timeout(20_000),
   });
   const body = (await res.json().catch(() => ({}))) as { access_token?: string; error?: string };
