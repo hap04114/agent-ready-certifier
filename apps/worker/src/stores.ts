@@ -9,6 +9,8 @@ export function storeProfile(config: Config, name: StoreName): Pick<WorksRunOpti
     if (!config.DEMO_STORE_GOOD_STATUS_KEY) return { missing: ["DEMO_STORE_GOOD_STATUS_KEY"] };
     return { store: { url: config.DEMO_STORE_GOOD_URL, statusKey: config.DEMO_STORE_GOOD_STATUS_KEY, webhookId: config.DEMO_STORE_GOOD_WEBHOOK_ID, demoHooks: true } };
   }
+  // Never fall through to the buggy store for a name we don't know.
+  if (name !== "buggy") throw new Error(`unknown demo store "${String(name)}" (use good or buggy)`);
   const missing = (["DEMO_STORE_BUGGY_STATUS_KEY", "DEMO_STORE_BUGGY_PAYPAL_CLIENT_ID", "DEMO_STORE_BUGGY_PAYPAL_CLIENT_SECRET"] as const).filter((k) => !config[k]);
   if (missing.length) return { missing };
   return {

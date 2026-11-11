@@ -34,7 +34,15 @@ const arg = (n: string, d: string) => {
   return i > 0 && process.argv[i + 1] ? process.argv[i + 1]! : d;
 };
 const runsPerStore = Math.max(1, Math.min(10, Number(arg("runs", "5"))));
-const stores = arg("stores", "good,buggy").split(",") as StoreName[];
+// Split on commas OR spaces: PowerShell turns `--stores good,buggy` into one "good buggy" argument.
+const stores = arg("stores", "good,buggy")
+  .split(/[\s,]+/)
+  .filter(Boolean) as StoreName[];
+const unknown = stores.filter((s) => s !== "good" && s !== "buggy");
+if (unknown.length || stores.length === 0) {
+  console.error(`benchmark: unknown store name(s): ${unknown.join(", ") || "(none given)"}; use good and/or buggy`);
+  process.exit(2);
+}
 
 let dbUrl: string;
 let agent: Parameters<typeof runWorksPillar>[0]["agent"];
