@@ -8,7 +8,8 @@ export type CheckCode =
   | "W1" | "W2" | "W3" | "W4" | "W5" | "W6"
   | "C1" | "C2" | "C3" | "C4" | "C5"
   | "S1" | "S2" | "S3" | "S4" | "S5" | "S6" | "S7" | "S8"
-  | "R1" | "A1" | "A2" | "A3" | "A4" | "A5";
+  | "R1" | "A1" | "A2" | "A3" | "A4" | "A5"
+  | "R2" | "A6";
 export type VerdictStatus = "pass" | "fail" | "inconclusive";
 
 /**

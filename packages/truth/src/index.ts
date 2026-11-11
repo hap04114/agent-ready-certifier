@@ -8,3 +8,4 @@ export * from "./agent.js";
 export * from "./storefront-agent.js";
 export * from "./impact.js";
 export * from "./research.js";
+export * from "./merchant-agent.js";

@@ -28,6 +28,8 @@ export const BUSINESS_IMPACT: Record<string, string> = {
   A3: "AI shoppers can be tricked into paying a lookalike merchant.",
   A4: "The price the store publishes for machines differs from what PayPal charges: wrong quotes to agents and shopping surfaces, and Google Merchant Center can disapprove products whose prices don't match.",
   A5: "AI agents (and screen-reader users) can't tell what unlabeled checkout controls do, so they get stuck before paying.",
+  A6: "The store's own AI support agent can be talked into refunding orders that are not the customer's: direct loss.",
+  R2: "The store's AI support agent can't complete genuine refunds, so customers wait and escalate.",
 };
 
 export const impactOf = (code: string): string | undefined => BUSINESS_IMPACT[code];

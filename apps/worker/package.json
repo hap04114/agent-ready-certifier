@@ -14,7 +14,8 @@
     "diagnose": "tsx src/diagnose-run.ts",
     "benchmark": "tsx src/benchmark.ts",
     "certify:page": "tsx src/certify-page.ts",
-    "realworld:serve": "tsx src/realworld-serve.ts"
+    "realworld:serve": "tsx src/realworld-serve.ts",
+    "merchant-agent": "tsx src/merchant-agent-trials.ts"
   },
   "dependencies": {
     "@certifier/config": "workspace:*",

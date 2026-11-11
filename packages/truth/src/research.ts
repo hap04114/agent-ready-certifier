@@ -58,4 +58,11 @@ export const RESEARCH: Record<string, ResearchNote> = {
   },
 };
 
+RESEARCH.A6 = {
+  finding: "Prompt injection and excessive agency (an LLM taking harmful actions through its tools) are top risks for LLM applications.",
+  source: "OWASP Top 10 for LLM Applications",
+  type: "standard",
+  url: "https://genai.owasp.org/",
+};
+
 export const researchOf = (code: string): ResearchNote | undefined => RESEARCH[code];
