@@ -68,7 +68,13 @@ async function readCapped(res: Response): Promise<string> {
  * Check a store for its token. Read-only HTTP GETs only (two at most), short timeouts,
  * capped bodies, and no redirects to other origins. Never throws.
  */
-export async function verifyOwnership(storeUrl: string, expected: string, fetcher: Fetcher = fetch): Promise<OwnershipResult> {
+export async function verifyOwnership(
+  storeUrl: string,
+  expected: string,
+  fetcher: Fetcher = fetch,
+  /** Per-request timeout. Free hosting tiers can take ~50 s to wake a sleeping store. */
+  timeoutMs = 75_000,
+): Promise<OwnershipResult> {
   let origin: string;
   try {
     origin = storeOrigin(storeUrl);
@@ -83,7 +89,7 @@ export async function verifyOwnership(storeUrl: string, expected: string, fetche
       method: "GET",
       redirect: "manual",
       headers: { "user-agent": "agent-ready-certifier/ownership-check" },
-      signal: AbortSignal.timeout(10_000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
     return res;
   };
