@@ -70,6 +70,18 @@ describe("askJson", () => {
     await expect(askJson(groq, [{ role: "user", content: "go" }], schema, f, async () => {})).rejects.toThrow("groq HTTP 429");
   });
 
+  it("fails fast with a clear reason when a daily quota is reached (no long wait, no vague timeout)", async () => {
+    let calls = 0;
+    const waits: number[] = [];
+    const f = (async () => {
+      calls++;
+      return new Response('{"error":{"message":"Rate limit reached ... on tokens per day (TPD): Limit 200000, Used 199222"}}', { status: 429, headers: { "retry-after": "809" } });
+    }) as unknown as typeof fetch;
+    await expect(askJson(groq, [{ role: "user", content: "go" }], schema, f, async (ms) => void waits.push(ms))).rejects.toThrow("groq HTTP 429 (daily quota reached; retry in ~14 min)");
+    expect(calls).toBe(1);
+    expect(waits).toEqual([]);
+  });
+
   it("treats a twice-empty answer as an error, never as a nudged guess", async () => {
     const seen: { url: string; body: unknown }[] = [];
     await expect(askJson(groq, [{ role: "user", content: "go" }], schema, fakeFetch(["", ""], seen), async () => {})).rejects.toThrow("groq returned an empty response");
