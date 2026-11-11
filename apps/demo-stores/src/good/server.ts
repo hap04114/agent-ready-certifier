@@ -20,7 +20,7 @@ import type { Config } from "@certifier/config";
 import { CONTRACT_BASE, DELIVERY_HEADERS, OWNERSHIP_FILE_PATH, OWNERSHIP_META_NAME, TEST_HOOK_PATH, bearerMatches, testHookRequest } from "@certifier/contract";
 import type { Db } from "@certifier/db";
 import { PaypalCallError, type SandboxPaypal, type VerifyResult, captureIdsOf, verifyWebhook, webhookHeadersFrom } from "@certifier/paypal";
-import { CATALOG, CURRENCY, MAX_QUANTITY, centsToValue, findProduct, valueToCents } from "./catalog.js";
+import { CATALOG, CATALOG_SOURCE, CURRENCY, MAX_QUANTITY, centsToValue, findProduct, valueToCents } from "./catalog.js";
 import { storeRepo } from "./db.js";
 
 export type WebhookVerifier = (headers: Record<string, string | string[] | undefined>, rawBody: Buffer) => Promise<VerifyResult>;
@@ -183,6 +183,12 @@ export function buildGoodStore(deps: StoreDeps) {
       .replace("{{OPTIONS}}", options)
       .replaceAll("{{INITIAL_AMOUNT}}", centsToValue(first.priceCents))
       .replace(
+        "{{CATALOG_NOTE}}",
+        CATALOG_SOURCE.kind === "channel3"
+          ? `Products and prices are real listings from Channel3 (snapshot of ${escapeHtml(CATALOG_SOURCE.fetchedAt.slice(0, 10))}); this store does not sell them.`
+          : "Products are placeholders.",
+      )
+      .replace(
         "</head>",
         deps.ownershipToken ? `  <meta name="${OWNERSHIP_META_NAME}" content="${escapeHtml(deps.ownershipToken)}">
 </head>` : "</head>",
@@ -209,7 +215,7 @@ export function buildGoodStore(deps: StoreDeps) {
   });
 
   app.get("/api/catalog", async () =>
-    CATALOG.map((p) => ({ sku: p.sku, name: p.name, price: centsToValue(p.priceCents), currency: CURRENCY, placeholder: true })),
+    CATALOG.map((p) => ({ sku: p.sku, name: p.name, price: centsToValue(p.priceCents), currency: CURRENCY, placeholder: CATALOG_SOURCE.kind === "placeholder", source: CATALOG_SOURCE.kind, ...(p.brand ? { brand: p.brand } : {}) })),
   );
 
   // ------------------------------------------------------------------ checkout
