@@ -19,17 +19,18 @@
     "funnel": "tsx src/funnel.ts"
   },
   "dependencies": {
+    "@certifier/browser-agent": "workspace:*",
     "@certifier/config": "workspace:*",
     "@certifier/contract": "workspace:*",
     "@certifier/db": "workspace:*",
-    "@certifier/paypal": "workspace:*",
-    "@certifier/truth": "workspace:*",
-    "@certifier/browser-agent": "workspace:*",
+    "@certifier/diagnosis": "workspace:*",
     "@certifier/llm": "workspace:*",
+    "@certifier/paypal": "workspace:*",
     "@certifier/probes": "workspace:*",
     "@certifier/shopper": "workspace:*",
-    "@certifier/diagnosis": "workspace:*",
-    "@certifier/trust": "workspace:*"
+    "@certifier/trust": "workspace:*",
+    "@certifier/truth": "workspace:*",
+    "zod": "4.6.7"
   },
   "exports": {
     "./works": "./src/works.ts",
