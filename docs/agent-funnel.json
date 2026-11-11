@@ -1,0 +1,134 @@
+[
+  {
+    "batchId": "funnel-2026-11-11T08:30:57-e1db31",
+    "at": "2026-11-11T08:40:00Z",
+    "model": "groq:openai/gpt-oss-120b",
+    "trial": null,
+    "status": "0",
+    "stage": "0",
+    "ended": "0",
+    "orderId": "**0**",
+    "replayId": "n/a"
+  },
+  {
+    "batchId": "funnel-2026-11-11T08:30:57-e1db31",
+    "at": "2026-11-11T08:40:00Z",
+    "model": "groq:openai/gpt-oss-20b",
+    "trial": null,
+    "status": "1",
+    "stage": "0",
+    "ended": "0",
+    "orderId": "**0**",
+    "replayId": "0%"
+  },
+  {
+    "batchId": "funnel-2026-11-11T08:30:57-e1db31",
+    "at": "2026-11-11T08:40:00Z",
+    "model": "groq:qwen/qwen3.8-27b",
+    "trial": null,
+    "status": "3",
+    "stage": "3",
+    "ended": "3",
+    "orderId": "**3**",
+    "replayId": "100%"
+  },
+  {
+    "batchId": "funnel-2026-11-11T08:30:57-e1db31",
+    "at": "2026-11-11T08:40:00Z",
+    "model": "groq:openai/gpt-oss-120b",
+    "trial": 1,
+    "status": "error",
+    "stage": "store",
+    "ended": "error: groq HTTP 429 (daily quota reached; retry in ~8 min)",
+    "orderId": "—",
+    "replayId": "Kernel replay `ffhi0kzvav9b87h5gilqeq00`"
+  },
+  {
+    "batchId": "funnel-2026-11-11T08:30:57-e1db31",
+    "at": "2026-11-11T08:40:00Z",
+    "model": "groq:openai/gpt-oss-120b",
+    "trial": 2,
+    "status": "error",
+    "stage": "none",
+    "ended": "error: groq HTTP 429 (daily quota reached; retry in ~5 min)",
+    "orderId": "—",
+    "replayId": "Kernel replay `enn23zqdi49n723ca57o6kf8`"
+  },
+  {
+    "batchId": "funnel-2026-11-11T08:30:57-e1db31",
+    "at": "2026-11-11T08:40:00Z",
+    "model": "groq:openai/gpt-oss-120b",
+    "trial": 3,
+    "status": "error",
+    "stage": "none",
+    "ended": "error: groq HTTP 429 (daily quota reached; retry in ~5 min)",
+    "orderId": "—",
+    "replayId": "Kernel replay `qiaicpw0yufsz6dqbx3m7cdy`"
+  },
+  {
+    "batchId": "funnel-2026-11-11T08:30:57-e1db31",
+    "at": "2026-11-11T08:40:00Z",
+    "model": "groq:openai/gpt-oss-20b",
+    "trial": 1,
+    "status": "error",
+    "stage": "store",
+    "ended": "error: groq HTTP 400",
+    "orderId": "—",
+    "replayId": "Kernel replay `tpkg6whil194ji6egcqc2jgb`"
+  },
+  {
+    "batchId": "funnel-2026-11-11T08:30:57-e1db31",
+    "at": "2026-11-11T08:40:00Z",
+    "model": "groq:openai/gpt-oss-20b",
+    "trial": 2,
+    "status": "judged",
+    "stage": "store",
+    "ended": "agent_gave_up",
+    "orderId": "—",
+    "replayId": "Kernel replay `w6zaabwy39hmka82j8ta8ijt`"
+  },
+  {
+    "batchId": "funnel-2026-11-11T08:30:57-e1db31",
+    "at": "2026-11-11T08:40:00Z",
+    "model": "groq:openai/gpt-oss-20b",
+    "trial": 3,
+    "status": "error",
+    "stage": "store",
+    "ended": "error: groq HTTP 400",
+    "orderId": "—",
+    "replayId": "Kernel replay `l6v4jvgilpq838it4eps885j`"
+  },
+  {
+    "batchId": "funnel-2026-11-11T08:30:57-e1db31",
+    "at": "2026-11-11T08:40:00Z",
+    "model": "groq:qwen/qwen3.8-27b",
+    "trial": 1,
+    "status": "judged",
+    "stage": "paid",
+    "ended": "agent_done",
+    "orderId": "`70689818J2829941P`",
+    "replayId": "Kernel replay `gvo911uvvch56o6a0g9z032m`"
+  },
+  {
+    "batchId": "funnel-2026-11-11T08:30:57-e1db31",
+    "at": "2026-11-11T08:40:00Z",
+    "model": "groq:qwen/qwen3.8-27b",
+    "trial": 2,
+    "status": "judged",
+    "stage": "paid",
+    "ended": "agent_done",
+    "orderId": "`1MY899617G707173Y`",
+    "replayId": "Kernel replay `vl0593vvljhuzaslu910u47x`"
+  },
+  {
+    "batchId": "funnel-2026-11-11T08:30:57-e1db31",
+    "at": "2026-11-11T08:40:00Z",
+    "model": "groq:qwen/qwen3.8-27b",
+    "trial": 3,
+    "status": "judged",
+    "stage": "paid",
+    "ended": "agent_done",
+    "orderId": "`1CU49789RP5952719`",
+    "replayId": "Kernel replay `gyfb6bp102tr50lr8jyqg8wd`"
+  }
+]
