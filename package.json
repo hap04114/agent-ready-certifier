@@ -38,7 +38,8 @@
     "realworld:serve": "pnpm --filter @certifier/worker realworld:serve",
     "merchant-agent": "pnpm --filter @certifier/worker merchant-agent",
     "funnel": "pnpm --filter @certifier/worker funnel",
-    "passkey:invite": "pnpm --filter @certifier/api passkey:invite"
+    "passkey:invite": "pnpm --filter @certifier/api passkey:invite",
+    "bypass-demo": "pnpm --filter @certifier/worker bypass-demo"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.6",

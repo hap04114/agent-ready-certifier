@@ -17,7 +17,9 @@
     "realworld:serve": "tsx src/realworld-serve.ts",
     "merchant-agent": "tsx src/merchant-agent-trials.ts",
     "funnel": "tsx src/funnel.ts",
-    "trial-counts": "tsx src/trial-counts.ts"
+    "trial-counts": "tsx src/trial-counts.ts",
+    "bypass-demo": "tsx src/bypass-demo.ts",
+    "llm:probe": "tsx src/llm-probe.ts"
   },
   "dependencies": {
     "@certifier/browser-agent": "workspace:*",
