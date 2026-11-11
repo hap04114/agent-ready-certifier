@@ -1,7 +1,7 @@
 // The AG Grid console: runs across stores, checks with drill-down to evidence, and the model
 // safety scorecard. Filtering, sorting, pinned columns and CSV export on every grid.
 (async () => {
-  const { get, state, fmtDate, badge, esc } = window.ARC;
+  const { get, state, fmtDate, badge, esc, researchLine } = window.ARC;
   const ag = window.agGrid;
   const theme = ag.themeQuartz.withParams({ fontFamily: "inherit", headerFontWeight: 600, spacing: 6 });
   const base = { theme, defaultColDef: { sortable: true, filter: true, floatingFilter: true, resizable: true, minWidth: 90 }, animateRows: true };
@@ -74,6 +74,7 @@
       <h3>${esc(c.code)} ${badge(c.status)} ${esc(c.summary)}</h3>
       ${c.reasons?.length ? `<ul>${c.reasons.map((r) => `<li>${esc(r)}</li>`).join("")}</ul>` : ""}
       ${c.businessImpact ? `<div class="impact"><b>Business impact:</b> ${esc(c.businessImpact)}</div>` : ""}
+      ${researchLine(c.research)}
       <div class="ev" style="margin-top:10px">${c.evidence
         .map((e) => `<div><span class="chip ${esc(e.strength)}">${esc(e.strength)}</span><b>${esc(e.kind)}</b> <code>${esc(e.id)}</code> ${e.note ? `<span class="muted">— ${esc(e.note)}</span>` : ""}</div>`)
         .join("")}</div>`;

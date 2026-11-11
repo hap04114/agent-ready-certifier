@@ -1,6 +1,6 @@
 // One run's report: four pillars, every check with its reasons, business impact and evidence.
 (async () => {
-  const { get, state, fmtDate, badge, esc, PILLARS } = window.ARC;
+  const { get, state, fmtDate, badge, esc, PILLARS, researchLine } = window.ARC;
   const id = new URLSearchParams(location.search).get("id");
   const run = id ? await get("run", id) : undefined;
   const summary = document.getElementById("summary");
@@ -57,6 +57,7 @@
               <div class="line"><span class="code">${esc(c.code)}</span>${badge(c.status)}<span class="sum">${esc(c.summary)}</span></div>
               ${c.reasons?.length ? `<ul class="reasons">${c.reasons.map((r) => `<li>${esc(r)}</li>`).join("")}</ul>` : ""}
               ${c.businessImpact ? `<div class="impact"><b>Business impact:</b> ${esc(c.businessImpact)}</div>` : ""}
+              ${researchLine(c.research)}
               ${c.diagnosis ? diag(c.diagnosis) : ""}
               <div class="ev">${c.evidence.map((e) => `<div><span class="chip ${esc(e.strength)}">${esc(e.strength)}</span>${esc(e.kind)} <code>${esc(e.id)}</code>${e.note ? ` — ${esc(e.note)}` : ""}</div>`).join("")}</div>
             </div>`,
