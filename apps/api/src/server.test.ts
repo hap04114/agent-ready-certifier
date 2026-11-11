@@ -25,6 +25,10 @@ describe("pages", () => {
     expect((await app().inject({ method: "GET", url: "/console" })).body).toContain("Model safety scorecard");
     expect((await app().inject({ method: "GET", url: "/simulator" })).body).toContain("Planted-bug simulator");
     expect((await app().inject({ method: "GET", url: "/assets/landing.js" })).statusCode).toBe(200);
+    const how = await app().inject({ method: "GET", url: "/how-it-works" });
+    expect(how.statusCode).toBe(200);
+    expect(how.body).toContain('id="process-16"');
+    expect((await app().inject({ method: "GET", url: "/assets/how.js" })).statusCode).toBe(200);
     const font = await app().inject({ method: "GET", url: "/assets/inter-var.woff2" });
     expect(font.statusCode).toBe(200);
     expect(font.headers["content-type"]).toBe("font/woff2");

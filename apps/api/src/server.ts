@@ -48,6 +48,7 @@ const ASSETS: Record<string, string> = {
   "owner.js": "application/javascript; charset=utf-8",
   "simulator.js": "application/javascript; charset=utf-8",
   "landing.js": "application/javascript; charset=utf-8",
+  "how.js": "application/javascript; charset=utf-8",
   // Inter variable font (SIL OFL 1.1), copied by build:vendor.
   "inter-var.woff2": "font/woff2",
   "inter-LICENSE.txt": "text/plain; charset=utf-8",
@@ -123,6 +124,7 @@ export function buildApi(config: Config, deps: ApiDeps = {}) {
   });
   app.get("/console", async (_req, reply) => reply.headers(PAGE_HEADERS).type("text/html; charset=utf-8").send(readPublic("index.html")));
   app.get("/simulator", async (_req, reply) => reply.headers(PAGE_HEADERS).type("text/html; charset=utf-8").send(readPublic("simulator.html")));
+  app.get("/how-it-works", async (_req, reply) => reply.headers(PAGE_HEADERS).type("text/html; charset=utf-8").send(readPublic("how-it-works.html")));
   app.get("/run", async (_req, reply) => reply.headers(PAGE_HEADERS).type("text/html; charset=utf-8").send(readPublic("run.html")));
   app.get("/owner", async (_req, reply) => reply.headers(PAGE_HEADERS).type("text/html; charset=utf-8").send(readPublic("owner.html")));
   app.get("/assets/:file", async (req, reply) => {

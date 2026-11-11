@@ -6,9 +6,31 @@
   <title>Agent-Ready Certifier — simulator</title>
   <link rel="stylesheet" href="/assets/styles.css">
   <style>
-    .tabs { display: flex; gap: 8px; margin: 4px 0 16px; flex-wrap: wrap; }
-    .tabs button { font: inherit; font-size: 14px; font-weight: 600; border: 1px solid var(--line); background: #fff; color: var(--ink); padding: 8px 16px; border-radius: 999px; cursor: pointer; }
-    .tabs button[aria-selected="true"] { background: #0b1220; color: #fff; border-color: #0b1220; }
+    @font-face { font-family: "InterVar"; src: url("/assets/inter-var.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+    body { font-family: "InterVar", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; background: #f3f5fa; -webkit-font-smoothing: antialiased; overflow-x: clip; }
+    .snav { position: sticky; top: 0; z-index: 50; background: rgba(5,7,13,.94); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid rgba(255,255,255,.08); }
+    .snav .in, .shero .in { max-width: 1320px; margin: 0 auto; padding-left: 24px; padding-right: 24px; }
+    .snav .in { display: flex; align-items: center; gap: 24px; padding-top: 14px; padding-bottom: 14px; }
+    .snav .logo { display: flex; align-items: center; gap: 10px; color: #fff; font-weight: 700; text-decoration: none; margin-right: auto; }
+    .snav .mark { width: 30px; height: 30px; border-radius: 9px; background: conic-gradient(from 210deg, #60a5fa, #2dd4bf, #a78bfa, #60a5fa); }
+    .snav a.l { color: #aab4c5; text-decoration: none; font-size: 14.5px; } .snav a.l:hover, .snav a.l.on { color: #fff; }
+    @media (max-width: 640px) { .snav a.l.hide-sm { display: none; } }
+    .shero { color: #fff; padding: 46px 0 70px; background: radial-gradient(700px 340px at 85% 0%, #1d4ed855, transparent 60%), radial-gradient(600px 300px at 5% 100%, #6d28d944, transparent 60%), #05070d; }
+    .shero .eb { font-size: 13px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #5eead4; }
+    .shero h1 { font-size: clamp(32px, 4.6vw, 52px); line-height: 1.05; letter-spacing: -.035em; margin: 12px 0 14px; }
+    .shero h1 span { background: linear-gradient(100deg, #93c5fd, #5eead4 45%, #c4b5fd); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .shero p { color: #aab4c5; font-size: 17px; line-height: 1.6; max-width: 820px; margin: 0; } .shero p b { color: #fff; }
+    main { margin-top: -38px; position: relative; }
+    .tabs { display: inline-flex; gap: 4px; margin: 0 0 18px; padding: 5px; border-radius: 14px; background: #fff; box-shadow: 0 10px 30px -12px rgba(15,23,42,.35); flex-wrap: wrap; }
+    .tabs button { font: inherit; font-size: 15px; font-weight: 600; border: 0; background: transparent; color: #3b4352; padding: 10px 20px; border-radius: 10px; cursor: pointer; transition: background .2s, color .2s; }
+    .tabs button:hover { background: #f1f4f9; }
+    .tabs button[aria-selected="true"] { background: #0b1220; color: #fff; }
+    .card { border-radius: 16px; border-color: #e6e9f0; box-shadow: 0 1px 2px rgba(16,24,40,.04), 0 8px 24px -16px rgba(16,24,40,.18); }
+    ol.guide { list-style: none; padding: 0; margin: 0 0 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    @media (max-width: 860px) { ol.guide { grid-template-columns: 1fr; } }
+    ol.guide li { display: flex; gap: 12px; align-items: flex-start; background: #fff; border: 1px solid #e6e9f0; border-radius: 14px; padding: 14px 16px; font-size: 14px; color: #3b4352; }
+    ol.guide li b { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 13px; background: linear-gradient(135deg, #2563eb, #0d9488); }
+    ol.guide strong { color: #0b1220; }
     .sim { display: grid; grid-template-columns: minmax(260px, 340px) 1fr; gap: 16px; align-items: start; }
     @media (max-width: 860px) { .sim { grid-template-columns: 1fr; } }
     .sim > section { min-width: 0; }
@@ -76,15 +98,22 @@
   </style>
 </head>
 <body>
-  <header class="top">
-    <div class="row">
-      <h1>Simulator</h1>
-      <span class="tag">PayPal sandbox only</span>
-      <span class="tag">recorded results</span>
+  <header class="snav">
+    <div class="in">
+      <a class="logo" href="/"><span class="mark"></span>Agent-Ready Certifier</a>
+      <a class="l hide-sm" href="/">Home</a>
+      <a class="l hide-sm" href="/how-it-works">How it works</a>
+      <a class="l on" href="/simulator">Simulator</a>
+      <a class="l hide-sm" href="/console">Console</a>
     </div>
-    <p class="position">Play with the certifier without running anything. <b>Every verdict, trial and PayPal ID on this page comes from a real recorded sandbox run</b>; the simulator only recombines them. Turning a bug on shows the verdict our buggy store really got; turning it off shows the correct store's real verdict.</p>
-    <nav class="links"><a href="/">Home</a><a href="/console">Console</a><a href="/simulator">Simulator</a><a href="https://github.com/hap04114/agent-ready-certifier" rel="noopener">Source</a></nav>
   </header>
+  <section class="shero">
+    <div class="in">
+      <div class="eb">Interactive simulator · recorded results</div>
+      <h1>Break a store. <span>Replay an AI shopper.</span></h1>
+      <p>Switch planted bugs on and off, or replay recorded AI-shopper trials step by step. <b>Every verdict, trial and PayPal ID here comes from a real PayPal sandbox run</b>; the simulator only recombines them and never runs anything new.</p>
+    </div>
+  </section>
   <main>
     <div class="banner" id="banner" hidden></div>
     <div class="tabs" role="tablist">
@@ -93,6 +122,11 @@
     </div>
 
     <section id="panel-bugs" role="tabpanel" aria-labelledby="tab-bugs">
+      <ol class="guide">
+        <li><b>1</b><span><strong>Switch a planted bug on</strong> in “Your store's code”. These are the 10 real bugs of our buggy demo store.</span></li>
+        <li><b>2</b><span><strong>Watch the map:</strong> the place in the checkout where that bug lives turns red.</span></li>
+        <li><b>3</b><span><strong>Click any check</strong> to see where it looks, how the test works, and the real PayPal proof behind its verdict.</span></li>
+      </ol>
       <section class="card">
         <div class="head"><div><h2>Where each bug lives, and where each check looks</h2><p>A store's checkout has three places: the page the shopper sees, the store's private server, and PayPal. Red marks where a switched-on bug lives; a blue outline shows where the selected check looks.</p></div></div>
         <div class="body">
@@ -170,6 +204,11 @@
     </section>
 
     <section id="panel-ai" role="tabpanel" aria-labelledby="tab-ai" hidden>
+      <ol class="guide">
+        <li><b>1</b><span><strong>Pick a situation:</strong> a normal purchase, or a trap from published research (hidden instruction, approval code in the inbox, lookalike seller).</span></li>
+        <li><b>2</b><span><strong>Pick an AI shopper:</strong> the model whose recorded trials you want to see, with the real number of trials (N).</span></li>
+        <li><b>3</b><span><strong>Press Replay:</strong> each recorded step lights up on the diagram, the wallet meter moves, and the verdict comes from PayPal's records.</span></li>
+      </ol>
       <div class="sim">
         <section class="card">
           <div class="head"><div><h2>Set up a trial</h2><p>Pick a situation and an AI shopper.</p></div></div>

@@ -10,6 +10,7 @@ AI drives a real browser, plays the attacker and plays the AI shopper. **Plain c
 verdict**, from PayPal's records, the store's records and PayPal-signed webhooks. PayPal sandbox only.
 
 **Live demo:** [certifier-api.onrender.com](https://certifier-api.onrender.com/) (landing page) ·
+[how it works, in detail](https://certifier-api.onrender.com/how-it-works) ·
 [simulator](https://certifier-api.onrender.com/simulator) ·
 [console](https://certifier-api.onrender.com/console) ([recorded runs, no keys needed](https://certifier-api.onrender.com/console?demo=1)) ·
 [demo store](https://demo-store-good.onrender.com/).
