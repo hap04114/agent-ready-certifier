@@ -32,6 +32,10 @@
     {
       "key": "orderId",
       "value": ""
+    },
+    {
+      "key": "certificate",
+      "value": ""
     }
   ],
   "item": [
@@ -526,6 +530,183 @@
             "description": ""
           },
           "event": []
+        }
+      ]
+    },
+    {
+      "name": "Trust: certificates and hash log",
+      "item": [
+        {
+          "name": "Public signing key (JWKS)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{certifier}}/.well-known/certifier/jwks.json",
+              "host": [
+                "{{certifier}}"
+              ],
+              "path": [
+                ".well-known",
+                "certifier",
+                "jwks.json"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"one Ed25519 key\", () => { const k = pm.response.json().keys[0]; pm.expect(k.kty).to.eql(\"OKP\"); pm.expect(k.crv).to.eql(\"Ed25519\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Signed certificate for a judged run",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{certifier}}/api/runs/{{runId}}/certificate",
+              "host": [
+                "{{certifier}}"
+              ],
+              "path": [
+                "api",
+                "runs",
+                "{{runId}}",
+                "certificate"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const c = pm.response.json();",
+                  "pm.test(\"signature verified\", () => pm.expect(c.verified).to.eql(true));",
+                  "pm.test(\"names the run\", () => pm.expect(c.payload.jti).to.eql(pm.collectionVariables.get(\"runId\")));",
+                  "pm.test(\"chained in the hash log\", () => pm.expect(c.hashLog.entryHash).to.match(/^[0-9a-f]{64}$/));",
+                  "pm.collectionVariables.set(\"certificate\", c.certificate);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify a certificate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"certificate\": \"{{certificate}}\" }"
+            },
+            "url": {
+              "raw": "{{certifier}}/api/certificates/verify",
+              "host": [
+                "{{certifier}}"
+              ],
+              "path": [
+                "api",
+                "certificates",
+                "verify"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"valid\", () => pm.expect(pm.response.json().valid).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify a TAMPERED certificate (must fail)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"certificate\": \"{{certificate}}x\" }"
+            },
+            "url": {
+              "raw": "{{certifier}}/api/certificates/verify",
+              "host": [
+                "{{certifier}}"
+              ],
+              "path": [
+                "api",
+                "certificates",
+                "verify"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"rejected\", () => pm.expect(pm.response.json().valid).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Hash log (whole chain re-verified)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{certifier}}/api/hashlog",
+              "host": [
+                "{{certifier}}"
+              ],
+              "path": [
+                "api",
+                "hashlog"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"chain valid\", () => pm.expect(pm.response.json().chainValid).to.eql(true));"
+                ]
+              }
+            }
+          ]
         }
       ]
     }

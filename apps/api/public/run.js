@@ -20,6 +20,30 @@
           document.head.appendChild(s);
         });
 
+  /** The run's signed certificate (issued on first request), with verification status and proofs. */
+  async function renderCertificate(runId) {
+    const res = await fetch(`/api/runs/${encodeURIComponent(runId)}/certificate`);
+    if (!res.ok) return; // signing not configured, or run not judged: no card
+    const c = await res.json();
+    const status = c.verified === true ? badge("pass").replace(">pass<", ">signature verified<") : c.verified === false ? badge("fail").replace(">fail<", ">signature INVALID<") : badge("inconclusive").replace(">inconclusive<", ">not checked<");
+    const log = c.hashLog;
+    document.getElementById("cert-card").hidden = false;
+    document.getElementById("cert").innerHTML = `
+      <p>${status} <b>${esc(c.payload?.statement ?? "")}</b></p>
+      <ul class="reasons">
+        <li>Store: <code>${esc(c.payload?.sub ?? "")}</code> · run <code>${esc(c.payload?.jti ?? "")}</code> · issued ${esc(fmtDate(c.issuedAt))}</li>
+        <li>Summary SHA-256: <code>${esc(c.summarySha256)}</code></li>
+        ${log ? `<li>Hash log entry #${esc(log.seq)}: <code>${esc(log.entryHash)}</code> (previous <code>${esc(String(log.prevHash).slice(0, 16))}…</code>)</li>` : ""}
+      </ul>
+      <p class="small">
+        <a href="/api/runs/${encodeURIComponent(runId)}/certificate" target="_blank" rel="noopener">Certificate (JSON)</a> ·
+        <a href="/.well-known/certifier/jwks.json" target="_blank" rel="noopener">Public key</a> ·
+        <a href="/api/hashlog" target="_blank" rel="noopener">Hash log</a>
+        ${log ? ` · <a href="/api/hashlog/${esc(log.seq)}/entry.txt">Log entry text</a>` : ""}
+        ${log?.openTimestamps ? ` · <a href="/api/hashlog/${esc(log.seq)}/proof.ots">OpenTimestamps proof (.ots)</a>` : ""}
+      </p>`;
+  }
+
   const KIND_COLOR = { setup: "blue", agent: "purple", wait: "gray", webhook: "orange", attack: "red", judge: "green" };
   async function renderTimeline(steps) {
     document.getElementById("timeline-card").hidden = false;
@@ -127,6 +151,7 @@
     .join("");
 
   if (Array.isArray(run.timeline) && run.timeline.length) renderTimeline(run.timeline).catch(() => {});
+  if (run.status === "judged" && state.mode !== "recorded") renderCertificate(run.id).catch(() => {});
 
   document.getElementById("log").textContent = (run.log || []).join("\n") || "No log was recorded for this run (runs before the recorded-log feature).";
 })();
