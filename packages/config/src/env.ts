@@ -121,6 +121,8 @@ export const envSchema = z.object({
   LLM_PROVIDER: optionalString,
   LLM_API_KEY: optionalString,
   LLM_MODEL: optionalString,
+  /** Comma-separated same-provider models to use when LLM_MODEL's daily quota is used up. */
+  LLM_FALLBACK_MODELS: optionalString,
   GEMINI_API_KEY: optionalString,
 
   // Sponsor tools

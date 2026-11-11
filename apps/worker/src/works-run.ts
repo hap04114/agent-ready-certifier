@@ -6,7 +6,7 @@
  */
 import { ConfigError, bootConfig, requireConfig } from "@certifier/config";
 import { certifierRepo, createPgDb, migrateCertifier } from "@certifier/db";
-import type { Provider } from "@certifier/llm";
+import { type Provider, fallbackModelsOf } from "@certifier/llm";
 import { RunBudget } from "./budget.js";
 import { type StoreName, storeProfile } from "./stores.js";
 import { type AgentSettings, runWorksPillar } from "./works.js";
@@ -32,7 +32,7 @@ try {
     ]);
     agent = {
       kernelApiKey: a.KERNEL_API_KEY,
-      llm: { provider: a.LLM_PROVIDER as Provider, model: a.LLM_MODEL, apiKey: a.LLM_API_KEY },
+      llm: { provider: a.LLM_PROVIDER as Provider, model: a.LLM_MODEL, apiKey: a.LLM_API_KEY, fallbackModels: fallbackModelsOf(config.LLM_FALLBACK_MODELS) },
       buyer: { email: a.PAYPAL_SANDBOX_BUYER_EMAIL, password: a.PAYPAL_SANDBOX_BUYER_PASSWORD },
     };
   }

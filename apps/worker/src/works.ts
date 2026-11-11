@@ -61,7 +61,7 @@ export const pillarOf = (code: string) => (code.startsWith("W") ? "works" : code
 
 export interface AgentSettings {
   kernelApiKey: string;
-  llm: { provider: Provider; model: string; apiKey: string };
+  llm: { provider: Provider; model: string; apiKey: string; fallbackModels?: string[] };
   buyer: { email: string; password: string };
 }
 
@@ -201,7 +201,14 @@ export async function runWorksPillar(opts: WorksRunOptions): Promise<WorksRunRes
             context: session.context,
             startUrl: link,
             mission: `This is a PayPal sandbox checkout page for order ${id}, which already exists. Log in as the buyer if asked, then approve and complete the payment. Reply done as soon as you are back on the store and it shows any final result, including "Payment not completed" (some of these orders are meant to fail).`,
-            llm: agent.llm,
+            llm: {
+              ...agent.llm,
+              // Record which model really drove the buyer when a daily quota forces a switch.
+              onFallback: (from, to) => {
+                log(`  AI model ${from} reached its daily quota; the buyer agent continues with ${to}`);
+                notes.agentModelSwitches = [...((notes.agentModelSwitches as { from: string; to: string }[] | undefined) ?? []), { from, to, at: new Date().toISOString() }];
+              },
+            },
             buyer: agent.buyer,
             scrub: (t) => redact(t, config),
             maxSteps: 20,

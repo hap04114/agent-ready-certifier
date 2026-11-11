@@ -71,7 +71,6 @@ button.btn.primary { background: var(--brand); color: var(--brand-ink); border-c
 .detail li { margin: 4px 0; }
 .impact { margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: var(--fail-bg); color: #7a1a12; font-size: 13.5px; }
 .research { margin-top: 6px; font-size: 12.5px; color: var(--muted, #5b6675); }
-.research a { color: inherit; text-decoration: underline; }
 .muted { color: var(--muted); }
 .caveat { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
 

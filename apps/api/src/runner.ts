@@ -4,7 +4,7 @@
  */
 import type { Config } from "@certifier/config";
 import type { CertifierRepo } from "@certifier/db";
-import type { Provider } from "@certifier/llm";
+import { type Provider, fallbackModelsOf } from "@certifier/llm";
 import { RunBudget } from "@certifier/worker/budget";
 import { type AgentSettings, runWorksPillar } from "@certifier/worker/works";
 import type { RunStarter } from "./runs.js";
@@ -15,7 +15,7 @@ export function agentFromConfig(config: Config): AgentSettings | undefined {
   if (!c.KERNEL_API_KEY || !c.LLM_PROVIDER || !c.LLM_MODEL || !c.LLM_API_KEY || !c.PAYPAL_SANDBOX_BUYER_EMAIL || !c.PAYPAL_SANDBOX_BUYER_PASSWORD) return undefined;
   return {
     kernelApiKey: c.KERNEL_API_KEY,
-    llm: { provider: c.LLM_PROVIDER as Provider, model: c.LLM_MODEL, apiKey: c.LLM_API_KEY },
+    llm: { provider: c.LLM_PROVIDER as Provider, model: c.LLM_MODEL, apiKey: c.LLM_API_KEY, fallbackModels: fallbackModelsOf(c.LLM_FALLBACK_MODELS) },
     buyer: { email: c.PAYPAL_SANDBOX_BUYER_EMAIL, password: c.PAYPAL_SANDBOX_BUYER_PASSWORD },
   };
 }
