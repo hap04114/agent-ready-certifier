@@ -13,7 +13,7 @@ import { z } from "zod";
 import type { Config } from "@certifier/config";
 import { bearerMatches, deriveOwnershipToken, deriveStatusKey, storeOrigin, verifyOwnership } from "@certifier/contract";
 import type { CertifierRepo } from "@certifier/db";
-import { impactOf, scoreCell } from "@certifier/truth";
+import { impactOf, researchOf, scoreCell } from "@certifier/truth";
 
 export interface RunStarter {
   /** Start a run in the background. Returns a kill function for the kill switch. */
@@ -147,6 +147,7 @@ export function registerRunApi(app: FastifyInstance, deps: RunApiDeps) {
         return {
           ...c,
           businessImpact: c.status === "fail" ? (impactOf(c.code) ?? null) : null,
+          research: researchOf(c.code) ?? null,
           diagnosis: f
             ? { explanation: f.explanation, fixSteps: f.fix_steps, codeSnippet: f.code_snippet, sdkVerified: f.sdk_verified, sdkUnverified: f.sdk_unverified, source: f.sdk_source, model: f.model }
             : null,

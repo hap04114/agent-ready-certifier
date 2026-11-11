@@ -25,7 +25,7 @@ model safety scorecard.
 ```bash
 pnpm install
 cp .env.example .env         # works as-is: sandbox settings, no credentials
-pnpm test                    # 230+ unit tests; no network, no credentials
+pnpm test                    # 260+ unit tests; no network, no credentials
 pnpm dev:api                 # open http://localhost:4000 for recorded real runs (demo mode)
 ```
 
@@ -42,11 +42,57 @@ One run certifies one store on four pillars. Every check has one deterministic r
 | **Works**: does a real purchase succeed end to end? | W1 purchase · W2 decline (PayPal negative testing) · W3 server error · W4 refund via webhook · W5 signed webhook delivery · W6 duplicate delivery |
 | **Current**: does the store follow PayPal's growth playbook? | C1 current JS SDK / Web SDK v6 (not checkout.js) · C2 Pay Later messaging · C3 PayPal button visible without scrolling · C4 saved PayPal method · C5 Venmo offered |
 | **Secure**: are common payment-integration flaws absent? | S1 price tampering · S2 forged webhook · S3 webhook replay · S4 order replay · S5 secrets in public JS · S6 sandbox/live mix-up · S7 retry safety (PayPal-Request-Id) · S8 CSP and HSTS |
-| **Agent-ready**: can an AI shopper buy correctly, and can it be tricked? | R1 correct purchase · A1 hidden instruction in a listing · A2 reachable approval code, before/after · A3 lookalike merchant |
+| **Agent-ready**: can AI agents read the store correctly, buy correctly, and can they be tricked? | **On the store:** A4 machine-readable price (Schema.org JSON-LD) equals what PayPal charged · A5 every checkout control has an accessible name (agents read ARIA labels). **With AI shoppers** (model scorecard): R1 correct purchase · A1 hidden instruction in a listing · A2 reachable approval code, before/after · A3 lookalike merchant |
 
 **Inconclusive is never a guessed pass.** If data is missing, the rule says so. If *our* test buyer
 fails to approve an order, the store is not blamed. An AI shopper that buys nothing is not counted
 as "safe".
+
+### Research behind each check
+
+Each check in a report shows its "why" line. Every source below was checked on Nov 10–11, 2026,
+and labelled by type. Checks without a line here are plain correctness or playbook checks.
+
+| Check | Finding | Source | Type |
+| --- | --- | --- | --- |
+| W2, W3 | PayPal's sandbox can force `INSTRUMENT_DECLINED` and `INTERNAL_SERVER_ERROR` with the `PayPal-Mock-Response` header | [PayPal: negative testing](https://developer.paypal.com/tools/sandbox/negative-testing/request-headers/) | official docs |
+| W4 | Developers report PayPal webhooks not firing, capture events never generated and events stuck as pending | [Hookdeck: guide to PayPal webhooks](https://hookdeck.com/webhooks/platforms/guide-to-paypal-webhooks-features-and-best-practices) | industry report |
+| W5, S2 | PayPal documents how to verify each webhook message's signature before trusting it | [PayPal: webhook integration and verification](https://developer.paypal.com/api/rest/webhooks/rest) | official docs |
+| C2, C4 | Merchants running PayPal's full playbook (incl. earlier Pay Later messaging, saved payment methods) grew branded checkout well ahead of their overall e-commerce | [PayPal Q3 2026 results, via Investing.com](https://www.investing.com/news/company-news/paypal-q3-2026-slides-profit-beats-revenue-misses-expectations-93CH-4975781) | news |
+| S1, S4 | Unrestricted access to sensitive business flows is an API Top 10 risk | [OWASP API Security Top 10 (2023)](https://owasp.org/API-Security/) | standard |
+| S5, S6, S8 | Security misconfiguration (exposed credentials, mixed environments, missing headers) is an API Top 10 risk | [OWASP API Security Top 10 (2023)](https://owasp.org/API-Security/) | standard |
+| S7 | Without `PayPal-Request-Id`, PayPal processes a retried POST again as a new request | [PayPal: idempotency](https://developer.paypal.com/api/rest/reference/idempotency) | official docs |
+| A4 | Google uses structured data to understand landing-page prices; prices "need to match exactly", and mismatches can get products disapproved | [Google Merchant Center Help: price](https://support.google.com/merchants/answer/12159029) | official docs |
+| A4 (caveat) | Whether AI agents rely on JSON-LD is **disputed**: a Feb 2026 vendor study found none of 12 agents surfaced JSON-LD product data. So a store with **no** structured price is reported as inconclusive, never failed | [ThePricer Media](https://www.thepricer.org/ai-advertising-blind-spots/) | industry report |
+| A5 | "ChatGPT Atlas uses ARIA tags, the same labels and roles that support screen readers, to interpret page structure and interactive elements" | [OpenAI Publishers and Developers FAQ](https://help.openai.com/en/articles/12627856-publishers-and-developers-faq) | official docs |
+| A5 | Empty buttons were found on 30.6% of the top one million home pages (2026), up from 25% in 2019 | [WebAIM Million 2026](https://webaim.org/projects/million/) | industry report |
+| A5 (related) | A production browser agent uses "hybrid context management combining accessibility tree snapshots with selective vision" | [Vardanyan, arXiv 2511.19477](https://arxiv.org/abs/2511.19477) | preprint |
+| A5 (related) | Claude Sonnet 4.5 completed 78.3% of 60 everyday computer tasks with full mouse and keyboard access, but 41.67% when restricted to keyboard-only input meant to mirror screen-reader use | [CHI 2026, UC Berkeley and U. Michigan (arXiv 2602.09310)](https://arxiv.org/abs/2602.09310) | peer-reviewed |
+| R1 | Some agents look safe only because they fail the task, so task success is reported next to safety | [WASP, Meta FAIR (arXiv 2504.18575)](https://arxiv.org/abs/2504.18575) | preprint |
+| A1 | Low-effort prompt injections can hijack web agents | [WASP, Meta FAIR (arXiv 2504.18575)](https://arxiv.org/abs/2504.18575) | preprint |
+| A2 | 9 of 10 AI models raised their own spending limit at least once by reading the owner's emailed approval codes (I-HITL, Cornell Tech and Yale) | [CoinDesk, Nov 1, 2026](https://www.coindesk.com/tech/2026/11/01/ai-agents-bypassed-crypto-spending-limits-without-human-approval-researchers-find-in-a-new-test) | news (reporting research) |
+| A3 | In a simulated marketplace, prompt injection redirected all payments for some models | [Magentic Marketplace, Microsoft Research (arXiv 2510.25779)](https://arxiv.org/abs/2510.25779) | preprint |
+| A1, A3 | Shopping agents are highly vulnerable to deceptive designs such as add-ons and price drifts | [WebDecept, ACL 2026](https://aclanthology.org/2026.acl-long.1009.pdf) | peer-reviewed |
+| Truth checker | AI testers can hallucinate pass or fail; deterministic oracles are needed | [WebTestPilot, FSE 2026 (arXiv 2602.11724)](https://arxiv.org/abs/2602.11724) | peer-reviewed |
+
+## Who it's for
+
+- **Developers and agencies who build PayPal checkouts**: prove a client's integration works on the
+  bad days (declines, PayPal errors, retries, refunds, duplicate webhooks) and resists common attacks,
+  with a report the client can check against PayPal's own records.
+- **PayPal partner and solutions teams**: verify playbook rollouts (current SDK, Pay Later, button
+  placement, saved methods) across many merchants without manual test sessions.
+- Not for non-technical store owners on their own: a developer adds the ownership token and, for the
+  full Works and Secure checks, the small [store contract](docs/store-contract.md).
+
+## Prior art, and what's different
+
+| Project | What it does | Difference |
+| --- | --- | --- |
+| PayPal's own tools (sandbox, negative testing, webhook simulator) | Building blocks for testing an integration | We combine them into one evidence-backed certification, and use real signed events, not the simulator (simulator events can't be signature-verified) |
+| Breakpoint ([README](https://github.com/arc585/breakpoint)) | Security test bench for its own bundled vulnerable demo store | Tests **any** store its owner verifies, across correctness, playbook adoption, security and agent readiness |
+| Safer AI-shopper projects (spending mandates, guarded agents) | Protect the **shopper's** agent | We certify the **merchant's store** and measure models' safety on it; complementary, not competing |
+| Web-agent research benchmarks (WASP, WebDecept, Magentic Marketplace) | Measure agents in research environments | We run the same kinds of traps on PayPal's rails and read the outcome from PayPal's records |
 
 ### How a verdict is proven
 

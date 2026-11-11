@@ -51,7 +51,12 @@
     works: { title: "Works", q: "Does a real purchase succeed end to end, including declines, refunds and webhooks?" },
     current: { title: "Current", q: "Does the store follow PayPal's growth playbook?" },
     secure: { title: "Secure", q: "Are common payment-integration flaws absent?" },
-    "agent-ready": { title: "Agent-ready", q: "Can an AI shopper buy correctly, and can it be tricked?" },
+    "agent-ready": { title: "Agent-ready", q: "Can AI agents read the store correctly, buy correctly, and can they be tricked?" },
   };
-  window.ARC = { get, state, fmtDate, badge, esc, PILLARS };
+  /** "Why we check": the research or official guidance behind a check, with its source type. */
+  const researchLine = (r) =>
+    r && /^https:\/\//.test(r.url)
+      ? `<div class="research"><b>Why we check:</b> ${esc(r.finding)} <a href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">${esc(r.source)}</a> <span class="chip neutral">${esc(r.type)}</span></div>`
+      : "";
+  window.ARC = { get, state, fmtDate, badge, esc, PILLARS, researchLine };
 })();
