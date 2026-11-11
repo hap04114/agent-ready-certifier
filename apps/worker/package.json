@@ -12,7 +12,9 @@
     "scorecard": "tsx src/scorecard.ts",
     "vault:setup": "tsx src/vault-setup.ts",
     "diagnose": "tsx src/diagnose-run.ts",
-    "benchmark": "tsx src/benchmark.ts"
+    "benchmark": "tsx src/benchmark.ts",
+    "certify:page": "tsx src/certify-page.ts",
+    "realworld:serve": "tsx src/realworld-serve.ts"
   },
   "dependencies": {
     "@certifier/config": "workspace:*",

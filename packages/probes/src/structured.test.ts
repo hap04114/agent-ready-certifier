@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { structuredOffers } from "./page.js";
+import { hasButtonsMessage, structuredOffers } from "./page.js";
+
+describe("hasButtonsMessage (C2)", () => {
+  it("finds the button-integrated Pay Later message config", () => {
+    expect(hasButtonsMessage(['window.paypal\n  .Buttons({\n    style: { shape: "rect" },\n    message: {\n      amount: 100,\n    },\n  })'])).toBe(true);
+    expect(hasButtonsMessage(['paypal.Buttons({ createOrder() { show("message: {}") } })'])).toBe(false);
+    expect(hasButtonsMessage(["const message = { text: 1 }"])).toBe(false);
+  });
+});
 
 const page = (...blocks: string[]) => `<html><head>${blocks.map((b) => `<script type="application/ld+json">${b}</script>`).join("")}</head><body></body></html>`;
 

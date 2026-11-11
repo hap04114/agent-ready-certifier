@@ -137,6 +137,10 @@ describe("C1–C5 playbook", () => {
     expect(judgeC2(obs({ sdk: { generation: "js-sdk", components: ["buttons"], enableFunding: [] }, payLaterMarkup: false })).status).toBe("fail");
     expect(judgeC2(obs({ payLaterMarkup: false, rendered: { viewport: { width: 1, height: 1 }, payLaterMessageRendered: true } })).status).toBe("pass");
   });
+  it("C2 accepts the button-integrated Pay Later message (found testing PayPal's own example)", () => {
+    // PayPal's standard-integration example: components=buttons only, Buttons({ message: { amount } }).
+    expect(judgeC2(obs({ sdk: { generation: "js-sdk", components: ["buttons"], enableFunding: ["venmo"] }, payLaterMarkup: false, buttonsMessage: true })).status).toBe("pass");
+  });
   it("C3 compares the button position with the viewport", () => {
     expect(judgeC3(obs({ rendered: { viewport: { width: 1280, height: 800 }, paypalButton: { top: 400, bottom: 450 } } })).status).toBe("pass");
     expect(judgeC3(obs({ rendered: { viewport: { width: 1280, height: 800 }, paypalButton: { top: 1200, bottom: 1250 } } })).status).toBe("fail");

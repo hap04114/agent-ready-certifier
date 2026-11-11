@@ -164,6 +164,18 @@ export function structuredOffers(html: string): StructuredOffer[] {
   return out;
 }
 
+/** The button-integrated Pay Later message: paypal.Buttons({ ..., message: { ... } }) in a page script. */
+export function hasButtonsMessage(scripts: string[]): boolean {
+  // The message options PayPal documents: amount, align, color, position, offer.
+  return scripts.some((s) => /\.Buttons\s*\(\s*\{[\s\S]{0,2000}?\bmessage\s*:\s*\{\s*(amount|align|color|position|offer)\s*:/.test(s));
+}
+
 export function observe(scan: PageScan): StorefrontObservation {
-  return { url: scan.url, fetched: scan.status !== undefined && scan.status < 400 && !scan.error, sdk: sdkInfo(scan.scriptSrcs), payLaterMarkup: hasPayLaterMarkup(scan.html) };
+  return {
+    url: scan.url,
+    fetched: scan.status !== undefined && scan.status < 400 && !scan.error,
+    sdk: sdkInfo(scan.scriptSrcs),
+    payLaterMarkup: hasPayLaterMarkup(scan.html),
+    buttonsMessage: hasButtonsMessage(scan.files.map((f) => f.text)),
+  };
 }

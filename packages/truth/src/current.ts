@@ -21,6 +21,8 @@ export interface StorefrontObservation {
   sdk: { generation: SdkGeneration; src?: string; components: string[]; enableFunding: string[] };
   /** A pay-later message placeholder (data-pp-message / paypal-messages) is in the page. */
   payLaterMarkup: boolean;
+  /** The button-integrated Pay Later message (paypal.Buttons({ message })) is configured in a page script. */
+  buttonsMessage?: boolean;
   /** From a real browser, when available. */
   rendered?: {
     viewport: { width: number; height: number };
@@ -57,8 +59,14 @@ export function judgeC2(o: StorefrontObservation): Verdict {
   if (o.sdk.generation === "none") return v("C2", "inconclusive", "No PayPal SDK found on the page.", [], []);
   const hasComponent = o.sdk.components.includes("messages") || o.sdk.generation === "web-sdk-v6";
   const rendered = o.rendered?.payLaterMessageRendered;
-  const ev = [pageRef(o, `messages component ${hasComponent ? "loaded" : "not loaded"}; message markup ${o.payLaterMarkup ? "present" : "absent"}${rendered === undefined ? "" : `; rendered: ${rendered ? "yes" : "no"}`}`)];
-  if (rendered === true || (hasComponent && o.payLaterMarkup)) return v("C2", "pass", "Pay Later messaging is shown to shoppers.", [], ev);
+  const ev = [
+    pageRef(
+      o,
+      `messages component ${hasComponent ? "loaded" : "not loaded"}; message markup ${o.payLaterMarkup ? "present" : "absent"}; button-integrated message ${o.buttonsMessage ? "configured" : "not configured"}${rendered === undefined ? "" : `; rendered: ${rendered ? "yes" : "no"}`}`,
+    ),
+  ];
+  // Either the messages component with a placement, or the button-integrated message (Buttons({ message })).
+  if (rendered === true || (hasComponent && o.payLaterMarkup) || o.buttonsMessage) return v("C2", "pass", "Pay Later messaging is shown to shoppers.", [], ev);
   return v("C2", "fail", "No Pay Later messaging on the page.", [
     !hasComponent ? 'The PayPal SDK is loaded without the "messages" component.' : "No Pay Later message placement on the page.",
   ], ev);
