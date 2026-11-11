@@ -3,7 +3,7 @@
  * extracts what the Current and Secure rules need. Cross-origin scripts (e.g. PayPal's SDK)
  * are recorded by URL but not fetched. Secrets are never stored, only masked samples.
  */
-import type { SdkGeneration, SecretFinding, StorefrontObservation } from "@certifier/truth";
+import type { SdkGeneration, SecretFinding, StorefrontObservation, StructuredOffer } from "@certifier/truth";
 
 export interface ScannedFile {
   url: string;
@@ -112,6 +112,54 @@ export function findLiveHosts(files: ScannedFile[]): { file: string; host: strin
   const out: { file: string; host: string }[] = [];
   for (const f of files) {
     for (const m of f.text.matchAll(/\bhttps?:\/\/(api-m|api|api-3t)\.paypal\.com\b/gi)) out.push({ file: f.url, host: `${m[1]!.toLowerCase()}.paypal.com` });
+  }
+  return out;
+}
+
+/**
+ * A4: Schema.org Product offers from the page's JSON-LD blocks (what shopping agents read).
+ * Page content is untrusted data: it is only parsed here, never shown to an AI. Malformed
+ * blocks are skipped; sizes are capped.
+ */
+export function structuredOffers(html: string): StructuredOffer[] {
+  const out: StructuredOffer[] = [];
+  const blocks = [...html.matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)].slice(0, 20);
+  const isType = (node: Record<string, unknown>, t: string) => {
+    const ty = node["@type"];
+    return ty === t || (Array.isArray(ty) && ty.includes(t));
+  };
+  const str = (x: unknown) => (typeof x === "string" ? x.trim().slice(0, 200) : typeof x === "number" ? String(x) : undefined);
+  const price = (x: unknown) => {
+    const s = str(x);
+    if (s === undefined || !/^\d+(\.\d+)?$/.test(s)) return undefined;
+    return Number(s).toFixed(2);
+  };
+  const visit = (node: unknown, depth: number) => {
+    if (depth > 6 || out.length >= 200 || node === null || typeof node !== "object") return;
+    if (Array.isArray(node)) {
+      for (const n of node.slice(0, 200)) visit(n, depth + 1);
+      return;
+    }
+    const obj = node as Record<string, unknown>;
+    if (isType(obj, "Product")) {
+      const offers = Array.isArray(obj.offers) ? obj.offers : obj.offers ? [obj.offers] : [];
+      const base = { sku: str(obj.sku), name: str(obj.name) };
+      if (offers.length === 0) out.push(base);
+      for (const o of offers.slice(0, 20)) {
+        if (!o || typeof o !== "object") continue;
+        const offer = o as Record<string, unknown>;
+        // An AggregateOffer has no single price; its lowPrice is not a charge price.
+        out.push({ ...base, price: isType(offer, "AggregateOffer") ? undefined : price(offer.price), currency: str(offer.priceCurrency)?.toUpperCase(), availability: str(offer.availability) });
+      }
+    }
+    for (const key of ["@graph", "itemListElement", "item", "mainEntity", "hasVariant"]) if (key in obj) visit(obj[key], depth + 1);
+  };
+  for (const [, body] of blocks) {
+    try {
+      visit(JSON.parse(body!.slice(0, 200_000)), 0);
+    } catch {
+      // Not valid JSON: agents can't read it either; skip.
+    }
   }
   return out;
 }

@@ -5,4 +5,5 @@ export * from "./adapters.js";
 export * from "./secure.js";
 export * from "./current.js";
 export * from "./agent.js";
+export * from "./storefront-agent.js";
 export * from "./impact.js";

@@ -149,9 +149,44 @@ describe("seeded bugs (demo-store-buggy) vs the good store", () => {
     expect(good).toContain("enable-funding=paylater,venmo");
   });
 
-  it("lists exactly the eight seeded bugs from CLAUDE.md", () => {
+  it("agent_price_mismatch: the buggy page publishes a stale structured price; the good page publishes the real one (A4)", async () => {
+    const offers = (body: string) => {
+      const json = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(body)?.[1];
+      const graph = (JSON.parse(json!) as { "@graph": { sku: string; offers: { price: string; priceCurrency: string } }[] })["@graph"];
+      return Object.fromEntries(graph.map((p) => [p.sku, `${p.offers.price} ${p.offers.priceCurrency}`]));
+    };
+    const good = offers((await GOOD.app.inject({ method: "GET", url: "/" })).body);
+    const bad = offers((await ALL.app.inject({ method: "GET", url: "/" })).body);
+    expect(good["LAMP-01"]).toBe("50.00 USD");
+    expect(bad["LAMP-01"]).toBe("45.00 USD");
+    // ...while checkout still charges the server price.
+    const id = await newOrder(ALL.app, { sku: "LAMP-01", quantity: 1 });
+    expect(ALL.amounts.get(id)).toBe("50.00");
+  });
+
+  it("unlabeled_controls: the buggy page drops the <label>s of the product picker and quantity box (A5)", async () => {
+    const good = (await GOOD.app.inject({ method: "GET", url: "/" })).body;
+    const bad = (await ALL.app.inject({ method: "GET", url: "/" })).body;
+    expect(good).toContain('<label for="sku">Product</label>');
+    expect(good).toContain('<label for="qty">Quantity</label>');
+    expect(bad).not.toContain("<label for=");
+    expect(bad).toContain('<div class="label">Product</div>');
+  });
+
+  it("lists exactly the ten seeded bugs (docs/seeded-bugs.md)", () => {
     expect([...SEEDED_BUGS].sort()).toEqual(
-      ["accept_unsigned_webhooks", "expose_client_secret", "no_pay_later", "no_request_id_on_retry", "no_security_headers", "no_webhook_dedup", "refund_webhook_broken", "trust_client_price"].sort(),
+      [
+        "accept_unsigned_webhooks",
+        "agent_price_mismatch",
+        "expose_client_secret",
+        "no_pay_later",
+        "no_request_id_on_retry",
+        "no_security_headers",
+        "no_webhook_dedup",
+        "refund_webhook_broken",
+        "trust_client_price",
+        "unlabeled_controls",
+      ].sort(),
     );
   });
 });

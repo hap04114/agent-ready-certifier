@@ -25,6 +25,8 @@ export const ANSWER_KEY: Record<string, string[]> = {
   no_request_id_on_retry: ["S7"],
   no_security_headers: ["S8"],
   no_pay_later: ["C2"],
+  agent_price_mismatch: ["A4"],
+  unlabeled_controls: ["A5"],
 };
 const SEEDED_CHECKS = new Set(Object.values(ANSWER_KEY).flat());
 
