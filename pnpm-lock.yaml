@@ -63,6 +63,9 @@ importers:
       '@electric-sql/pglite':
         specifier: ^0.5.15
         version: 0.5.15
+      '@fontsource-variable/inter':
+        specifier: 5.2.8
+        version: 5.2.8
       '@simplewebauthn/browser':
         specifier: 14.0.0
         version: 14.0.0
@@ -605,6 +608,9 @@ packages:
 
   '@fastify/proxy-addr@5.1.2':
     resolution: {integrity: sha512-uqB4QsgVoro0XDC+DIftIMGXHdBPn+lK6Ek3xXAIxPMCJfqxnbtyEoMCm2KPUVOuIosd7Cyw9HawEqMFM/UA+g==}
+
+  '@fontsource-variable/inter@5.2.8':
+    resolution: {integrity: sha512-kOfP2D+ykbcX/P3IFnokOhVRNoTozo5/JxhAIVYLpea/UBmCQ/YWPBfWIDuBImXX/15KH+eKh4xpEUyS2sQQGQ==}
 
   '@hexagon/base64@1.1.28':
     resolution: {integrity: sha512-lhqDEAvWixy3bZ+UOYbPwUbBkwBq5C1LAJ/xPC8Oi+lL54oyakv/npbA0aU2hgCsx/1NUd4IBvV03+aUBWxerw==}
@@ -2600,6 +2606,8 @@ snapshots:
       '@fastify/forwarded': 3.1.2
       ipaddr.js: 2.5.0
 
+  '@fontsource-variable/inter@5.2.8': {}
+
   '@hexagon/base64@1.1.28': {}
 
   '@hono/node-server@2.1.6(hono@4.13.17)':
@@ -2615,13 +2623,13 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.6.0
 
-  '@langchain/core@0.3.6(openai@4.86.1(zod@4.6.7))':
+  '@langchain/core@0.3.6(openai@4.86.1(zod@3.25.76))':
     dependencies:
       ansi-styles: 5.2.0
       camelcase: 6.3.0
       decamelize: 1.2.0
       js-tiktoken: 1.0.21
-      langsmith: 0.1.68(openai@4.86.1(zod@4.6.7))
+      langsmith: 0.1.68(openai@4.86.1(zod@3.25.76))
       mustache: 4.2.0
       p-queue: 6.6.2
       p-retry: 4.6.2
@@ -2689,7 +2697,7 @@ snapshots:
     dependencies:
       os: 0.1.2
       '@dotenvx/dotenvx': 1.75.1
-      '@langchain/core': 0.3.6(openai@4.86.1(zod@4.6.7))
+      '@langchain/core': 0.3.6(openai@4.86.1(zod@3.25.76))
       '@modelcontextprotocol/sdk': 1.32.2(zod@3.25.76)
       '@paypal/paypal-server-sdk': 1.1.0(debug@4.4.3)
       ai: 4.3.19(react@19.3.1)(zod@3.25.76)
@@ -3563,7 +3571,7 @@ snapshots:
       chalk: 5.6.2
       diff-match-patch: 1.0.5
 
-  langsmith@0.1.68(openai@4.86.1(zod@4.6.7)):
+  langsmith@0.1.68(openai@4.86.1(zod@3.25.76)):
     dependencies:
       '@types/uuid': 10.0.0
       commander: 10.0.1

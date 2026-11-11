@@ -24,6 +24,10 @@ describe("pages", () => {
     expect(home.headers["content-security-policy"]).toContain("default-src 'self'");
     expect((await app().inject({ method: "GET", url: "/console" })).body).toContain("Model safety scorecard");
     expect((await app().inject({ method: "GET", url: "/simulator" })).body).toContain("Planted-bug simulator");
+    expect((await app().inject({ method: "GET", url: "/assets/landing.js" })).statusCode).toBe(200);
+    const font = await app().inject({ method: "GET", url: "/assets/inter-var.woff2" });
+    expect(font.statusCode).toBe(200);
+    expect(font.headers["content-type"]).toBe("font/woff2");
   });
 
   it("keeps old console links working: /?demo=1 redirects to /console?demo=1", async () => {

@@ -32,6 +32,10 @@ await build({
   banner: { js: "/*! @simplewebauthn/browser 14.0.0 | MIT License | https://github.com/MasterKale/SimpleWebAuthn */" },
   outfile: join(out, "simplewebauthn-browser.js"),
 });
+// Inter variable font (SIL Open Font License 1.1) for the landing page, served from our own origin.
+const interDir = dirname(require.resolve("@fontsource-variable/inter/package.json"));
+copyFileSync(join(interDir, "files", "inter-latin-wght-normal.woff2"), join(out, "inter-var.woff2"));
+copyFileSync(join(interDir, "LICENSE"), join(out, "inter-LICENSE.txt"));
 copyFileSync(join(pkgDir, "scheduler.css"), join(out, "bryntum-scheduler.css"));
 copyFileSync(join(pkgDir, "stockholm-light.css"), join(out, "bryntum-theme.css"));
 copyFileSync(join(pkgDir, "LICENSE"), join(out, "bryntum-LICENSE.txt"));

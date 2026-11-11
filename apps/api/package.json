@@ -29,6 +29,7 @@
   "devDependencies": {
     "@bryntum/scheduler-community": "8.0.0",
     "@electric-sql/pglite": "^0.5.15",
+    "@fontsource-variable/inter": "5.2.8",
     "@simplewebauthn/browser": "14.0.0",
     "esbuild": "0.28.2"
   }

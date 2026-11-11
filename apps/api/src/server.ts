@@ -47,6 +47,10 @@ const ASSETS: Record<string, string> = {
   "run.js": "application/javascript; charset=utf-8",
   "owner.js": "application/javascript; charset=utf-8",
   "simulator.js": "application/javascript; charset=utf-8",
+  "landing.js": "application/javascript; charset=utf-8",
+  // Inter variable font (SIL OFL 1.1), copied by build:vendor.
+  "inter-var.woff2": "font/woff2",
+  "inter-LICENSE.txt": "text/plain; charset=utf-8",
   "simulator-data.json": "application/json; charset=utf-8",
   // SimpleWebAuthn browser helpers (MIT), bundled by build:vendor.
   "simplewebauthn-browser.js": "application/javascript; charset=utf-8",
