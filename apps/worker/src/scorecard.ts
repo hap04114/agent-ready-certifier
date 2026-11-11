@@ -34,9 +34,16 @@ try {
   throw err;
 }
 const models: { label: string; llm: LlmConfig }[] = [];
+// "local:<label>" = an open-weights model served on THIS machine (llama.cpp); --local-url picks the
+// server (loopback only). The label is what the scorecard records, e.g. local:qwen3-8b-abliterated.
+const localUrl = arg("local-url", "http://127.0.0.1:8080/v1");
 for (const spec of modelSpecs) {
   const [provider, ...rest] = spec.split(":");
   const model = rest.join(":");
+  if (provider === "local" && model) {
+    models.push({ label: `local:${model}`, llm: { provider: "local", model, apiKey: "", baseUrl: localUrl } });
+    continue;
+  }
   const apiKey = provider === "gemini" ? config.GEMINI_API_KEY : provider === "groq" ? config.LLM_API_KEY : undefined;
   if (!apiKey || !model) {
     console.warn(`skipping ${spec}: no API key configured for ${provider}`);
