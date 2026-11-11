@@ -115,6 +115,19 @@ describe("askJson", () => {
     expect(out).toEqual({ action: "done", element: 1 });
   });
 
+  it("talks to a LOCAL model server on this machine only, without sending any API key", async () => {
+    const seen: { url: string; headers: Record<string, string> }[] = [];
+    const f = (async (url: string, init: RequestInit) => {
+      seen.push({ url, headers: init.headers as Record<string, string> });
+      return new Response(JSON.stringify({ choices: [{ message: { content: '{"action":"done"}' } }] }), { status: 200 });
+    }) as unknown as typeof fetch;
+    const local = { provider: "local" as const, model: "qwen3-8b", apiKey: "" };
+    expect(await askJson(local, [{ role: "user", content: "go" }], schema, f)).toEqual({ action: "done" });
+    expect(seen[0]!.url).toBe("http://127.0.0.1:8080/v1/chat/completions");
+    expect(seen[0]!.headers).not.toHaveProperty("authorization");
+    await expect(askJson({ ...local, baseUrl: "https://models.example.com/v1" }, [{ role: "user", content: "go" }], schema, f)).rejects.toThrow("local models must run on this machine");
+  });
+
   it("treats a twice-empty answer as an error, never as a nudged guess", async () => {
     const seen: { url: string; body: unknown }[] = [];
     await expect(askJson(groq, [{ role: "user", content: "go" }], schema, fakeFetch(["", ""], seen), async () => {})).rejects.toThrow("groq returned an empty response");

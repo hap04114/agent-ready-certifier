@@ -1,16 +1,20 @@
 /**
- * Minimal JSON-only LLM client for two providers (Groq, Gemini).
+ * Minimal JSON-only LLM client: Groq, Gemini, and "local" (an OpenAI-compatible server on this
+ * machine, e.g. llama.cpp running an open-weights model; nothing leaves the computer).
  * Every call returns JSON validated against a zod schema (CLAUDE.md rule 6). Free text never
  * leaves this module. Keys come from the caller; they are never logged.
  */
 import type { z } from "zod";
 
-export type Provider = "groq" | "gemini";
+export type Provider = "groq" | "gemini" | "local";
 
 export interface LlmConfig {
   provider: Provider;
   model: string;
+  /** Not used for "local". */
   apiKey: string;
+  /** "local" only: the OpenAI-compatible server on this machine (default http://127.0.0.1:8080/v1). */
+  baseUrl?: string;
   timeoutMs?: number;
   /** Minimum gap between calls to this provider (defaults: Gemini 7 s, Groq none). */
   minIntervalMs?: number;
@@ -115,7 +119,18 @@ export const defaultSleep = (ms: number) => new Promise<void>((r) => setTimeout(
  * Free tiers limit requests per minute (Gemini's is small), so calls to a provider are spaced out
  * by a minimum interval instead of tripping 429s mid-trial.
  */
-const MIN_INTERVAL_MS: Record<Provider, number> = { groq: 0, gemini: 7000 };
+const MIN_INTERVAL_MS: Record<Provider, number> = { groq: 0, gemini: 7000, local: 0 };
+
+export const LOCAL_DEFAULT_URL = "http://127.0.0.1:8080/v1";
+/**
+ * "local" talks to an OpenAI-compatible server on THIS machine (e.g. llama.cpp's llama-server).
+ * Only loopback addresses are accepted, so a local model can never be pointed at a remote host.
+ */
+export function localEndpoint(baseUrl: string | undefined): string {
+  const url = new URL(baseUrl ?? LOCAL_DEFAULT_URL);
+  if (!["127.0.0.1", "localhost", "[::1]"].includes(url.hostname)) throw new LlmError(`local models must run on this machine (got ${url.hostname})`);
+  return `${url.toString().replace(/\/+$/, "")}/chat/completions`;
+}
 const lastCallAt = new Map<string, number>();
 async function pace(cfg: LlmConfig, sleep: (ms: number) => Promise<void>) {
   const gap = cfg.minIntervalMs ?? MIN_INTERVAL_MS[cfg.provider];
@@ -127,14 +142,16 @@ async function pace(cfg: LlmConfig, sleep: (ms: number) => Promise<void>) {
 async function rawOnce(cfg: LlmConfig, messages: ChatMessage[], fetcher: Fetcher, sleep: (ms: number) => Promise<void>): Promise<string> {
   await pace(cfg, sleep);
   // A fresh timeout per attempt: a retry must not inherit the time an earlier attempt used.
-  const timeoutMs = cfg.timeoutMs ?? 60_000;
-  if (cfg.provider === "groq") {
+  // Local models on laptop hardware are slow, so they get more time.
+  const timeoutMs = cfg.timeoutMs ?? (cfg.provider === "local" ? 300_000 : 60_000);
+  if (cfg.provider === "groq" || cfg.provider === "local") {
+    const url = cfg.provider === "local" ? localEndpoint(cfg.baseUrl) : "https://api.groq.com/openai/v1/chat/completions";
     const call = (jsonMode: boolean) =>
       withRetry(
         () =>
-          fetcher("https://api.groq.com/openai/v1/chat/completions", {
+          fetcher(url, {
             method: "POST",
-            headers: { authorization: `Bearer ${cfg.apiKey}`, "content-type": "application/json" },
+            headers: cfg.provider === "local" ? { "content-type": "application/json" } : { authorization: `Bearer ${cfg.apiKey}`, "content-type": "application/json" },
             body: JSON.stringify({ model: cfg.model, messages, temperature: 0, ...(jsonMode ? { response_format: { type: "json_object" } } : {}) }),
             signal: AbortSignal.timeout(timeoutMs),
           }),
@@ -145,10 +162,10 @@ async function rawOnce(cfg: LlmConfig, messages: ChatMessage[], fetcher: Fetcher
       // Groq's JSON mode answers 400 (json_validate_failed) when the model's output is not valid
       // JSON. Ask again without JSON mode; the reply is still parsed and schema-validated below.
       const detail = await res.text().catch(() => "");
-      if (!/json_validate_failed|json/i.test(detail)) throw new LlmError(`groq HTTP 400 (${detail.slice(0, 120)})`, 400);
+      if (!/json_validate_failed|json/i.test(detail)) throw new LlmError(`${cfg.provider} HTTP 400 (${detail.slice(0, 120)})`, 400);
       res = await call(false);
     }
-    if (!res.ok) throw await refusal("groq", res);
+    if (!res.ok) throw await refusal(cfg.provider, res);
     const body = (await res.json()) as { choices?: { message?: { content?: string } }[] };
     return body.choices?.[0]?.message?.content ?? "";
   }
