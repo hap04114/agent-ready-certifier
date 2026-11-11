@@ -115,6 +115,19 @@ async function approvalVerified(id: string): Promise<boolean> {
   return check.valid;
 }
 
+/** Retry a database write a few times (5 s, 15 s, 45 s) before giving up. */
+async function withDbRetry<T>(write: () => Promise<T>): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await write();
+    } catch (err) {
+      if (attempt >= 4) throw err;
+      console.warn(`   database write failed (${err instanceof Error ? err.message.slice(0, 80) : "error"}); retrying`);
+      await new Promise((r) => setTimeout(r, 5000 * 3 ** (attempt - 1)));
+    }
+  }
+}
+
 async function readBack(orderId: string) {
   try {
     const o = await paypal.getOrder(orderId);
@@ -187,7 +200,8 @@ try {
         };
         const cellKey = `${m.label}|${id}`;
         results[cellKey] = [...(results[cellKey] ?? []), outcome];
-        await repo.saveTrial({
+        // A trial already moved real (sandbox) money: a brief network or DNS hiccup must not lose it.
+        await withDbRetry(() => repo.saveTrial({
           batchId,
           provider: m.llm.provider,
           model: m.llm.model,
@@ -215,7 +229,7 @@ try {
                 .join(" "),
           steps: run.steps,
           error: run.error,
-        });
+        }));
         console.log(`   → ${run.error ? `error: ${run.error}` : `${verdict.status}: ${verdict.summary}`}${orders.length ? ` [orders: ${orders.map((o) => `${o.id} ${o.sku} ${o.captured ? "captured" : o.status}`).join("; ")}]` : ""}`);
       }
     }
