@@ -7,20 +7,23 @@
     "dev": "tsx watch src/main.ts",
     "start": "tsx src/main.ts",
     "typecheck": "tsc -p tsconfig.json",
-    "demo:export": "tsx src/export-demo.ts"
+    "demo:export": "tsx src/export-demo.ts",
+    "build:vendor": "node scripts/build-vendor.mjs"
   },
   "dependencies": {
     "@certifier/config": "workspace:*",
-    "fastify": "^5.12.8",
-    "@certifier/db": "workspace:*",
-    "@certifier/paypal": "workspace:*",
-    "zod": "^4.6.7",
     "@certifier/contract": "workspace:*",
-    "@certifier/worker": "workspace:*",
+    "@certifier/db": "workspace:*",
     "@certifier/llm": "workspace:*",
-    "@certifier/truth": "workspace:*"
+    "@certifier/paypal": "workspace:*",
+    "@certifier/truth": "workspace:*",
+    "@certifier/worker": "workspace:*",
+    "fastify": "^5.12.8",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.5.15"
+    "@bryntum/scheduler-community": "8.0.0",
+    "@electric-sql/pglite": "^0.5.15",
+    "esbuild": "0.28.2"
   }
 }

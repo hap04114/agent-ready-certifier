@@ -216,6 +216,7 @@ export async function runWorksPillar(opts: WorksRunOptions): Promise<WorksRunRes
             }),
             6 * 60_000,
           ).catch((err): Awaited<ReturnType<typeof runJourney>> => ({ outcome: "error", steps: [], paypalOrderIds: [], error: err instanceof Error ? err.message : "journey failed" }));
+        const journeyDone = step(`AI buyer approves order ${label.split(" ")[0]}`, "agent");
         let result = await journey();
         // A cloud browser that died mid-journey gets ONE fresh replacement for the rest of the run.
         if (result.outcome === "error" && /closed|disconnected|crashed|timed out/i.test(result.error ?? "") && !reopened) {
@@ -227,6 +228,7 @@ export async function runWorksPillar(opts: WorksRunOptions): Promise<WorksRunRes
           session = await openKernelSession(agent.kernelApiKey);
           result = await journey();
         }
+        journeyDone(`${result.outcome}, ${result.steps.length} steps`);
         log(`  ${label}: agent finished in ${result.steps.length} steps (${result.outcome}${result.error ? `: ${result.error.slice(0, 160)}` : ""}; the agent's own report, not evidence)`);
       }
     } finally {
@@ -239,6 +241,16 @@ export async function runWorksPillar(opts: WorksRunOptions): Promise<WorksRunRes
 
   let rendered: StorefrontObservation["rendered"];
 
+  // Run timeline (shown as a Bryntum timeline in the report): one bar per step, in seconds from
+  // the start of the run. Webhook waits are their own kind, so PayPal delivery delays stand out.
+  const t0 = Date.now();
+  const timeline: { name: string; kind: "setup" | "agent" | "wait" | "webhook" | "attack" | "judge"; start: number; end: number; note?: string }[] = [];
+  notes.timeline = timeline;
+  const step = (name: string, kind: (typeof timeline)[number]["kind"]) => {
+    const start = (Date.now() - t0) / 1000;
+    return (note?: string) => void timeline.push({ name, kind, start, end: (Date.now() - t0) / 1000, ...(note ? { note } : {}) });
+  };
+
   // ------------------------------------------------------------ the run
   const runId = opts.runId ?? (await repo.createRun({ storeUrl, budgetRequests: budget.maxRequests, timeLimitMin: config.RUN_MAX_MINUTES }));
   log(`Run ${runId} against ${storeUrl} (budget ${budget.maxRequests} requests, ${config.RUN_MAX_MINUTES} min)`);
@@ -246,7 +258,9 @@ export async function runWorksPillar(opts: WorksRunOptions): Promise<WorksRunRes
     // Rule 3: no probe runs until the store serves its ownership token. Checked here as well as
     // in the Run API, so every entry point (CLI, benchmark, API) enforces it.
     if (!config.OWNERSHIP_TOKEN_SECRET) throw new Error("OWNERSHIP_TOKEN_SECRET is not set: cannot verify store ownership");
+    const ownDone = step("Ownership check", "setup");
     const own = await verifyOwnership(storeUrl, deriveOwnershipToken(config.OWNERSHIP_TOKEN_SECRET, storeUrl));
+    ownDone(own.verified ? `verified via ${own.method}` : "not verified");
     if (!own.verified) {
       log(`Ownership NOT verified (${own.reason}); no tests were run.`);
       await repo.finishRun(runId, "stopped", budget.used, { ...notes, stoppedBecause: "ownership not verified", detail: own.reason });
@@ -256,7 +270,9 @@ export async function runWorksPillar(opts: WorksRunOptions): Promise<WorksRunRes
     await repo.setRunStatus(runId, "running");
 
     // 0. Read-only storefront scan (Current pillar and front-end Secure checks).
+    const scanDone = step("Page scan", "setup");
     const scan = await scanStorefront(`${storeUrl}/`, { spend: () => budget.spend() });
+    scanDone(`HTTP ${scan.status ?? "?"}, ${scan.files.length} files`);
     log(`Storefront scanned: HTTP ${scan.status ?? "?"}, ${scan.files.length} public file(s)${scan.error ? ` (${scan.error})` : ""}`);
     const storeTarget = { url: storeUrl, statusKey: opts.store.statusKey };
     const probeDeps = { spend: () => budget.spend() };
@@ -271,6 +287,7 @@ export async function runWorksPillar(opts: WorksRunOptions): Promise<WorksRunRes
       hookC = prev.hookC === true;
       log(`Resuming the orders of run ${opts.resumeFrom}: A=${A} B=${B} C=${C}`);
     } else {
+      const ordersDone = step("Create test orders A, B, C", "setup");
       A = await storeCreateOrder("MUG-01"); // W1, W4, W5, W6
       B = await storeCreateOrder("NOTE-01"); // W2 decline
       C = await storeCreateOrder("LAMP-01"); // W3 server error
@@ -285,6 +302,7 @@ export async function runWorksPillar(opts: WorksRunOptions): Promise<WorksRunRes
         });
         notes.failAck = fa.status === 204;
       }
+      ordersDone();
     }
     Object.assign(notes, { orders: { A, B, C }, hookB, hookC, resumedFrom: opts.resumeFrom ?? null });
 
@@ -308,10 +326,12 @@ export async function runWorksPillar(opts: WorksRunOptions): Promise<WorksRunRes
       };
       // Bounded: if the buyer journey failed, the run still judges what it can (an unapproved
       // order is "inconclusive", never blamed on the store) instead of waiting out the time limit.
+      const settleDone = step("Wait for the store to finish checkouts", "wait");
       const allSettled = await budget.waitFor(async () => ((await settled(A)) && (await settled(B)) && (await settled(C)) ? true : undefined), {
         seconds: opts.agent ? 180 : Math.min(config.RUN_MAX_MINUTES * 60, 900),
         everyMs: 5000,
       });
+      settleDone(allSettled ? "all settled" : "not all settled");
       if (!allSettled) log("Not every checkout finished; continuing so the checks that can be judged are judged.");
     }
 
@@ -325,7 +345,9 @@ export async function runWorksPillar(opts: WorksRunOptions): Promise<WorksRunRes
     let storeA1: StoreRecordSnap | undefined;
     if (capA) {
       log(`Waiting up to ${WAIT}s for PayPal's signed capture event…`);
+      const capWaitDone = step("PayPal signed capture event (W5)", "webhook");
       captureEvent = toSigned(await budget.waitFor(() => repo.findSignedEvent("PAYMENT.CAPTURE.COMPLETED", capA), { seconds: WAIT }));
+      capWaitDone(captureEvent ? "arrived, signature verified" : "missing");
       if (captureEvent) {
         const eid = captureEvent.eventId;
         storeA1 = await budget.waitFor(
@@ -342,8 +364,10 @@ export async function runWorksPillar(opts: WorksRunOptions): Promise<WorksRunRes
 
     // S4 Order replay: ask the store to capture order A a second time.
     if (capA) {
+      const s4Done = step("Attack: second capture (S4)", "attack");
       const s4Before = (await storeStatus(A)) ?? storeA1 ?? storeA0;
       const s4 = await probeS4(storeTarget, probeDeps, A);
+      s4Done();
       const s4After = await storeStatus(A);
       verdicts.push(judgeS4({ secondCaptureHttpStatus: s4.secondCaptureHttpStatus, order: orderSnap(await pp(() => paypal.getOrder(A))), before: s4Before, after: s4After }));
     } else {
@@ -356,6 +380,7 @@ export async function runWorksPillar(opts: WorksRunOptions): Promise<WorksRunRes
     const dupNotes: string[] = [];
     const w6Before = storeA1;
     const storeWebhookId = opts.store.webhookId;
+    const dupDone = step("Duplicate delivery: resend + signed replay (W6, S3)", "webhook");
     if (captureEvent && storeA1) {
       const eid = captureEvent.eventId;
       if (storeWebhookId) {
@@ -389,6 +414,7 @@ export async function runWorksPillar(opts: WorksRunOptions): Promise<WorksRunRes
         }
       }
     }
+    dupDone(duplicates.length ? `${duplicates.length} verified duplicate(s) sent` : "no duplicate sent");
     const storeA2 = (await storeStatus(A)) ?? storeA1;
 
     // 5. W4: refund A in PayPal; the store must learn it from the webhook.
@@ -413,7 +439,9 @@ export async function runWorksPillar(opts: WorksRunOptions): Promise<WorksRunRes
         { seconds: 60 },
       );
       log(`Waiting up to ${WAIT}s for the signed refund event and the store's refund record…`);
+      const refWaitDone = step("PayPal signed refund event (W4)", "webhook");
       const refundEvent = toSigned(await budget.waitFor(() => repo.findSignedEvent("PAYMENT.CAPTURE.REFUNDED", refundId), { seconds: WAIT }));
+      refWaitDone(refundEvent ? "arrived, signature verified" : "missing");
       const storeA3 =
         (await budget.waitFor(
           async () => {
@@ -453,6 +481,7 @@ export async function runWorksPillar(opts: WorksRunOptions): Promise<WorksRunRes
     verdicts.push(judgeS3({ duplicates, before: w6Before, after: w6After, notes: dupNotes }));
 
     // S1 Price tampering: the most expensive item, every common price field set to 1.00.
+    const attacksDone = step("Attacks: price tampering, forged webhook, retry (S1, S2, S7)", "attack");
     const items = await storeCatalog(storeTarget, probeDeps);
     const priciest = [...items].sort((a, b) => Number(b.price) - Number(a.price))[0];
     if (priciest) {
@@ -494,6 +523,8 @@ export async function runWorksPillar(opts: WorksRunOptions): Promise<WorksRunRes
       verdicts.push(judgeS7({ hookSupported: false }));
     }
 
+    attacksDone();
+    const judgeDone = step("Page checks and judging", "judge");
     // Page-level checks from the scan (and the browser measurement, when there was one).
     const page: StorefrontObservation = { ...observe(scan), rendered };
     const scanned = scan.files.map((x) => x.url);
@@ -527,6 +558,7 @@ export async function runWorksPillar(opts: WorksRunOptions): Promise<WorksRunRes
 
     const order = ["works", "current", "secure", "agent-ready"];
     verdicts.sort((a, b) => order.indexOf(pillarOf(a.check)) - order.indexOf(pillarOf(b.check)) || a.check.localeCompare(b.check));
+    judgeDone();
     for (const v of verdicts) await repo.saveVerdict(runId, pillarOf(v.check), v);
     await repo.finishRun(runId, "judged", budget.used, notes);
     return { runId, status: "judged", verdicts };

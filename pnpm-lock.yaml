@@ -54,9 +54,15 @@ importers:
         specifier: ^4.6.7
         version: 4.6.7
     devDependencies:
+      '@bryntum/scheduler-community':
+        specifier: 8.0.0
+        version: 8.0.0
       '@electric-sql/pglite':
         specifier: ^0.5.15
         version: 0.5.15
+      esbuild:
+        specifier: 0.28.2
+        version: 0.28.2
 
   apps/demo-stores:
     dependencies:
@@ -345,6 +351,22 @@ packages:
     engines: {node: '>=14.21.3'}
     cpu: [x64]
     os: [win32]
+
+  '@bryntum/core-community@8.0.0':
+    resolution: {integrity: sha512-46olNPneMyxy6Y5kAEv+AqQOCOjlsHaSrE+GZ+MvcK2Jq7oO4cV2ueSrMwAcSL1Qgd1zv0jiW0znDPiUYlO7qQ==}
+    engines: {node: '>=0.10.0'}
+
+  '@bryntum/engine-community@8.0.0':
+    resolution: {integrity: sha512-jBXH8qJtBwXYI48XttHLiHqFzU3Rmq/rqc7oiE3FIibGcSQDx/LmpauJDJgWExcBQwzutQwHACLEalA2E19lXQ==}
+    engines: {node: '>=0.10.0'}
+
+  '@bryntum/grid-community@8.0.0':
+    resolution: {integrity: sha512-mP05jXRp2w0uIEX3lB1oIUd4KzTYpUts0AeGQxlfEuZ/amdKi4kJnPdTxzhMqdFv7kTrz+g+/Nun/qpiYres0A==}
+    engines: {node: '>=0.10.0'}
+
+  '@bryntum/scheduler-community@8.0.0':
+    resolution: {integrity: sha512-NcvzQqTy8zeOXrGT/mkHvdJyMeULYMZq/qDnBLSzX301k4uRmrrPQKD6oc7+jSs7xgukPLYbW4+xD9lro4rREw==}
+    engines: {node: '>=0.10.0'}
 
   '@electric-sql/pglite@0.5.15':
     resolution: {integrity: sha512-ERZWgaRTxueGV4cvL1tfpAOzFCWTXoUtbCBqnf2FhHDVs/so9eAKaanvrwWF9Dntx7BYsmFQujVQ0/B4S8Mmiw==}
@@ -1907,6 +1929,20 @@ snapshots:
 
   '@biomejs/cli-win32-x64@2.6.6':
     optional: true
+
+  '@bryntum/core-community@8.0.0': {}
+
+  '@bryntum/engine-community@8.0.0': {}
+
+  '@bryntum/grid-community@8.0.0':
+    dependencies:
+      '@bryntum/core-community': 8.0.0
+
+  '@bryntum/scheduler-community@8.0.0':
+    dependencies:
+      '@bryntum/core-community': 8.0.0
+      '@bryntum/engine-community': 8.0.0
+      '@bryntum/grid-community': 8.0.0
 
   '@electric-sql/pglite@0.5.15': {}
 

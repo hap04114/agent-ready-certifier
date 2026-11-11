@@ -42,6 +42,11 @@ const ASSETS: Record<string, string> = {
   "console.js": "application/javascript; charset=utf-8",
   "run.js": "application/javascript; charset=utf-8",
   "demo-snapshot.json": "application/json; charset=utf-8",
+  // Bryntum Scheduler Community (MIT), bundled by `pnpm --filter @certifier/api build:vendor`.
+  "bryntum-scheduler.js": "application/javascript; charset=utf-8",
+  "bryntum-scheduler.css": "text/css; charset=utf-8",
+  "bryntum-theme.css": "text/css; charset=utf-8",
+  "bryntum-LICENSE.txt": "text/plain; charset=utf-8",
 };
 /** Pages load only our own files plus the pinned AG Grid build from jsDelivr. */
 const PAGE_HEADERS = {
