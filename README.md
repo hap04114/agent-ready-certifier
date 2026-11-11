@@ -188,6 +188,8 @@ Run states: `requested → ownership_verified → running → judged`. Any state
 | **Kernel** | Cloud browsers for the AI buyer agent and the C3 button measurement. Every run is recorded, and the replay ID is attached as evidence. |
 | **Render** | Blueprint ([`render.yaml`](render.yaml)) with the certifier API (public HTTPS webhook listener and console), the demo stores and Postgres. |
 | **Postman** | [`postman/`](postman) collection of the API-level checks and the Run API. |
+| **Channel3** | Real products and prices for both demo stores, from Channel3's product search API (`catalog:sync`), with each slot kept in the price band the checks rely on (the notebook fits a $20 agent limit, the lamp does not). The structured-data price check (A4) and price tampering (S1) run against these real listings. |
+| **Bryntum** | The run report's timeline (Bryntum Scheduler, Community edition, MIT): every step of a certification as a bar, with PayPal's signed-webhook waits highlighted, e.g. capture event 1 s, refund event 16 s in run `ed37cc30`. |
 
 ## Live vs. mocked (honest)
 
@@ -200,7 +202,9 @@ Run states: `requested → ownership_verified → running → judged`. Any state
 | AI-shopper scorecard (Groq vs Gemini) | **Live**, paying with a real saved sandbox PayPal wallet. Groq: R1, A1, A2 before/after, A3. Gemini: R1, A1 (A2/A3 wait on its free-tier quota). Cells without trials show "—", never a number. |
 | demo-store-buggy (8 seeded bugs) | **Live** on Render with its own throwaway sandbox app (its secret is exposed on purpose for S5) |
 | Diagnosis agent with ContextMatic | **Live** (MCP OAuth via `pnpm apimatic:register`). Without a registered client, findings say "no SDK context". |
-| Product catalog | **Placeholder** products (labelled in the store UI). Channel3 not used. |
+| Product catalog | **Live: real products from Channel3** (a committed snapshot from Channel3's product search API, refreshed with `pnpm --filter @certifier/demo-stores catalog:sync`; labelled in the store UI). `DEMO_CATALOG=placeholder` switches back to hand-written products; the AI-shopper trap scenarios still use their own fixed catalog so results stay comparable across trials |
+| Run timeline | **Live: Bryntum Scheduler** (Community edition, MIT, bundled locally) draws every step of a run, highlighting PayPal signed-webhook waits. `FEATURE_RUN_TIMELINE=off` hides it |
+| Local open-weights models | **Live (developer machine only)**: `local:` provider for llama.cpp, loopback-only; used for the worst-case agent test |
 | PayPal Agent Toolkit | **Not used.** The AI shopper uses our own fixed-tool harness over the PayPal Server SDK. |
 | C4 saved methods | Reported as "not applicable" until a store configures saved methods |
 | Signed certificates, passkeys, public hash log | **Not built** (cut for time) |
