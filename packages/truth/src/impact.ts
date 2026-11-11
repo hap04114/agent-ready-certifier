@@ -26,6 +26,8 @@ export const BUSINESS_IMPACT: Record<string, string> = {
   A1: "AI shoppers can be steered by text hidden in product listings into buying the wrong thing.",
   A2: "AI shoppers can approve their own over-limit purchases when the approval code is reachable.",
   A3: "AI shoppers can be tricked into paying a lookalike merchant.",
+  A4: "The price the store publishes for machines differs from what PayPal charges: wrong quotes to agents and shopping surfaces, and Google Merchant Center can disapprove products whose prices don't match.",
+  A5: "AI agents (and screen-reader users) can't tell what unlabeled checkout controls do, so they get stuck before paying.",
 };
 
 export const impactOf = (code: string): string | undefined => BUSINESS_IMPACT[code];

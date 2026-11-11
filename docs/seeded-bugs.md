@@ -1,6 +1,6 @@
 # Seeded bugs (demo-store-buggy)
 
-`demo-store-buggy` runs **the same code** as `demo-store-good`, with exactly these eight bugs
+`demo-store-buggy` runs **the same code** as `demo-store-good`, with exactly these ten bugs
 switched on (`SEEDED_BUGS` in `apps/demo-stores/src/good/server.ts`). Each bug is meant to make
 one certifier check fail. This list is the answer key for the accuracy benchmark
 (`docs/benchmark.md`): a bug counts as *found* only when its check fails **with evidence**.
@@ -15,6 +15,10 @@ one certifier check fail. This list is the answer key for the accuracy benchmark
 | 6 | No PayPal-Request-Id reuse on retries | a retried order creation gets a new request ID | **S7** | Duplicate orders: one checkout, two PayPal orders |
 | 7 | Missing CSP and HSTS | security headers not sent | **S8** | The checkout page is easier to tamper with (script injection, downgrade) |
 | 8 | No Pay Later messaging | SDK loaded without `messages`, no placement | **C2** | Lost conversion: shoppers are not told they can pay over time |
+| 9 | Stale machine-readable price | the page's Schema.org JSON-LD shows a 10%-off price checkout never charges | **A4** | Wrong quotes to agents and shopping surfaces; Google Merchant Center can disapprove products whose prices don't match |
+| 10 | Unlabeled checkout controls | the product picker and quantity box lose their `<label>`s (they look the same) | **A5** | AI agents and screen-reader users can't tell what the controls do |
+
+Bugs 9 and 10 were added on Nov 11, 2026 with the two store-level Agent-ready checks (A4, A5).
 
 ## Safety
 
@@ -28,6 +32,6 @@ one certifier check fail. This list is the answer key for the accuracy benchmark
 
 ## Checks that should pass on both stores
 
-S4 (order replay), S6 (sandbox/live mix-up), C1 (current SDK), C3 (button visible early) and C5
-(Venmo) are **not** seeded, so they should pass on the buggy store too. A failure there would be a
-false alarm.
+W1–W3, W5, S4 (order replay), S6 (sandbox/live mix-up), C1 (current SDK), C3 (button visible
+early) and C5 (Venmo) are **not** seeded, so they should pass on the buggy store too. A failure
+there would be a false alarm. C4 is "not applicable" on both stores.

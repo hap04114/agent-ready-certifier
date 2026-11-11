@@ -120,7 +120,29 @@ export const SEEDED_BUGS = [
   "no_request_id_on_retry", // S7
   "no_security_headers", // S8
   "no_pay_later", // C2
+  "agent_price_mismatch", // A4
+  "unlabeled_controls", // A5
 ] as const;
+
+/**
+ * Schema.org Product + Offer JSON-LD for the catalog: the price AI shopping agents read.
+ * SEEDED BUG agent_price_mismatch: a stale "sale" price (10% off) that checkout never charges.
+ */
+export function productJsonLd(stale: boolean): string {
+  const graph = CATALOG.map((p) => ({
+    "@type": "Product",
+    sku: p.sku,
+    name: p.name,
+    offers: {
+      "@type": "Offer",
+      price: centsToValue(stale ? Math.round(p.priceCents * 0.9) : p.priceCents),
+      priceCurrency: CURRENCY,
+      availability: "https://schema.org/InStock",
+    },
+  }));
+  // "<" is escaped so page data can never close the script element.
+  return JSON.stringify({ "@context": "https://schema.org", "@graph": graph }).replace(/</g, "\\u003c");
+}
 export type SeededBug = (typeof SEEDED_BUGS)[number];
 
 export function buildGoodStore(deps: StoreDeps) {
@@ -164,8 +186,12 @@ export function buildGoodStore(deps: StoreDeps) {
         "</head>",
         deps.ownershipToken ? `  <meta name="${OWNERSHIP_META_NAME}" content="${escapeHtml(deps.ownershipToken)}">
 </head>` : "</head>",
-      );
+      )
+      .replace("</head>", `  <script type="application/ld+json">${productJsonLd(has("agent_price_mismatch"))}</script>\n</head>`);
     if (has("no_pay_later")) html = html.replace(/<div id="paylater"[^>]*><\/div>/, "");
+    // SEEDED BUG unlabeled_controls: the captions look the same but are no longer <label>s tied
+    // to their fields, so the product picker and quantity box have no accessible name.
+    if (has("unlabeled_controls")) html = html.replace(/<label for="(sku|qty)">([^<]*)<\/label>/g, '<div class="label">$2</div>');
     return reply.type("text/html; charset=utf-8").send(html);
   });
 

@@ -51,9 +51,10 @@ import {
   probeS4,
   probeS7,
   scanStorefront,
+  structuredOffers,
 } from "@certifier/probes";
 import type { StorefrontObservation } from "@certifier/truth";
-import { judgeC1, judgeC2, judgeC3, judgeC4, judgeC5, judgeS1, judgeS2, judgeS3, judgeS4, judgeS5, judgeS6, judgeS7, judgeS8 } from "@certifier/truth";
+import { chargedItems, judgeA4, judgeA5, judgeC1, judgeC2, judgeC3, judgeC4, judgeC5, judgeS1, judgeS2, judgeS3, judgeS4, judgeS5, judgeS6, judgeS7, judgeS8 } from "@certifier/truth";
 import { type RunBudget, RunStopped } from "./budget.js";
 
 export const pillarOf = (code: string) => (code.startsWith("W") ? "works" : code.startsWith("C") ? "current" : code.startsWith("S") ? "secure" : "agent-ready");
@@ -493,6 +494,20 @@ export async function runWorksPillar(opts: WorksRunOptions): Promise<WorksRunRes
     verdicts.push(judgeS5({ scanned, findings: findSecrets(scan.files) }));
     verdicts.push(judgeS6({ scanned, liveHostHits: findLiveHosts(scan.files), sandboxOrderId: orderA.id || undefined, sandboxOrderResolved: orderA.id ? true : undefined }));
     verdicts.push(judgeS8({ url: `${storeUrl}/`, status: scan.status, csp: scan.headers["content-security-policy"], hsts: scan.headers["strict-transport-security"] }));
+
+    // Agent-ready checks on the store itself. A4: the price agents read (Schema.org JSON-LD) vs
+    // what PayPal recorded for the line items of the orders we placed (A, B, C exist at PayPal
+    // whether or not they were approved). A5: accessible names of the store's own controls.
+    const charged = [];
+    for (const id of [A, B, C]) {
+      try {
+        charged.push(...chargedItems(await pp(() => paypal.getOrder(id))));
+      } catch (err) {
+        if (!(err instanceof PaypalCallError)) throw err;
+      }
+    }
+    verdicts.push(judgeA4({ url: page.url, fetched: page.fetched, offers: structuredOffers(scan.html), charged }));
+    verdicts.push(judgeA5({ url: page.url, controls: rendered?.controls }));
 
     // The recording shows the buyer approvals behind W1–W4. It is our own record, labelled as such.
     if (recording) {

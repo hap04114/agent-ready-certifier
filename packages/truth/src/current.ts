@@ -28,6 +28,8 @@ export interface StorefrontObservation {
     paypalButton?: { top: number; bottom: number };
     payLaterMessageRendered?: boolean;
     venmoButtonRendered?: boolean;
+    /** A5: the store's own visible interactive controls (PayPal's iframes excluded). */
+    controls?: import("./storefront-agent.js").ControlFacts[];
   };
 }
 

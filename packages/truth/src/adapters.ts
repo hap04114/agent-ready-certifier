@@ -13,7 +13,16 @@ const money = (m: MoneyLike | undefined) => (m?.currencyCode && m.value ? { curr
 export interface OrderLike {
   id?: string;
   status?: string;
-  purchaseUnits?: { amount?: MoneyLike; payments?: { captures?: { id?: string; status?: string; amount?: MoneyLike }[] } }[];
+  purchaseUnits?: {
+    amount?: MoneyLike;
+    items?: { sku?: string; name?: string; unitAmount?: MoneyLike }[];
+    payments?: { captures?: { id?: string; status?: string; amount?: MoneyLike }[] };
+  }[];
+}
+
+/** Line items PayPal recorded on an order (for A4), with the order ID. */
+export function chargedItems(order: OrderLike): { orderId: string; sku?: string; name?: string; unit?: { currencyCode: string; value: string } }[] {
+  return (order.purchaseUnits ?? []).flatMap((u) => (u.items ?? []).map((i) => ({ orderId: order.id ?? "", sku: i.sku, name: i.name, unit: money(i.unitAmount) })));
 }
 
 export function orderSnap(order: OrderLike): PaypalOrderSnap {
