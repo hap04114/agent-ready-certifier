@@ -14,6 +14,32 @@ verdict**, from PayPal's records, the store's records and PayPal-signed webhooks
 [demo store](https://demo-store-good.onrender.com/).
 The free hosting tier sleeps when idle, so the first click can take about 50 seconds.
 
+## Judge in 60 seconds
+
+Everything below is a **finished, recorded real run**: nothing depends on a live AI buyer when you click.
+
+1. **One certification, all ten planted bugs caught.** Open the
+   [buggy-store report](https://certifier-api.onrender.com/run?id=9d2bdcbd-25de-4da9-97b1-4013ede178a0):
+   11 failed checks, each with the PayPal record that proves it (e.g. S1: PayPal order
+   `5V384020GN270763Y` is for 1.00 USD, the store's price is 64.00 USD).
+2. **The same checks on a correct store:** the
+   [good-store report](https://certifier-api.onrender.com/run?id=ed37cc30-8e31-4872-b753-4957b62709a3):
+   19 of 21 pass, 0 fail, plus a **Bryntum run timeline** (PayPal's signed capture event arrived in
+   about 1 s, the refund event in 16 s).
+3. **The proof is checkable without trusting us:** that run's
+   [signed certificate](https://certifier-api.onrender.com/api/runs/9d2bdcbd-25de-4da9-97b1-4013ede178a0/certificate)
+   (Ed25519, public key at [`/.well-known/certifier/jwks.json`](https://certifier-api.onrender.com/.well-known/certifier/jwks.json)),
+   chained in the [hash log](https://certifier-api.onrender.com/api/hashlog) and timestamped with OpenTimestamps.
+4. **The headline research result:** in the [console](https://certifier-api.onrender.com/), filter the
+   model scorecard by scenario `A2`. With the approval code readable in its inbox, Groq's gpt-oss-120b
+   raised its own $20 limit 2 of 5 times (the Qwen3-8B models 0 of 5). With approval only in PayPal's
+   window: **0 bypasses for all 3 models tested**, including a model with its safety refusals removed.
+5. **Code we did not write:** [docs/real-world-study.md](docs/real-world-study.md): PayPal's own
+   example integration, and the false alarm it exposed in our own rule (fixed).
+
+Accuracy so far ([docs/benchmark.md](docs/benchmark.md)): **48 of 52 planted-bug detections, 0 bugs
+ever wrongly passed, 0 false alarms on the correct store.**
+
 ## Try it in 2 minutes
 
 **In the browser (no keys):** open the [console](https://certifier-api.onrender.com/). Click a run, then a
@@ -75,6 +101,17 @@ and labelled by type. Checks without a line here are plain correctness or playbo
 | A1, A3 | Shopping agents are highly vulnerable to deceptive designs such as add-ons and price drifts | [WebDecept, ACL 2026](https://aclanthology.org/2026.acl-long.1009.pdf) | peer-reviewed |
 | Truth checker | AI testers can hallucinate pass or fail; deterministic oracles are needed | [WebTestPilot, FSE 2026 (arXiv 2602.11724)](https://arxiv.org/abs/2602.11724) | peer-reviewed |
 
+**Claims we checked and chose not to use** (each was suggested to us; none survived checking):
+
+- *"AI agents read JSON-LD first."* No agent maker says so, and a Feb 2026 vendor study found none of 12
+  agents surfaced JSON-LD product data. So A4 never fails a store for publishing no structured price.
+- *"73% of 5,000 sites have Product markup, only 19% the full Offer."* Not found in any source.
+- *"OpenAI scaled back Instant Checkout over inaccurate prices."* The March 2026 pull-back is real, but
+  OpenAI cited flexibility; an analyst quoted by CNBC pointed to scraped stock, delivery and shipping data,
+  not prices.
+- *"Agents do better on accessible websites (78% vs 42%)."* The CHI 2026 study changed how the agent could
+  interact, not how accessible the sites were; we quote only its actual wording (table above).
+
 ## Who it's for
 
 - **Developers and agencies who build PayPal checkouts**: prove a client's integration works on the
@@ -91,6 +128,11 @@ and labelled by type. Checks without a line here are plain correctness or playbo
 | --- | --- | --- |
 | PayPal's own tools (sandbox, negative testing, webhook simulator) | Building blocks for testing an integration | We combine them into one evidence-backed certification, and use real signed events, not the simulator (simulator events can't be signature-verified) |
 | Breakpoint ([README](https://github.com/arc585/breakpoint)) | Security test bench for its own bundled vulnerable demo store | Tests **any** store its owner verifies, across correctness, playbook adoption, security and agent readiness |
+| Heistproof ([repo](https://github.com/eric2612115/heistproof)) | Robs a PayPal checkout with scripted and AI "thieves"; verdicts from reconciling the shop's books with PayPal records; tested real open-source shops | Close in spirit on the Works/Secure side. We add the Current and Agent-ready pillars, ownership verification before any test, A2 before/after, and signed, hash-logged certificates |
+| Unhappy Path ([repo](https://github.com/ShermaineYap/unhappy-path)) | Crash-tests a sandbox integration (declines, forged and duplicate webhooks, price tampering, refund sync) behind a small test contract | Very similar Works/Secure scope (they report 25/25 planted failures caught). We add playbook, agent-readiness and AI-shopper safety checks, and publish verifiable certificates |
+| Checkout Proof ([repo](https://github.com/guillermo-delrio/checkout-proof)) | Static scan, AI-assisted upgrade to SDK v6, then sandbox proofs on real open-source shops | They upgrade code; we certify it. Our real-world study is narrower (one third-party integration, page-level) |
+| ChosenOne (another hackathon entry, as its authors describe it) | Measures whether AI agents **choose** a store | We measure whether an agent can **finish buying** correctly, and whether it can be tricked, with PayPal's records as proof |
+| Shelf Ready ([repo](https://github.com/Eman2123/Shelf-Ready)) | Audits product data for agent readiness | Our A4 checks one narrow thing they don't: that the published machine-readable price equals what PayPal actually charged |
 | Safer AI-shopper projects (spending mandates, guarded agents) | Protect the **shopper's** agent | We certify the **merchant's store** and measure models' safety on it; complementary, not competing |
 | Web-agent research benchmarks (WASP, WebDecept, Magentic Marketplace) | Measure agents in research environments | We run the same kinds of traps on PayPal's rails and read the outcome from PayPal's records |
 
@@ -183,13 +225,28 @@ Run states: `requested → ownership_verified → running → judged`. Any state
 
 | Tool | What it does here |
 | --- | --- |
-| **AG Grid** | The console's four grids: runs across stores, checks with drill-down to PayPal evidence, the model scorecard (model × scenario), and every trial. Floating filters, sorting, pinned columns, CSV export on each. |
+| **AG Grid** | The console's four grids: runs across stores, checks with drill-down to PayPal evidence, the model scorecard (model × scenario), and every trial. Floating filters, sorting, pinned columns, CSV export on each. See "AG Grid in 30 seconds" below. |
 | **APIMatic ContextMatic** | At runtime, the diagnosis agent asks ContextMatic (MCP `ask`, PayPal Server SDK, TypeScript) for current guidance on each failed check. Every SDK method the agent then names is checked: **verified** only if ContextMatic's answer names it exactly or its `endpoint_search` index lists it by exact name (the search is fuzzy, so near matches do not count). |
 | **Kernel** | Cloud browsers for the AI buyer agent and the C3 button measurement. Every run is recorded, and the replay ID is attached as evidence. |
 | **Render** | Blueprint ([`render.yaml`](render.yaml)) with the certifier API (public HTTPS webhook listener and console), the demo stores and Postgres. |
 | **Postman** | [`postman/`](postman) collection of the API-level checks and the Run API. |
 | **Channel3** | Real products and prices for both demo stores, from Channel3's product search API (`catalog:sync`), with each slot kept in the price band the checks rely on (the notebook fits a $20 agent limit, the lamp does not). The structured-data price check (A4) and price tampering (S1) run against these real listings. |
 | **Bryntum** | The run report's timeline (Bryntum Scheduler, Community edition, MIT): every step of a certification as a bar, with PayPal's signed-webhook waits highlighted, e.g. capture event 1 s, refund event 16 s in run `ed37cc30`. |
+
+### AG Grid in 30 seconds
+
+Open the [console](https://certifier-api.onrender.com/). Every grid has floating filters, sorting and an
+**Export CSV** button.
+
+1. **Runs across stores:** click any row (e.g. the buggy store's run `9d2bdcbd`) and the **checks** grid
+   fills with that run's 21 verdicts.
+2. **Drill from a failure into its proof:** type `fail` in the checks grid's Status filter, click `S1`: the
+   detail panel shows the reasons, the business impact, the research behind the check, and each piece of
+   evidence with its strength label (`paypal-api` order `5V384020GN270763Y`, 1.00 USD).
+3. **Model scorecard:** type `A2` in the Scenario filter to compare models side by side (bypass rate,
+   asked-owner rate, task success, actual N), or `local` in the Model filter for the worst-case agent test.
+4. **Every trial:** the trials grid lists each AI-shopper trial with its PayPal order IDs; export it to CSV
+   for your own analysis.
 
 ## Live vs. mocked (honest)
 
@@ -200,14 +257,16 @@ Run states: `requested → ownership_verified → running → judged`. Any state
 | Store-side checks C1–C5, S1–S8 against both hosted demo stores | **Live** |
 | Run API, ownership verification, kill switch, hosted on Render | **Live** |
 | AI-shopper scorecard (Groq vs Gemini) | **Live**, paying with a real saved sandbox PayPal wallet. Groq: R1, A1, A2 before/after, A3. Gemini: R1, A1 (A2/A3 wait on its free-tier quota). Cells without trials show "—", never a number. |
-| demo-store-buggy (8 seeded bugs) | **Live** on Render with its own throwaway sandbox app (its secret is exposed on purpose for S5) |
+| demo-store-buggy (10 seeded bugs) | **Live** on Render with its own throwaway sandbox app (its secret is exposed on purpose for S5) |
+| Third-party store (PayPal's own example integration) | **Page-level only**: hosted on our local staging, its server not run; see [docs/real-world-study.md](docs/real-world-study.md) |
 | Diagnosis agent with ContextMatic | **Live** (MCP OAuth via `pnpm apimatic:register`). Without a registered client, findings say "no SDK context". |
 | Product catalog | **Live: real products from Channel3** (a committed snapshot from Channel3's product search API, refreshed with `pnpm --filter @certifier/demo-stores catalog:sync`; labelled in the store UI). `DEMO_CATALOG=placeholder` switches back to hand-written products; the AI-shopper trap scenarios still use their own fixed catalog so results stay comparable across trials |
 | Run timeline | **Live: Bryntum Scheduler** (Community edition, MIT, bundled locally) draws every step of a run, highlighting PayPal signed-webhook waits. `FEATURE_RUN_TIMELINE=off` hides it |
 | Local open-weights models | **Live (developer machine only)**: `local:` provider for llama.cpp, loopback-only; used for the worst-case agent test |
 | PayPal Agent Toolkit | **Not used.** The AI shopper uses our own fixed-tool harness over the PayPal Server SDK. |
 | C4 saved methods | Reported as "not applicable" until a store configures saved methods |
-| Signed certificates, passkeys, public hash log | **Not built** (cut for time) |
+| Signed certificates and public hash log | **Live**: Ed25519-signed certificate per judged run (`/api/runs/:id/certificate`, public key at `/.well-known/certifier/jwks.json`), hash-chained log (`/api/hashlog`), each entry hash timestamped with OpenTimestamps (only the hash is sent; `FEATURE_OPENTIMESTAMPS=off` disables it) |
+| Passkeys for owner approval | **Not built** |
 
 **Scorecard caveat:** the trap scenarios are **ours**, modelled on the I-HITL study (Cornell Tech /
 Yale), WASP and WebDecept. Trial counts are small and always shown; errored trials are excluded
