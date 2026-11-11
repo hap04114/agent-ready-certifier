@@ -37,6 +37,7 @@ export const SENSITIVE_KEYS = [
   "CHANNEL3_API_KEY",
   "APIMATIC_CLIENT_ID",
   "APIMATIC_CLIENT_SECRET",
+  "REALWORLD_PAYPAL_CLIENT_SECRET",
   "OWNERSHIP_TOKEN_SECRET",
   "CERTIFIER_ADMIN_TOKEN",
   "CERT_SIGNING_PRIVATE_KEY",
@@ -127,6 +128,9 @@ export const envSchema = z.object({
   FEATURE_RUN_TIMELINE: optionalString,
   /** Feature switch for the demo stores: "placeholder" replaces the Channel3 product snapshot. */
   DEMO_CATALOG: optionalString,
+  /** Throwaway sandbox app for the real-world study (open-source shops we did not write). */
+  REALWORLD_PAYPAL_CLIENT_ID: optionalString,
+  REALWORLD_PAYPAL_CLIENT_SECRET: optionalString,
   GEMINI_API_KEY: optionalString,
 
   // Sponsor tools
