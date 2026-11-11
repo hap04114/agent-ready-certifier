@@ -16,6 +16,20 @@ import { CONTEXTMATIC_BASE, openContextMatic } from "./contextmatic.js";
 const PLACEHOLDER_REDIRECT = "http://127.0.0.1:53682/unused-callback";
 
 const envPath = join(findRepoRoot()!, ".env");
+const existing = /^APIMATIC_CLIENT_ID='?([^'\r\n]+)'?\s*$/m.exec(readFileSync(envPath, "utf8"))?.[1];
+const existingSecret = /^APIMATIC_CLIENT_SECRET='?([^'\r\n]+)'?\s*$/m.exec(readFileSync(envPath, "utf8"))?.[1];
+if (existing && !process.argv.includes("--new")) {
+  // Already registered: only test the connection (pass --new to register a fresh client).
+  try {
+    const s = await openContextMatic({ clientId: existing, clientSecret: existingSecret });
+    console.log(`apimatic:register: existing client OK; connected to ContextMatic; tools: ${s.tools.join(", ")}`);
+    await s.close();
+    process.exit(0);
+  } catch (err) {
+    console.error(`apimatic:register: the existing client could not connect: ${err instanceof Error ? err.message : "unknown"} (pass --new to register a fresh client)`);
+    process.exit(1);
+  }
+}
 const reg = await fetch(`${CONTEXTMATIC_BASE}/register`, {
   method: "POST",
   headers: { "content-type": "application/json" },
