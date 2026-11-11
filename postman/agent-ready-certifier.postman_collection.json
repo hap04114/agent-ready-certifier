@@ -36,6 +36,10 @@
     {
       "key": "certificate",
       "value": ""
+    },
+    {
+      "key": "approvalId",
+      "value": ""
     }
   ],
   "item": [
@@ -703,6 +707,136 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"chain valid\", () => pm.expect(pm.response.json().chainValid).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Owner approvals (passkeys)",
+      "item": [
+        {
+          "name": "Registered passkeys (public data only)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{certifier}}/api/passkeys",
+              "host": [
+                "{{certifier}}"
+              ],
+              "path": [
+                "api",
+                "passkeys"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json();",
+                  "pm.test(\"bound to the certifier host\", () => pm.expect(b.relyingParty).to.be.a(\"string\"));",
+                  "pm.test(\"no key material exposed\", () => pm.expect(JSON.stringify(b)).not.to.match(/public_key|credential_id/));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Approval requests from AI-shopper trials",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{certifier}}/api/approvals",
+              "host": [
+                "{{certifier}}"
+              ],
+              "path": [
+                "api",
+                "approvals"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const a = pm.response.json().approvals;",
+                  "pm.test(\"list\", () => pm.expect(a).to.be.an(\"array\"));",
+                  "const done = a.find((x) => x.status === \"approved\"); if (done) pm.collectionVariables.set(\"approvalId\", done.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "One approval with its passkey proof (re-checked on every request)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{certifier}}/api/approvals/{{approvalId}}",
+              "host": [
+                "{{certifier}}"
+              ],
+              "path": [
+                "api",
+                "approvals",
+                "{{approvalId}}"
+              ]
+            },
+            "description": "Run 'Approval requests' first; it picks the latest approved request."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const a = pm.response.json();",
+                  "pm.test(\"approved with a passkey whose signature re-checks\", () => { pm.expect(a.status).to.eql(\"approved\"); pm.expect(a.proof.signatureValid).to.eql(true); });",
+                  "pm.test(\"the signature covers this exact request\", () => pm.expect(a.proof.signedContent.id).to.eql(a.id));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Approving without a passkey signature is refused",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{certifier}}/api/approvals/{{approvalId}}/approve",
+              "host": [
+                "{{certifier}}"
+              ],
+              "path": [
+                "api",
+                "approvals",
+                "{{approvalId}}",
+                "approve"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"refused\", () => pm.expect(pm.response.code).to.be.oneOf([400, 403, 409]));"
                 ]
               }
             }
