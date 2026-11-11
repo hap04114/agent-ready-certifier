@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agent-Ready Certifier — simulator</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+  <style>
+    .tabs { display: flex; gap: 8px; margin: 4px 0 16px; flex-wrap: wrap; }
+    .tabs button { font: inherit; font-size: 14px; font-weight: 600; border: 1px solid var(--line); background: #fff; color: var(--ink); padding: 8px 16px; border-radius: 999px; cursor: pointer; }
+    .tabs button[aria-selected="true"] { background: #0b1220; color: #fff; border-color: #0b1220; }
+    .sim { display: grid; grid-template-columns: minmax(260px, 340px) 1fr; gap: 16px; align-items: start; }
+    @media (max-width: 860px) { .sim { grid-template-columns: 1fr; } }
+    .toggle { display: flex; gap: 10px; align-items: flex-start; padding: 9px 0; border-top: 1px solid var(--line); cursor: pointer; }
+    .toggle:first-of-type { border-top: 0; }
+    .toggle input { margin-top: 3px; width: 18px; height: 18px; accent-color: #b42318; flex: none; }
+    .toggle .n { font-weight: 600; font-size: 14px; }
+    .toggle .e { font-size: 12.5px; color: var(--muted); }
+    .toggle .c { font-size: 11.5px; color: #0b4fd8; font-weight: 600; }
+    .score { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+    .pillar-h { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin: 12px 0 6px; }
+    .checks-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+    .ck { text-align: left; font: inherit; border: 1px solid var(--line); border-left-width: 4px; border-radius: 8px; background: #fff; padding: 8px 10px; cursor: pointer; transition: transform .15s; }
+    .ck:hover { transform: translateY(-1px); }
+    .ck.pass { border-left-color: var(--pass); } .ck.fail { border-left-color: var(--fail); background: var(--fail-bg); } .ck.inconclusive { border-left-color: #d4a017; }
+    .ck.flash { animation: flash .6s ease; }
+    @keyframes flash { 0% { box-shadow: 0 0 0 3px #f5b4ae; } 100% { box-shadow: none; } }
+    .ck .code { font-weight: 700; font-size: 13px; } .ck .nm { font-size: 12.5px; color: var(--muted); }
+    .ck[aria-pressed="true"] { outline: 2px solid #0b4fd8; }
+    .detail-box { margin-top: 14px; border-top: 1px dashed var(--line); padding-top: 12px; font-size: 14px; }
+    .detail-box .ev div { margin: 4px 0; font-size: 13px; }
+    select { font: inherit; font-size: 14px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; width: 100%; }
+    label.f { display: block; font-size: 12.5px; font-weight: 600; color: var(--muted); margin: 10px 0 4px; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin: 10px 0; }
+    .stat { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: #fafbfc; }
+    .stat .v { font-size: 20px; font-weight: 700; } .stat .k { font-size: 12px; color: var(--muted); }
+    .stat.bad .v { color: var(--fail); } .stat.good .v { color: var(--pass); }
+    .steps { margin: 8px 0 0; padding: 0; list-style: none; }
+    .steps li { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; background: #fff; animation: in .35s ease; }
+    @keyframes in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+    .steps .act { display: inline-block; font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: #f1ecfb; color: #5b3aa8; margin-right: 6px; }
+    .steps .act.buy { background: #eaf1fc; color: #0b4fd8; } .steps .act.raise_limit { background: #fdecea; color: #b42318; } .steps .act.request_owner_approval { background: #e3f5ea; color: #137a3f; }
+    .steps .th { font-size: 13px; color: #2c3746; } .steps .th i { color: var(--muted); }
+    .steps .rs { font-size: 12.5px; color: var(--muted); margin-top: 3px; white-space: pre-wrap; word-break: break-word; }
+    .verdict { margin-top: 10px; padding: 10px 12px; border-radius: 8px; font-size: 14px; }
+    .verdict.pass { background: var(--pass-bg); } .verdict.fail { background: var(--fail-bg); }
+    .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin: 0; padding: 0; min-width: 0; }
+    .seg button { font: inherit; font-size: 13px; border: 0; background: #fff; padding: 6px 12px; cursor: pointer; }
+    .seg button[aria-pressed="true"] { background: #0b1220; color: #fff; }
+    .seg button:disabled { color: #aab2bf; cursor: not-allowed; }
+    .scen { font-size: 13.5px; background: #f6f7f9; border-radius: 8px; padding: 8px 10px; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="row">
+      <h1>Simulator</h1>
+      <span class="tag">PayPal sandbox only</span>
+      <span class="tag">recorded results</span>
+    </div>
+    <p class="position">Play with the certifier without running anything. <b>Every verdict, trial and PayPal ID on this page comes from a real recorded sandbox run</b>; the simulator only recombines them. Turning a bug on shows the verdict our buggy store really got; turning it off shows the correct store's real verdict.</p>
+    <nav class="links"><a href="/">Home</a><a href="/console">Console</a><a href="/simulator">Simulator</a><a href="https://github.com/hap04114/agent-ready-certifier" rel="noopener">Source</a></nav>
+  </header>
+  <main>
+    <div class="banner" id="banner" hidden></div>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" id="tab-bugs" aria-selected="true" aria-controls="panel-bugs">Planted-bug simulator</button>
+      <button type="button" role="tab" id="tab-ai" aria-selected="false" aria-controls="panel-ai">AI-shopper simulator</button>
+    </div>
+
+    <section id="panel-bugs" role="tabpanel" aria-labelledby="tab-bugs">
+      <div class="sim">
+        <section class="card">
+          <div class="head"><div><h2>Your store's code</h2><p>Switch planted bugs on and off.</p></div></div>
+          <div class="body">
+            <div class="actions" style="margin-bottom:8px">
+              <button type="button" class="btn" id="all-off">All off = correct store</button>
+              <button type="button" class="btn" id="all-on">All on = buggy store</button>
+            </div>
+            <div id="toggles"></div>
+          </div>
+        </section>
+        <section class="card">
+          <div class="head"><div><h2>The certification</h2><p id="score-note">21 checks, decided by plain code from PayPal's records. Click a check for its proof.</p></div></div>
+          <div class="body">
+            <div class="score" id="score"></div>
+            <div id="pillars"></div>
+            <div class="detail-box" id="detail" hidden></div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section id="panel-ai" role="tabpanel" aria-labelledby="tab-ai" hidden>
+      <div class="sim">
+        <section class="card">
+          <div class="head"><div><h2>Set up a trial</h2><p>Pick a situation and an AI shopper.</p></div></div>
+          <div class="body">
+            <label class="f" for="scenario">Situation</label>
+            <select id="scenario"></select>
+            <div class="scen" id="scen-text"></div>
+            <label class="f" for="agent">AI shopper</label>
+            <select id="agent"></select>
+            <p class="caveat" id="agent-note"></p>
+          </div>
+        </section>
+        <section class="card">
+          <div class="head"><div><h2 id="ai-title">What happened</h2><p>Rates from every recorded trial (actual N); then replay one recorded trial step by step.</p></div></div>
+          <div class="body">
+            <div class="stats" id="ai-stats"></div>
+            <div class="actions" style="align-items:center">
+              <fieldset class="seg" aria-label="Which trial">
+                <button type="button" id="pick-fail" aria-pressed="false">A failing trial</button>
+                <button type="button" id="pick-pass" aria-pressed="false">A passing trial</button>
+              </fieldset>
+              <button type="button" class="btn primary" id="play">▶ Replay</button>
+            </div>
+            <ol class="steps" id="steps"></ol>
+            <div id="ai-verdict"></div>
+          </div>
+        </section>
+      </div>
+    </section>
+    <p class="caveat">Simulation of recorded results: nothing on this page starts a run, calls PayPal or calls an AI model. Small numbers of trials; our own scenarios. Full detail: <a href="/console">console</a> and the README.</p>
+  </main>
+  <script src="/assets/simulator.js"></script>
+</body>
+</html>

@@ -15,6 +15,34 @@ afterAll(() => db.close());
 const event = JSON.stringify({ id: "WH-9", event_type: "PAYMENT.CAPTURE.COMPLETED", resource: { id: "CAP9", supplementary_data: { related_ids: { order_id: "O9" } } } });
 const headers = { "content-type": "application/json", "paypal-transmission-id": "TX-9" };
 
+describe("pages", () => {
+  const app = () => buildApi(parseConfig(base), { logger: false });
+  it("serves the landing page at /, the console at /console and the simulator at /simulator", async () => {
+    const home = await app().inject({ method: "GET", url: "/" });
+    expect(home.statusCode).toBe(200);
+    expect(home.body).toContain("<title>Agent-Ready Certifier</title>");
+    expect(home.headers["content-security-policy"]).toContain("default-src 'self'");
+    expect((await app().inject({ method: "GET", url: "/console" })).body).toContain("Model safety scorecard");
+    expect((await app().inject({ method: "GET", url: "/simulator" })).body).toContain("Planted-bug simulator");
+  });
+
+  it("keeps old console links working: /?demo=1 redirects to /console?demo=1", async () => {
+    const res = await app().inject({ method: "GET", url: "/?demo=1" });
+    expect(res.statusCode).toBe(302);
+    expect(res.headers.location).toBe("/console?demo=1");
+  });
+
+  it("serves the simulator's script and its recorded data", async () => {
+    expect((await app().inject({ method: "GET", url: "/assets/simulator.js" })).statusCode).toBe(200);
+    const data = await app().inject({ method: "GET", url: "/assets/simulator-data.json" });
+    expect(data.statusCode).toBe(200);
+    const d = data.json() as { runs: { good: { checks: Record<string, unknown> }; buggy: { checks: Record<string, unknown> } }; bugs: unknown[] };
+    expect(Object.keys(d.runs.good.checks)).toHaveLength(21);
+    expect(Object.keys(d.runs.buggy.checks)).toHaveLength(21);
+    expect(d.bugs).toHaveLength(10);
+  });
+});
+
 describe("api", () => {
   it("reports sandbox on /health", async () => {
     const app = buildApi(parseConfig(base), { logger: false });

@@ -93,7 +93,7 @@
   }
   if (state.mode === "recorded") {
     document.getElementById("mode-tag").textContent = "recorded demo data";
-    document.getElementById("back").href = "/?demo=1";
+    document.getElementById("back").href = "/console?demo=1";
     const b = document.getElementById("banner");
     b.hidden = false;
     b.textContent = `Recorded real run (exported ${fmtDate(state.exportedAt)}). The PayPal IDs came from the PayPal sandbox during this run.`;

@@ -46,6 +46,8 @@ const ASSETS: Record<string, string> = {
   "console.js": "application/javascript; charset=utf-8",
   "run.js": "application/javascript; charset=utf-8",
   "owner.js": "application/javascript; charset=utf-8",
+  "simulator.js": "application/javascript; charset=utf-8",
+  "simulator-data.json": "application/json; charset=utf-8",
   // SimpleWebAuthn browser helpers (MIT), bundled by build:vendor.
   "simplewebauthn-browser.js": "application/javascript; charset=utf-8",
   "demo-snapshot.json": "application/json; charset=utf-8",
@@ -107,8 +109,16 @@ export function buildApi(config: Config, deps: ApiDeps = {}) {
     }
   });
 
-  // Console and report pages (read-only; data comes from the public /api endpoints).
-  app.get("/", async (_req, reply) => reply.headers(PAGE_HEADERS).type("text/html; charset=utf-8").send(readPublic("index.html")));
+  // Landing page, console, simulator and report pages (read-only; data comes from public /api
+  // endpoints or recorded snapshots). The console used to live at "/": old links such as
+  // "/?demo=1" are redirected so they keep working.
+  app.get("/", async (req, reply) => {
+    const demo = (req.query as Record<string, unknown>).demo;
+    if (demo !== undefined) return reply.redirect(`/console?demo=${encodeURIComponent(String(demo))}`);
+    return reply.headers(PAGE_HEADERS).type("text/html; charset=utf-8").send(readPublic("landing.html"));
+  });
+  app.get("/console", async (_req, reply) => reply.headers(PAGE_HEADERS).type("text/html; charset=utf-8").send(readPublic("index.html")));
+  app.get("/simulator", async (_req, reply) => reply.headers(PAGE_HEADERS).type("text/html; charset=utf-8").send(readPublic("simulator.html")));
   app.get("/run", async (_req, reply) => reply.headers(PAGE_HEADERS).type("text/html; charset=utf-8").send(readPublic("run.html")));
   app.get("/owner", async (_req, reply) => reply.headers(PAGE_HEADERS).type("text/html; charset=utf-8").send(readPublic("owner.html")));
   app.get("/assets/:file", async (req, reply) => {

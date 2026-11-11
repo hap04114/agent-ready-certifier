@@ -11,7 +11,8 @@
     "build:vendor": "node scripts/build-vendor.mjs",
     "cert:keygen": "tsx src/cert-keygen.ts",
     "cert:issue": "tsx src/cert-issue.ts",
-    "passkey:invite": "tsx src/passkey-invite.ts"
+    "passkey:invite": "tsx src/passkey-invite.ts",
+    "simulator:export": "tsx src/export-simulator.ts"
   },
   "dependencies": {
     "@certifier/config": "workspace:*",

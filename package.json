@@ -39,7 +39,8 @@
     "merchant-agent": "pnpm --filter @certifier/worker merchant-agent",
     "funnel": "pnpm --filter @certifier/worker funnel",
     "passkey:invite": "pnpm --filter @certifier/api passkey:invite",
-    "bypass-demo": "pnpm --filter @certifier/worker bypass-demo"
+    "bypass-demo": "pnpm --filter @certifier/worker bypass-demo",
+    "simulator:export": "pnpm --filter @certifier/api simulator:export"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.6",

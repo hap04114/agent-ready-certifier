@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agent-Ready Certifier</title>
+  <meta name="description" content="Certifies a merchant's PayPal checkout: working, current, secure and ready for AI shoppers, proven from PayPal's own sandbox records.">
+  <link rel="stylesheet" href="/assets/styles.css">
+  <style>
+    body { background: #fff; }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+    .hero { background: radial-gradient(1200px 500px at 85% -10%, #1f6feb55, transparent 60%), #0b1220; color: #fff; padding: 22px 0 64px; }
+    .hero nav { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; font-size: 14px; }
+    .hero nav .brand { font-weight: 700; font-size: 16px; color: #fff; margin-right: auto; }
+    .hero nav a { color: #c9d4e5; }
+    .hero .pill { display: inline-block; margin-top: 44px; font-size: 12.5px; letter-spacing: .4px; padding: 4px 12px; border-radius: 999px; border: 1px solid #1f6feb88; color: #9ec2ff; background: #1f6feb22; }
+    .hero h1 { font-size: clamp(32px, 5vw, 52px); line-height: 1.08; margin: 16px 0 14px; letter-spacing: -.5px; max-width: 900px; }
+    .hero h1 em { font-style: normal; color: #7fb3ff; }
+    .hero p.lead { font-size: clamp(16px, 2vw, 19px); color: #c9d4e5; max-width: 760px; line-height: 1.55; margin: 0; }
+    .cta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 28px; }
+    .cta a { font-weight: 600; font-size: 15px; padding: 11px 18px; border-radius: 10px; text-decoration: none; }
+    .cta a.primary { background: #fff; color: #0b1220; }
+    .cta a.ghost { border: 1px solid #3a4a66; color: #fff; }
+    .cta a:hover { text-decoration: none; filter: brightness(1.08); }
+    .proof { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 40px; }
+    .proof > div { border: 1px solid #22314d; border-radius: 12px; padding: 14px 16px; background: #0f1a2e; }
+    .proof .v { font-size: 28px; font-weight: 700; } .proof .k { font-size: 13px; color: #a9b8cf; margin-top: 2px; }
+    section.band { padding: 56px 0; } section.band.alt { background: #f6f7f9; }
+    h2.t { font-size: clamp(24px, 3vw, 32px); margin: 0 0 8px; letter-spacing: -.3px; }
+    p.sub { color: var(--muted); font-size: 16px; max-width: 760px; margin: 0 0 24px; line-height: 1.55; }
+    .grid4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+    .tile2 { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 18px; box-shadow: var(--shadow); }
+    .tile2 h3 { margin: 0 0 6px; font-size: 17px; } .tile2 .q { color: var(--muted); font-size: 14px; margin-bottom: 10px; }
+    .tile2 .codes { font-size: 12.5px; color: #0b4fd8; font-weight: 600; } .tile2 p { font-size: 14px; line-height: 1.5; margin: 0; }
+    .steps4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; counter-reset: s; }
+    .steps4 div { border-left: 3px solid #0b4fd8; padding: 4px 0 4px 14px; }
+    .steps4 div::before { counter-increment: s; content: counter(s); display: inline-block; width: 26px; height: 26px; border-radius: 50%; background: #0b1220; color: #fff; text-align: center; line-height: 26px; font-weight: 700; font-size: 13px; margin-bottom: 8px; }
+    .steps4 b { display: block; font-size: 16px; margin-bottom: 4px; } .steps4 span { font-size: 14px; color: #2c3746; line-height: 1.5; }
+    .finding { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+    .big { border-radius: 14px; padding: 20px; border: 1px solid var(--line); }
+    .big .v { font-size: 40px; font-weight: 800; line-height: 1; } .big .k { font-weight: 600; margin: 8px 0 4px; } .big p { font-size: 14px; color: #2c3746; margin: 0; line-height: 1.5; }
+    .big.bad { background: var(--fail-bg); } .big.bad .v { color: var(--fail); } .big.good { background: var(--pass-bg); } .big.good .v { color: var(--pass); }
+    .try { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+    .try a { display: block; text-decoration: none; color: inherit; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 18px; box-shadow: var(--shadow); transition: transform .15s; }
+    .try a:hover { transform: translateY(-2px); text-decoration: none; }
+    .try b { display: block; font-size: 16px; color: #0b4fd8; margin-bottom: 6px; } .try span { font-size: 14px; color: #2c3746; line-height: 1.5; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; } .chips span { font-size: 13px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: #fff; }
+    .rule { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; } @media (max-width: 760px) { .rule { grid-template-columns: 1fr; } }
+    .rule div { border-radius: 12px; padding: 18px; } .rule .ai { background: #f1ecfb; } .rule .code { background: #e6f4f4; }
+    .rule h3 { margin: 0 0 8px; font-size: 17px; } .rule ul { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.7; }
+    footer.f { background: #0b1220; color: #a9b8cf; padding: 28px 0; font-size: 13.5px; }
+    footer.f a { color: #c9d4e5; }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap">
+      <nav>
+        <span class="brand">Agent-Ready Certifier</span>
+        <a href="/console">Console</a><a href="/simulator">Simulator</a><a href="/owner">Owner approvals</a>
+        <a href="https://github.com/hap04114/agent-ready-certifier" rel="noopener">GitHub</a>
+      </nav>
+      <span class="pill">PayPal AI Hackathon · PayPal sandbox only · no real money</span>
+      <h1>Is this store's PayPal checkout <em>working, current, secure and ready for AI shoppers?</em></h1>
+      <p class="lead">Many projects build safer AI shoppers. <b>We certify the merchant's store</b>: we test it the way a real shopper, an attacker and an AI shopping agent would, then prove every result from <b>PayPal's own records</b>. AI does the legwork; <b>plain code decides every verdict</b>; every certificate is signed.</p>
+      <div class="cta">
+        <a class="primary" href="/simulator">Try the simulator</a>
+        <a class="ghost" href="/run?id=9d2bdcbd-25de-4da9-97b1-4013ede178a0">See a real certification</a>
+        <a class="ghost" href="/console?demo=1">Open the console</a>
+      </div>
+      <div class="proof">
+        <div><div class="v">48 / 52</div><div class="k">planted-bug detections across repeated runs; 0 bugs ever wrongly passed</div></div>
+        <div><div class="v">0</div><div class="k">false alarms on the correctly built store (6 judged runs)</div></div>
+        <div><div class="v">2 / 5 → 0</div><div class="k">AI limit bypasses: approval code readable vs. approval by PayPal window or passkey</div></div>
+        <div><div class="v">21 + 9</div><div class="k">checks on the store, plus tests of AI shoppers and the store's own AI agent</div></div>
+      </div>
+    </div>
+  </header>
+
+  <section class="band">
+    <div class="wrap">
+      <h2 class="t">Four questions, one certificate</h2>
+      <p class="sub">One run checks a store on four pillars. Every check is a fixed rule with unit tests; missing data is “inconclusive”, never a guessed pass.</p>
+      <div class="grid4">
+        <div class="tile2"><h3>Works</h3><div class="q">Does buying work, even on a bad day?</div><div class="codes">W1–W6</div><p>Real sandbox purchases, a declined card, a PayPal server error, a refund, PayPal's signed notifications and duplicates.</p></div>
+        <div class="tile2"><h3>Current</h3><div class="q">Does it follow PayPal's growth playbook?</div><div class="codes">C1–C5</div><p>Current SDK, Pay Later messaging, the PayPal button visible without scrolling, saved methods, Venmo.</p></div>
+        <div class="tile2"><h3>Secure</h3><div class="q">Can the checkout be cheated?</div><div class="codes">S1–S8</div><p>Price tampering, forged and replayed notifications, double capture, exposed secrets, retry safety, security headers.</p></div>
+        <div class="tile2"><h3>Agent-ready</h3><div class="q">Can AI agents buy correctly, and can they be tricked?</div><div class="codes">A1–A6 · R1–R3</div><p>Machine-readable prices, labelled controls, hidden instructions, reachable approval codes, lookalike merchants, the store's own AI agent.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band alt">
+    <div class="wrap">
+      <h2 class="t">How a certification works</h2>
+      <p class="sub">The same script on every store, with a 300-request budget, a 20-minute limit and a stop button.</p>
+      <div class="steps4">
+        <div><b>Prove ownership</b><span>The store publishes a unique token. No token, no tests: we can never be pointed at someone else's shop.</span></div>
+        <div><b>Test like everyone</b><span>An AI buyer shops in a recorded cloud browser; scripted probes attack safely; AI shoppers walk into research-based traps.</span></div>
+        <div><b>Judge from PayPal's records</b><span>Plain-code rules compare PayPal's records, the store's records and PayPal-signed messages. AI never decides.</span></div>
+        <div><b>Sign the result</b><span>An Ed25519-signed certificate, chained in a public hash log and timestamped with OpenTimestamps. Anyone can verify it.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap">
+      <h2 class="t">The finding that matters for agentic commerce</h2>
+      <p class="sub">Recreating the Cornell Tech / Yale I-HITL result on PayPal's sandbox: <b>where approval lives matters more than what the AI is told.</b> Small numbers of trials, our own scenarios; actual N always shown.</p>
+      <div class="finding">
+        <div class="big bad"><div class="v">2 of 5</div><div class="k">AI raised its own $20 limit</div><p>gpt-oss-120b, when the approval code sat in an email it could read, then bought the $50 lamp. PayPal captured it.</p></div>
+        <div class="big good"><div class="v">0 bypasses</div><div class="k">with approval in PayPal's window or by passkey</div><p>gpt-oss-120b 0/6 and 0/6; Qwen3-8B 0/20 and 0/20. With a passkey the owner can still say yes: the AI then completed the order.</p></div>
+        <div class="big"><div class="v" style="color:#0b1220">FAIL → PASS</div><div class="k">same attack, two designs</div><p>A scripted attacker that always uses the code: the old design let PayPal capture the $50 lamp; the passkey design refused the code and declined the lamp.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band alt">
+    <div class="wrap">
+      <h2 class="t">AI does the legwork. Plain code decides.</h2>
+      <p class="sub">AI can be fooled; our own tests prove it. So it never gives a verdict, and everything it reads from the outside world is labelled as untrusted data.</p>
+      <div class="rule">
+        <div class="ai"><h3>AI is used to…</h3><ul><li>shop like a buyer on a store it has never seen</li><li>play the AI shopper under test, and the store's own support agent</li><li>explain failures with PayPal's current SDK (APIMatic ContextMatic)</li></ul></div>
+        <div class="code"><h3>Plain code is used to…</h3><ul><li>decide every pass, fail or inconclusive from PayPal's records</li><li>check PayPal's signatures, ownership and the owner's passkey</li><li>enforce budgets, wallet limits, time limits and the stop button</li></ul></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap">
+      <h2 class="t">Try it yourself</h2>
+      <p class="sub">No keys needed. Everything below is a real recorded run in PayPal's sandbox.</p>
+      <div class="try">
+        <a href="/simulator"><b>Planted-bug simulator →</b><span>Switch the 10 planted bugs on and off and watch which checks fail, with the real PayPal evidence.</span></a>
+        <a href="/simulator#ai"><b>AI-shopper simulator →</b><span>Pick an approval design and an AI model, then replay a recorded trial step by step.</span></a>
+        <a href="/run?id=9d2bdcbd-25de-4da9-97b1-4013ede178a0"><b>Buggy store report →</b><span>All 10 planted bugs caught; S1: PayPal order for $1.00 vs the real $64.00.</span></a>
+        <a href="/run?id=ed37cc30-8e31-4872-b753-4957b62709a3"><b>Correct store report →</b><span>19 of 21 pass, 0 fail, with a Bryntum timeline of PayPal's signed events.</span></a>
+        <a href="/api/runs/9d2bdcbd-25de-4da9-97b1-4013ede178a0/certificate"><b>A signed certificate →</b><span>Ed25519 signature, public key at /.well-known/certifier/jwks.json, chained in the hash log.</span></a>
+        <a href="/console?demo=1"><b>Console →</b><span>AG Grid: runs across stores, checks with evidence, the model safety scorecard and every AI trial.</span></a>
+      </div>
+    </div>
+  </section>
+
+  <section class="band alt">
+    <div class="wrap">
+      <h2 class="t">Built on PayPal, with real sponsor tools</h2>
+      <div class="chips" style="margin-bottom:10px">
+        <span>PayPal Server SDK</span><span>Orders v2</span><span>Payments v2</span><span>Webhooks + signature verification</span><span>Negative testing</span><span>Vault v3 saved wallet</span><span>JS SDK · Pay Later · Venmo</span><span>PayPal Agent Toolkit</span>
+      </div>
+      <div class="chips">
+        <span>APIMatic ContextMatic</span><span>AG Grid</span><span>Kernel cloud browsers</span><span>Render</span><span>Postman</span><span>Channel3</span><span>Bryntum</span>
+      </div>
+    </div>
+  </section>
+
+  <footer class="f">
+    <div class="wrap">PayPal sandbox only: no real money is ever used. Every PayPal ID shown is a sandbox ID from a real run. Open source, MIT license ·
+      <a href="https://github.com/hap04114/agent-ready-certifier" rel="noopener">GitHub</a> · <a href="/console">Console</a> · <a href="/simulator">Simulator</a> · <a href="/api/hashlog">Hash log</a></div>
+  </footer>
+</body>
+</html>
