@@ -220,7 +220,7 @@ export async function runWorksPillar(opts: WorksRunOptions): Promise<WorksRunRes
           session = await openKernelSession(agent.kernelApiKey);
           result = await journey();
         }
-        log(`  ${label}: agent finished in ${result.steps.length} steps (${result.outcome}; the agent's own report, not evidence)`);
+        log(`  ${label}: agent finished in ${result.steps.length} steps (${result.outcome}${result.error ? `: ${result.error.slice(0, 160)}` : ""}; the agent's own report, not evidence)`);
       }
     } finally {
       rec = await session.close(recordingsDir);

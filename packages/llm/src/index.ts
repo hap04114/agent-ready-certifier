@@ -33,14 +33,28 @@ export class LlmError extends Error {
 
 export type Fetcher = typeof fetch;
 
-/** Retry rate limits (429) and transient 5xx a few times, honouring retry-after when given. */
+/**
+ * Retry rate limits (429) and transient 5xx a few times, honouring retry-after when given. A 429
+ * that asks for more than a minute (a daily quota, not a per-minute one) is returned at once:
+ * waiting would only end in a vague timeout.
+ */
 async function withRetry(fn: () => Promise<Response>, sleep: (ms: number) => Promise<void>): Promise<Response> {
   for (let attempt = 0; ; attempt++) {
     const res = await fn();
     if ((res.status !== 429 && res.status < 500) || attempt >= 4) return res;
     const hint = Number(res.headers.get("retry-after"));
+    if (res.status === 429 && Number.isFinite(hint) && hint > 60) return res;
     await sleep(Number.isFinite(hint) && hint > 0 ? Math.min(hint, 30) * 1000 : 2000 * 2 ** attempt);
   }
+}
+
+/** A short, secret-free reason for a refused call (e.g. Groq's "tokens per day" limit). */
+async function refusal(provider: Provider, res: Response): Promise<LlmError> {
+  const detail = await res.text().catch(() => "");
+  const hint = Number(res.headers.get("retry-after"));
+  const daily = /per day|TPD|RPD|PerDay/i.test(detail);
+  const wait = Number.isFinite(hint) && hint > 0 ? `; retry in ~${Math.ceil(hint / 60)} min` : "";
+  return new LlmError(`${provider} HTTP ${res.status}${res.status === 429 ? (daily ? " (daily quota reached" : " (rate limited") + `${wait})` : ""}`, res.status);
 }
 export const defaultSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
@@ -59,7 +73,8 @@ async function pace(cfg: LlmConfig, sleep: (ms: number) => Promise<void>) {
 
 async function rawJson(cfg: LlmConfig, messages: ChatMessage[], fetcher: Fetcher, sleep: (ms: number) => Promise<void> = defaultSleep): Promise<string> {
   await pace(cfg, sleep);
-  const signal = AbortSignal.timeout(cfg.timeoutMs ?? 60_000);
+  // A fresh timeout per attempt: a retry must not inherit the time an earlier attempt used.
+  const timeoutMs = cfg.timeoutMs ?? 60_000;
   if (cfg.provider === "groq") {
     const call = (jsonMode: boolean) =>
       withRetry(
@@ -68,7 +83,7 @@ async function rawJson(cfg: LlmConfig, messages: ChatMessage[], fetcher: Fetcher
             method: "POST",
             headers: { authorization: `Bearer ${cfg.apiKey}`, "content-type": "application/json" },
             body: JSON.stringify({ model: cfg.model, messages, temperature: 0, ...(jsonMode ? { response_format: { type: "json_object" } } : {}) }),
-            signal,
+            signal: AbortSignal.timeout(timeoutMs),
           }),
         sleep,
       );
@@ -80,7 +95,7 @@ async function rawJson(cfg: LlmConfig, messages: ChatMessage[], fetcher: Fetcher
       if (!/json_validate_failed|json/i.test(detail)) throw new LlmError(`groq HTTP 400 (${detail.slice(0, 120)})`, 400);
       res = await call(false);
     }
-    if (!res.ok) throw new LlmError(`groq HTTP ${res.status}`, res.status);
+    if (!res.ok) throw await refusal("groq", res);
     const body = (await res.json()) as { choices?: { message?: { content?: string } }[] };
     return body.choices?.[0]?.message?.content ?? "";
   }
@@ -98,11 +113,11 @@ async function rawJson(cfg: LlmConfig, messages: ChatMessage[], fetcher: Fetcher
           contents,
           generationConfig: { temperature: 0, responseMimeType: "application/json" },
         }),
-        signal,
+        signal: AbortSignal.timeout(timeoutMs),
       }),
     sleep,
   );
-  if (!res.ok) throw new LlmError(`gemini HTTP ${res.status}`, res.status);
+  if (!res.ok) throw await refusal("gemini", res);
   const body = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
   return body.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
 }
