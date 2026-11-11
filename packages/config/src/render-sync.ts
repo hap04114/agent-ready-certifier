@@ -56,9 +56,26 @@ if (!apiKey) {
 }
 const H = { authorization: `Bearer ${apiKey}`, accept: "application/json", "content-type": "application/json" };
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+/** Render sometimes answers 202 with an empty body; never crash on that. */
+const jsonOrUndefined = async <T>(r: Response): Promise<T | undefined> => {
+  const text = await r.text().catch(() => "");
+  try {
+    return text ? (JSON.parse(text) as T) : undefined;
+  } catch {
+    return undefined;
+  }
+};
+/** The newest deploy of a service (used when the trigger response carried no deploy id). */
+const latestDeploy = async (serviceId: string) =>
+  (await jsonOrUndefined<{ deploy: { id: string } }[]>(await fetch(`https://api.render.com/v1/services/${serviceId}/deploys?limit=1`, { headers: H })))?.[0]?.deploy.id;
 
 // Resolve service IDs by name.
-const listed = (await (await fetch("https://api.render.com/v1/services?limit=50", { headers: H })).json()) as { service: { id: string; name: string } }[];
+const listedRes = await fetch("https://api.render.com/v1/services?limit=50", { headers: H });
+const listed = await jsonOrUndefined<{ service: { id: string; name: string } }[]>(listedRes);
+if (!listedRes.ok || !listed) {
+  console.error(`render:sync: could not list Render services (HTTP ${listedRes.status})`);
+  process.exit(1);
+}
 const idByName = new Map(listed.map((x) => [x.service.name, x.service.id]));
 
 const deploys: Record<string, string | undefined> = {};
@@ -78,11 +95,11 @@ for (const [name, svc] of Object.entries(SERVICES)) {
     console.log(`${svc.name}  ${key}: ${r.ok ? "set" : `FAILED (HTTP ${r.status})`}`);
   }
   const d = await fetch(`https://api.render.com/v1/services/${id}/deploys`, { method: "POST", headers: H, body: JSON.stringify({ clearCache: "do_not_clear" }) });
-  deploys[id] = d.ok ? ((await d.json()) as { id: string }).id : undefined;
-  console.log(`${svc.name}  deploy: ${deploys[id] ? "started" : `FAILED (HTTP ${d.status})`}`);
+  deploys[id] = d.ok ? ((await jsonOrUndefined<{ id?: string }>(d))?.id ?? (await latestDeploy(id))) : undefined;
+  console.log(`${svc.name}  deploy: ${d.ok ? "started" : `FAILED (HTTP ${d.status})`}`);
 }
 
-console.log("Waiting for both deploys (usually 2-4 minutes)...");
+console.log("Waiting for the deploys (usually 2-4 minutes)...");
 const done = new Set<string>();
 for (let i = 0; i < 60 && done.size < Object.keys(deploys).length; i++) {
   await sleep(10_000);
@@ -92,8 +109,8 @@ for (let i = 0; i < 60 && done.size < Object.keys(deploys).length; i++) {
       done.add(id);
       continue;
     }
-    const s = ((await (await fetch(`https://api.render.com/v1/services/${id}/deploys/${dep}`, { headers: H })).json()) as { status: string }).status;
-    if (["live", "build_failed", "update_failed", "canceled"].includes(s)) {
+    const s = (await jsonOrUndefined<{ status?: string }>(await fetch(`https://api.render.com/v1/services/${id}/deploys/${dep}`, { headers: H })))?.status ?? "unknown";
+    if (["live", "build_failed", "update_failed", "canceled", "deactivated"].includes(s)) {
       done.add(id);
       console.log(`${[...idByName.entries()].find(([, v]) => v === id)?.[0] ?? id}: ${s}`);
     }
