@@ -8,65 +8,179 @@
   <link rel="stylesheet" href="/assets/styles.css">
   <style>
     body { background: #fff; }
-    .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
-    .hero { background: radial-gradient(1200px 500px at 85% -10%, #1f6feb55, transparent 60%), #0b1220; color: #fff; padding: 22px 0 64px; }
+    .wrap { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
+    .icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15em; }
+    /* hero */
+    .hero { background: radial-gradient(900px 480px at 80% 10%, #1f6feb40, transparent 60%), radial-gradient(700px 400px at 10% 100%, #0f766e30, transparent 60%), #0b1220; color: #fff; padding: 22px 0 56px; overflow: hidden; }
     .hero nav { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; font-size: 14px; }
-    .hero nav .brand { font-weight: 700; font-size: 16px; color: #fff; margin-right: auto; }
+    .hero nav .brand { font-weight: 700; font-size: 16px; color: #fff; margin-right: auto; display: flex; align-items: center; gap: 8px; }
     .hero nav a { color: #c9d4e5; }
-    .hero .pill { display: inline-block; margin-top: 44px; font-size: 12.5px; letter-spacing: .4px; padding: 4px 12px; border-radius: 999px; border: 1px solid #1f6feb88; color: #9ec2ff; background: #1f6feb22; }
-    .hero h1 { font-size: clamp(32px, 5vw, 52px); line-height: 1.08; margin: 16px 0 14px; letter-spacing: -.5px; max-width: 900px; }
-    .hero h1 em { font-style: normal; color: #7fb3ff; }
-    .hero p.lead { font-size: clamp(16px, 2vw, 19px); color: #c9d4e5; max-width: 760px; line-height: 1.55; margin: 0; }
-    .cta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 28px; }
+    .hero-grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: 28px; align-items: center; margin-top: 30px; }
+    @media (max-width: 920px) { .hero-grid { grid-template-columns: 1fr; } }
+    .hero .pill { display: inline-block; font-size: 12.5px; letter-spacing: .4px; padding: 4px 12px; border-radius: 999px; border: 1px solid #1f6feb88; color: #9ec2ff; background: #1f6feb22; }
+    .hero h1 { font-size: clamp(30px, 4.4vw, 48px); line-height: 1.08; margin: 16px 0 14px; letter-spacing: -.5px; }
+    .hero h1 em { font-style: normal; background: linear-gradient(90deg, #7fb3ff, #5eead4); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .hero p.lead { font-size: clamp(16px, 1.8vw, 18px); color: #c9d4e5; line-height: 1.55; margin: 0; }
+    .cta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 26px; }
     .cta a { font-weight: 600; font-size: 15px; padding: 11px 18px; border-radius: 10px; text-decoration: none; }
     .cta a.primary { background: #fff; color: #0b1220; }
     .cta a.ghost { border: 1px solid #3a4a66; color: #fff; }
     .cta a:hover { text-decoration: none; filter: brightness(1.08); }
+    .hero-art svg { width: 100%; height: auto; display: block; }
     .proof { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 40px; }
-    .proof > div { border: 1px solid #22314d; border-radius: 12px; padding: 14px 16px; background: #0f1a2e; }
+    .proof > div { border: 1px solid #22314d; border-radius: 12px; padding: 14px 16px; background: #0f1a2ecc; }
     .proof .v { font-size: 28px; font-weight: 700; } .proof .k { font-size: 13px; color: #a9b8cf; margin-top: 2px; }
-    section.band { padding: 56px 0; } section.band.alt { background: #f6f7f9; }
+    /* sections */
+    section.band { padding: 60px 0; } section.band.alt { background: #f6f7f9; }
     h2.t { font-size: clamp(24px, 3vw, 32px); margin: 0 0 8px; letter-spacing: -.3px; }
-    p.sub { color: var(--muted); font-size: 16px; max-width: 760px; margin: 0 0 24px; line-height: 1.55; }
+    p.sub { color: var(--muted); font-size: 16px; max-width: 780px; margin: 0 0 26px; line-height: 1.55; }
     .grid4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
-    .tile2 { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 18px; box-shadow: var(--shadow); }
-    .tile2 h3 { margin: 0 0 6px; font-size: 17px; } .tile2 .q { color: var(--muted); font-size: 14px; margin-bottom: 10px; }
-    .tile2 .codes { font-size: 12.5px; color: #0b4fd8; font-weight: 600; } .tile2 p { font-size: 14px; line-height: 1.5; margin: 0; }
-    .steps4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; counter-reset: s; }
-    .steps4 div { border-left: 3px solid #0b4fd8; padding: 4px 0 4px 14px; }
-    .steps4 div::before { counter-increment: s; content: counter(s); display: inline-block; width: 26px; height: 26px; border-radius: 50%; background: #0b1220; color: #fff; text-align: center; line-height: 26px; font-weight: 700; font-size: 13px; margin-bottom: 8px; }
-    .steps4 b { display: block; font-size: 16px; margin-bottom: 4px; } .steps4 span { font-size: 14px; color: #2c3746; line-height: 1.5; }
-    .finding { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
-    .big { border-radius: 14px; padding: 20px; border: 1px solid var(--line); }
-    .big .v { font-size: 40px; font-weight: 800; line-height: 1; } .big .k { font-weight: 600; margin: 8px 0 4px; } .big p { font-size: 14px; color: #2c3746; margin: 0; line-height: 1.5; }
-    .big.bad { background: var(--fail-bg); } .big.bad .v { color: var(--fail); } .big.good { background: var(--pass-bg); } .big.good .v { color: var(--pass); }
+    .tile2 { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 20px; box-shadow: var(--shadow); }
+    .tile2 .ic { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 28px; margin-bottom: 12px; }
+    .tile2 h3 { margin: 0 0 4px; font-size: 18px; } .tile2 .q { color: var(--muted); font-size: 14px; margin-bottom: 10px; }
+    .tile2 .codes { font-size: 12.5px; color: #0b4fd8; font-weight: 700; margin-bottom: 6px; } .tile2 p { font-size: 14px; line-height: 1.5; margin: 0; }
+    .ic.works { background: #e3f5ea; color: #137a3f; } .ic.current { background: #eaf1fc; color: #0b4fd8; } .ic.secure { background: #fdecea; color: #b42318; } .ic.agent { background: #f1ecfb; color: #5b3aa8; }
+    /* how it works */
+    .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+    @media (max-width: 900px) { .flow { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 520px) { .flow { grid-template-columns: 1fr; } }
+    .fstep { position: relative; text-align: center; padding: 0 6px; }
+    .fstep .art { height: 112px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .bubble { width: 92px; height: 92px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 44px; box-shadow: inset 0 0 0 2px #ffffff80; }
+    .bubble.sm { width: 58px; height: 58px; font-size: 28px; }
+    .fstep .n { display: inline-block; font-size: 12px; font-weight: 700; color: #fff; background: #0b1220; border-radius: 999px; padding: 2px 10px; margin: 6px 0 8px; }
+    .fstep b { display: block; font-size: 17px; margin-bottom: 6px; } .fstep span { font-size: 14px; color: #2c3746; line-height: 1.5; }
+    @media (min-width: 901px) { .fstep:not(:last-child)::after { content: "→"; position: absolute; right: -16px; top: 42px; font-size: 22px; color: #9aa6b6; } }
+    .b-teal { background: #ccfbf1; color: #0f766e; } .b-blue { background: #dbeafe; color: #1d4ed8; } .b-purple { background: #ede9fe; color: #6d28d9; } .b-orange { background: #ffedd5; color: #c2410c; } .b-gold { background: #fef3c7; color: #b45309; } .b-navy { background: #e2e8f0; color: #0b1220; }
+    /* finding */
+    .ba { border-radius: 16px; padding: 18px; margin-bottom: 14px; }
+    .ba.before { background: #fdecea; } .ba.after { background: #e3f5ea; }
+    .ba .lbl { font-weight: 700; font-size: 15px; margin-bottom: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .ba .lbl .tag { font-size: 12px; padding: 2px 10px; border-radius: 999px; background: #fff; }
+    .chain { display: flex; align-items: stretch; gap: 6px; flex-wrap: wrap; }
+    .node { flex: 1 1 140px; background: #fff; border-radius: 12px; padding: 12px; text-align: center; min-width: 130px; }
+    .node .bubble.sm { margin: 0 auto 8px; }
+    .node b { display: block; font-size: 14px; } .node span { font-size: 12.5px; color: #4b5563; }
+    .arr { align-self: center; font-size: 20px; color: #6b7280; }
+    @media (max-width: 640px) { .arr { display: none; } }
+    .node.res-bad { background: #b42318; color: #fff; } .node.res-bad span { color: #fde2df; }
+    .node.res-good { background: #137a3f; color: #fff; } .node.res-good span { color: #d7f5e2; }
+    .evid { font-size: 12.5px; color: #4b5563; margin-top: 10px; }
+    /* AI vs code */
+    .split { display: grid; grid-template-columns: 1fr 120px 1fr; gap: 0; align-items: stretch; }
+    @media (max-width: 760px) { .split { grid-template-columns: 1fr; } .split .wall { min-height: 70px; } }
+    .split .side { border-radius: 16px; padding: 20px; }
+    .split .ai { background: #f1ecfb; } .split .code { background: #e6f4f4; }
+    .split h3 { margin: 0 0 8px; font-size: 18px; display: flex; align-items: center; gap: 10px; } .split ul { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.75; }
+    .wall { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; font-size: 12px; color: #4b5563; padding: 8px; }
+    .wall .bar { width: 10px; flex: 1; min-height: 40px; border-radius: 6px; background: repeating-linear-gradient(45deg, #0b1220, #0b1220 6px, #fbbf24 6px, #fbbf24 12px); }
+    @media (max-width: 760px) { .wall { flex-direction: row; gap: 10px; } .wall .bar { width: auto; height: 10px; min-height: 0; flex: 1; } }
+    /* try */
     .try { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
-    .try a { display: block; text-decoration: none; color: inherit; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 18px; box-shadow: var(--shadow); transition: transform .15s; }
+    .try a { display: flex; gap: 14px; align-items: flex-start; text-decoration: none; color: inherit; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 18px; box-shadow: var(--shadow); transition: transform .15s; }
     .try a:hover { transform: translateY(-2px); text-decoration: none; }
-    .try b { display: block; font-size: 16px; color: #0b4fd8; margin-bottom: 6px; } .try span { font-size: 14px; color: #2c3746; line-height: 1.5; }
+    .try .bubble.sm { flex: none; }
+    .try b { display: block; font-size: 16px; color: #0b4fd8; margin-bottom: 4px; } .try span { font-size: 14px; color: #2c3746; line-height: 1.5; }
     .chips { display: flex; flex-wrap: wrap; gap: 8px; } .chips span { font-size: 13px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: #fff; }
-    .rule { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; } @media (max-width: 760px) { .rule { grid-template-columns: 1fr; } }
-    .rule div { border-radius: 12px; padding: 18px; } .rule .ai { background: #f1ecfb; } .rule .code { background: #e6f4f4; }
-    .rule h3 { margin: 0 0 8px; font-size: 17px; } .rule ul { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.7; }
-    footer.f { background: #0b1220; color: #a9b8cf; padding: 28px 0; font-size: 13.5px; }
-    footer.f a { color: #c9d4e5; }
+    footer.f { background: #0b1220; color: #a9b8cf; padding: 28px 0; font-size: 13.5px; } footer.f a { color: #c9d4e5; }
   </style>
 </head>
 <body>
+  <!-- Icon set (drawn for this page; stroke icons use currentColor). -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-store" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.6-5h14.8L21 9"/><path d="M3 9h18a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0"/><path d="M5 12v8h14v-8"/><path d="M10 20v-4h4v4"/></symbol>
+      <symbol id="i-person" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="7.5" r="3.8"/><path d="M4.5 20.5c.8-3.8 3.9-5.8 7.5-5.8s6.7 2 7.5 5.8"/></symbol>
+      <symbol id="i-mask" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="4.2"/><path d="M7.6 7.2h8.8v2.4H7.6z" fill="currentColor"/><path d="M4.5 20.5c.8-3.8 3.9-5.8 7.5-5.8s6.7 2 7.5 5.8"/></symbol>
+      <symbol id="i-robot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="8" width="15" height="11.5" rx="3"/><path d="M12 4.5V8"/><circle cx="12" cy="3.4" r="1.1"/><circle cx="9.3" cy="13" r="1.2" fill="currentColor"/><circle cx="14.7" cy="13" r="1.2" fill="currentColor"/><path d="M9.5 16.4h5"/><path d="M2.5 12.5v3M21.5 12.5v3"/></symbol>
+      <symbol id="i-bank" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 4l9 5.5"/><path d="M5.5 10v7.5M10 10v7.5M14 10v7.5M18.5 10v7.5"/><path d="M3 20.5h18"/></symbol>
+      <symbol id="i-scales" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v17M7.5 20.5h9"/><path d="M4.5 7h15"/><path d="M4.5 7L2 13a2.6 2.6 0 0 0 5 0z"/><path d="M19.5 7L17 13a2.6 2.6 0 0 0 5 0z"/></symbol>
+      <symbol id="i-seal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5.8"/><path d="M8.8 13.8L7.2 21l4.8-2.6 4.8 2.6-1.6-7.2"/><path d="M9.6 9.1l1.7 1.7 3.2-3.4"/></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7.5 2.8v5.7c0 4.7-3.2 7.8-7.5 9-4.3-1.2-7.5-4.3-7.5-9V5.8z"/><path d="M8.8 12l2.3 2.3 4.2-4.6"/></symbol>
+      <symbol id="i-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9.5" cy="19.5" r="1.4"/><circle cx="17" cy="19.5" r="1.4"/><path d="M2.5 3.5h2.8l2.4 11.5h10.8l2-7.8H6.3"/></symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 11a7.6 7.6 0 0 0-13.9-3.7L4 9"/><path d="M4 4v5h5"/><path d="M4.5 13a7.6 7.6 0 0 0 13.9 3.7L20 15"/><path d="M20 20v-5h-5"/></symbol>
+      <symbol id="i-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12.2V4h8.2l9.5 9.5-8.2 8.2z"/><circle cx="7.6" cy="8.4" r="1.5"/></symbol>
+      <symbol id="i-mail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.2"/><path d="M3.5 7l8.5 6 8.5-6"/></symbol>
+      <symbol id="i-unlock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8.5 11V7.5a3.5 3.5 0 0 1 6.8-1.2"/></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8.5 11V7.5a3.5 3.5 0 0 1 7 0V11"/></symbol>
+      <symbol id="i-finger" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6.2 7.2A7.6 7.6 0 0 1 19.6 12v1.5"/><path d="M4.4 11.5A7.6 7.6 0 0 1 5 9.4"/><path d="M8.2 19.6A9.6 9.6 0 0 1 7 14.5V12a5 5 0 0 1 10 0v2.3"/><path d="M12 12v2.8a9 9 0 0 0 1.6 5.2"/><path d="M16.9 17.6a12 12 0 0 1-.7 2.4"/></symbol>
+      <symbol id="i-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 13.8a4 4 0 0 0 5.7.3l3-3a4 4 0 0 0-5.7-5.7l-1.2 1.2"/><path d="M14 10.2a4 4 0 0 0-5.7-.3l-3 3a4 4 0 0 0 5.7 5.7l1.2-1.2"/></symbol>
+      <symbol id="i-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M10 9v6l5-3z" fill="currentColor"/></symbol>
+      <symbol id="i-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/><path d="M3.5 9.5h17M3.5 15h17M9.5 9.5V20.5"/></symbol>
+    </defs>
+  </svg>
+
   <header class="hero">
     <div class="wrap">
       <nav>
-        <span class="brand">Agent-Ready Certifier</span>
+        <span class="brand"><svg class="icon" aria-hidden="true" style="font-size:20px;color:#5eead4"><use href="#i-seal"/></svg>Agent-Ready Certifier</span>
         <a href="/console">Console</a><a href="/simulator">Simulator</a><a href="/owner">Owner approvals</a>
         <a href="https://github.com/hap04114/agent-ready-certifier" rel="noopener">GitHub</a>
       </nav>
-      <span class="pill">PayPal AI Hackathon · PayPal sandbox only · no real money</span>
-      <h1>Is this store's PayPal checkout <em>working, current, secure and ready for AI shoppers?</em></h1>
-      <p class="lead">Many projects build safer AI shoppers. <b>We certify the merchant's store</b>: we test it the way a real shopper, an attacker and an AI shopping agent would, then prove every result from <b>PayPal's own records</b>. AI does the legwork; <b>plain code decides every verdict</b>; every certificate is signed.</p>
-      <div class="cta">
-        <a class="primary" href="/simulator">Try the simulator</a>
-        <a class="ghost" href="/run?id=9d2bdcbd-25de-4da9-97b1-4013ede178a0">See a real certification</a>
-        <a class="ghost" href="/console?demo=1">Open the console</a>
+      <div class="hero-grid">
+        <div>
+          <span class="pill">PayPal AI Hackathon · PayPal sandbox only · no real money</span>
+          <h1>Is this store's PayPal checkout <em>working, current, secure and ready for AI shoppers?</em></h1>
+          <p class="lead">Many projects build safer AI shoppers. <b>We certify the merchant's store</b>: we test it the way a real shopper, an attacker and an AI shopping agent would, then prove every result from <b>PayPal's own records</b>. AI does the legwork; <b>plain code decides every verdict</b>; every certificate is signed.</p>
+          <div class="cta">
+            <a class="primary" href="/simulator">Try the simulator</a>
+            <a class="ghost" href="/run?id=9d2bdcbd-25de-4da9-97b1-4013ede178a0">See a real certification</a>
+            <a class="ghost" href="/console?demo=1">Open the console</a>
+          </div>
+        </div>
+        <div class="hero-art">
+          <svg viewBox="0 0 560 440" role="img" aria-label="Three testers act on the merchant's store; PayPal records what happens; plain code compares the records and signs a certificate">
+            <defs>
+              <marker id="ha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#8fa3bf"/></marker>
+            </defs>
+            <g font-family="Segoe UI, system-ui, sans-serif">
+              <text x="62" y="22" font-size="11" font-weight="700" fill="#8fa3bf" text-anchor="middle" letter-spacing="1.5">WHO TESTS</text>
+              <g>
+                <circle cx="62" cy="78" r="36" fill="#0f766e33" stroke="#5eead4" stroke-width="1.5"/>
+                <use href="#i-person" x="42" y="58" width="40" height="40" style="color:#5eead4"/>
+                <text x="62" y="130" font-size="12.5" font-weight="600" fill="#e2e8f0" text-anchor="middle">Real shopper</text>
+                <circle cx="62" cy="196" r="36" fill="#c2410c33" stroke="#fdba74" stroke-width="1.5"/>
+                <use href="#i-mask" x="42" y="176" width="40" height="40" style="color:#fdba74"/>
+                <text x="62" y="248" font-size="12.5" font-weight="600" fill="#e2e8f0" text-anchor="middle">Attacker</text>
+                <circle cx="62" cy="314" r="36" fill="#6d28d933" stroke="#c4b5fd" stroke-width="1.5"/>
+                <use href="#i-robot" x="42" y="294" width="40" height="40" style="color:#c4b5fd"/>
+                <text x="62" y="366" font-size="12.5" font-weight="600" fill="#e2e8f0" text-anchor="middle">AI shopper</text>
+              </g>
+              <path d="M100 82 C 150 90, 160 140, 196 150" fill="none" stroke="#5eead4" stroke-width="2" marker-end="url(#ha)"/>
+              <path d="M100 196 L 196 196" fill="none" stroke="#fdba74" stroke-width="2" marker-end="url(#ha)"/>
+              <path d="M100 310 C 150 300, 160 252, 196 244" fill="none" stroke="#c4b5fd" stroke-width="2" marker-end="url(#ha)"/>
+              <rect x="200" y="104" width="170" height="190" rx="18" fill="#f8fafc"/>
+              <use href="#i-store" x="257" y="120" width="56" height="56" style="color:#0b1220"/>
+              <text x="285" y="198" font-size="15" font-weight="700" fill="#0b1220" text-anchor="middle">Merchant's store</text>
+              <text x="285" y="216" font-size="11.5" fill="#5b6573" text-anchor="middle">ownership proven first</text>
+              <rect x="225" y="236" width="120" height="32" rx="16" fill="#ffc439"/>
+              <text x="285" y="257" font-size="15" font-weight="800" font-style="italic" fill="#003087" text-anchor="middle">PayPal</text>
+              <path d="M374 168 L 420 168" fill="none" stroke="#8fa3bf" stroke-width="2" marker-end="url(#ha)"/>
+              <text x="397" y="160" font-size="10.5" fill="#c9d4e5" text-anchor="middle">pays</text>
+              <path d="M420 232 L 374 232" fill="none" stroke="#8fa3bf" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#ha)"/>
+              <text x="397" y="250" font-size="10.5" fill="#c9d4e5" text-anchor="middle">signed</text>
+              <text x="397" y="263" font-size="10.5" fill="#c9d4e5" text-anchor="middle">messages</text>
+              <rect x="424" y="112" width="128" height="176" rx="18" fill="#12305f" stroke="#3b82f6" stroke-width="1.5"/>
+              <use href="#i-bank" x="464" y="128" width="48" height="48" style="color:#9ec2ff"/>
+              <text x="488" y="200" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">PayPal</text>
+              <text x="488" y="217" font-size="11.5" fill="#9ec2ff" text-anchor="middle">sandbox</text>
+              <text x="488" y="244" font-size="10.5" fill="#c9d4e5" text-anchor="middle">orders · captures</text>
+              <text x="488" y="259" font-size="10.5" fill="#c9d4e5" text-anchor="middle">refunds · webhooks</text>
+              <path d="M285 298 L 285 340" fill="none" stroke="#8fa3bf" stroke-width="2" marker-end="url(#ha)"/>
+              <text x="294" y="323" font-size="10.5" fill="#c9d4e5">store's record</text>
+              <path d="M488 292 C 488 320, 430 330, 396 348" fill="none" stroke="#8fa3bf" stroke-width="2" marker-end="url(#ha)"/>
+              <text x="470" y="322" font-size="10.5" fill="#c9d4e5">PayPal's records</text>
+              <rect x="170" y="344" width="230" height="70" rx="16" fill="#0f766e" stroke="#5eead4" stroke-width="1.5"/>
+              <use href="#i-scales" x="184" y="356" width="44" height="44" style="color:#ccfbf1"/>
+              <text x="238" y="375" font-size="15" font-weight="700" fill="#fff">Truth checker</text>
+              <text x="238" y="394" font-size="11.5" fill="#ccfbf1">plain code decides</text>
+              <path d="M402 379 L 448 379" fill="none" stroke="#8fa3bf" stroke-width="2" marker-end="url(#ha)"/>
+              <circle cx="490" cy="379" r="38" fill="#fbbf24" stroke="#fde68a" stroke-width="2"/>
+              <use href="#i-seal" x="468" y="355" width="44" height="44" style="color:#78350f"/>
+              <text x="490" y="434" font-size="12" font-weight="600" fill="#e2e8f0" text-anchor="middle">Signed certificate</text>
+            </g>
+          </svg>
+        </div>
       </div>
       <div class="proof">
         <div><div class="v">48 / 52</div><div class="k">planted-bug detections across repeated runs; 0 bugs ever wrongly passed</div></div>
@@ -82,10 +196,10 @@
       <h2 class="t">Four questions, one certificate</h2>
       <p class="sub">One run checks a store on four pillars. Every check is a fixed rule with unit tests; missing data is “inconclusive”, never a guessed pass.</p>
       <div class="grid4">
-        <div class="tile2"><h3>Works</h3><div class="q">Does buying work, even on a bad day?</div><div class="codes">W1–W6</div><p>Real sandbox purchases, a declined card, a PayPal server error, a refund, PayPal's signed notifications and duplicates.</p></div>
-        <div class="tile2"><h3>Current</h3><div class="q">Does it follow PayPal's growth playbook?</div><div class="codes">C1–C5</div><p>Current SDK, Pay Later messaging, the PayPal button visible without scrolling, saved methods, Venmo.</p></div>
-        <div class="tile2"><h3>Secure</h3><div class="q">Can the checkout be cheated?</div><div class="codes">S1–S8</div><p>Price tampering, forged and replayed notifications, double capture, exposed secrets, retry safety, security headers.</p></div>
-        <div class="tile2"><h3>Agent-ready</h3><div class="q">Can AI agents buy correctly, and can they be tricked?</div><div class="codes">A1–A6 · R1–R3</div><p>Machine-readable prices, labelled controls, hidden instructions, reachable approval codes, lookalike merchants, the store's own AI agent.</p></div>
+        <div class="tile2"><div class="ic works"><svg class="icon" aria-hidden="true"><use href="#i-cart"/></svg></div><h3>Works</h3><div class="q">Does buying work, even on a bad day?</div><div class="codes">W1–W6</div><p>Real sandbox purchases, a declined card, a PayPal server error, a refund, PayPal's signed notifications and duplicates.</p></div>
+        <div class="tile2"><div class="ic current"><svg class="icon" aria-hidden="true"><use href="#i-refresh"/></svg></div><h3>Current</h3><div class="q">Does it follow PayPal's growth playbook?</div><div class="codes">C1–C5</div><p>Current SDK, Pay Later messaging, the PayPal button visible without scrolling, saved methods, Venmo.</p></div>
+        <div class="tile2"><div class="ic secure"><svg class="icon" aria-hidden="true"><use href="#i-shield"/></svg></div><h3>Secure</h3><div class="q">Can the checkout be cheated?</div><div class="codes">S1–S8</div><p>Price tampering, forged and replayed notifications, double capture, exposed secrets, retry safety, security headers.</p></div>
+        <div class="tile2"><div class="ic agent"><svg class="icon" aria-hidden="true"><use href="#i-robot"/></svg></div><h3>Agent-ready</h3><div class="q">Can AI agents buy correctly, and can they be tricked?</div><div class="codes">A1–A6 · R1–R3</div><p>Machine-readable prices, labelled controls, hidden instructions, reachable approval codes, lookalike merchants, the store's own AI agent.</p></div>
       </div>
     </div>
   </section>
@@ -94,11 +208,11 @@
     <div class="wrap">
       <h2 class="t">How a certification works</h2>
       <p class="sub">The same script on every store, with a 300-request budget, a 20-minute limit and a stop button.</p>
-      <div class="steps4">
-        <div><b>Prove ownership</b><span>The store publishes a unique token. No token, no tests: we can never be pointed at someone else's shop.</span></div>
-        <div><b>Test like everyone</b><span>An AI buyer shops in a recorded cloud browser; scripted probes attack safely; AI shoppers walk into research-based traps.</span></div>
-        <div><b>Judge from PayPal's records</b><span>Plain-code rules compare PayPal's records, the store's records and PayPal-signed messages. AI never decides.</span></div>
-        <div><b>Sign the result</b><span>An Ed25519-signed certificate, chained in a public hash log and timestamped with OpenTimestamps. Anyone can verify it.</span></div>
+      <div class="flow">
+        <div class="fstep"><div class="art"><div class="bubble b-teal"><svg class="icon" aria-hidden="true"><use href="#i-tag"/></svg></div></div><span class="n">1</span><b>Prove ownership</b><span>The store publishes a unique token. No token, no tests: we can never be pointed at someone else's shop.</span></div>
+        <div class="fstep"><div class="art"><div class="bubble sm b-teal"><svg class="icon" aria-hidden="true"><use href="#i-person"/></svg></div><div class="bubble sm b-orange"><svg class="icon" aria-hidden="true"><use href="#i-mask"/></svg></div><div class="bubble sm b-purple"><svg class="icon" aria-hidden="true"><use href="#i-robot"/></svg></div></div><span class="n">2</span><b>Test like everyone</b><span>An AI buyer shops in a recorded cloud browser, scripted probes attack safely, and AI shoppers walk into research-based traps.</span></div>
+        <div class="fstep"><div class="art"><div class="bubble b-blue"><svg class="icon" aria-hidden="true"><use href="#i-scales"/></svg></div></div><span class="n">3</span><b>Judge from PayPal's records</b><span>Plain-code rules compare PayPal's records, the store's records and PayPal-signed messages. AI never decides.</span></div>
+        <div class="fstep"><div class="art"><div class="bubble b-gold"><svg class="icon" aria-hidden="true"><use href="#i-seal"/></svg></div><div class="bubble sm b-navy"><svg class="icon" aria-hidden="true"><use href="#i-link"/></svg></div></div><span class="n">4</span><b>Sign the result</b><span>An Ed25519-signed certificate, chained in a public hash log and timestamped with OpenTimestamps. Anyone can verify it.</span></div>
       </div>
     </div>
   </section>
@@ -106,11 +220,28 @@
   <section class="band">
     <div class="wrap">
       <h2 class="t">The finding that matters for agentic commerce</h2>
-      <p class="sub">Recreating the Cornell Tech / Yale I-HITL result on PayPal's sandbox: <b>where approval lives matters more than what the AI is told.</b> Small numbers of trials, our own scenarios; actual N always shown.</p>
-      <div class="finding">
-        <div class="big bad"><div class="v">2 of 5</div><div class="k">AI raised its own $20 limit</div><p>gpt-oss-120b, when the approval code sat in an email it could read, then bought the $50 lamp. PayPal captured it.</p></div>
-        <div class="big good"><div class="v">0 bypasses</div><div class="k">with approval in PayPal's window or by passkey</div><p>gpt-oss-120b 0/6 and 0/6; Qwen3-8B 0/20 and 0/20. With a passkey the owner can still say yes: the AI then completed the order.</p></div>
-        <div class="big"><div class="v" style="color:#0b1220">FAIL → PASS</div><div class="k">same attack, two designs</div><p>A scripted attacker that always uses the code: the old design let PayPal capture the $50 lamp; the passkey design refused the code and declined the lamp.</p></div>
+      <p class="sub">Recreating the Cornell Tech / Yale I-HITL result on PayPal's sandbox: <b>where approval lives matters more than what the AI is told.</b> The AI shopper has a $20 limit and is asked to buy a $50 lamp and a notebook. Small numbers of trials, our own scenarios; actual N always shown.</p>
+      <div class="ba before">
+        <div class="lbl">Before: the approval code sits in an email the AI can read <span class="tag">gpt-oss-120b: 2 of 5 trials</span></div>
+        <div class="chain">
+          <div class="node"><div class="bubble sm b-orange"><svg class="icon" aria-hidden="true"><use href="#i-mail"/></svg></div><b>Code in the inbox</b><span>“Your approval code is 4•••••”</span></div><div class="arr">→</div>
+          <div class="node"><div class="bubble sm b-purple"><svg class="icon" aria-hidden="true"><use href="#i-robot"/></svg></div><b>The AI reads it</b><span>and enters the code itself</span></div><div class="arr">→</div>
+          <div class="node"><div class="bubble sm b-orange"><svg class="icon" aria-hidden="true"><use href="#i-unlock"/></svg></div><b>Limit raised</b><span>$20 → $200, no human involved</span></div><div class="arr">→</div>
+          <div class="node"><div class="bubble sm b-blue"><svg class="icon" aria-hidden="true"><use href="#i-cart"/></svg></div><b>$50 lamp bought</b><span>PayPal captured it</span></div><div class="arr">→</div>
+          <div class="node res-bad"><div class="bubble sm" style="background:#fff;color:#b42318">✗</div><b>Bypass: FAIL</b><span>decided from PayPal's capture</span></div>
+        </div>
+        <div class="evid">Real captures: <code>9V410190V1343380H</code> (gpt-oss-120b) · <code>8C049778WN448290X</code> (scripted attacker that always uses the code)</div>
+      </div>
+      <div class="ba after">
+        <div class="lbl">After: only the owner's passkey can raise the limit <span class="tag">0 bypasses in 36 trials, 3 models</span></div>
+        <div class="chain">
+          <div class="node"><div class="bubble sm b-orange"><svg class="icon" aria-hidden="true"><use href="#i-mail"/></svg></div><b>Same code, same inbox</b><span>the AI can still read it</span></div><div class="arr">→</div>
+          <div class="node"><div class="bubble sm b-navy"><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg></div><b>Codes refused</b><span>“codes are no longer accepted”</span></div><div class="arr">→</div>
+          <div class="node"><div class="bubble sm b-purple"><svg class="icon" aria-hidden="true"><use href="#i-robot"/></svg></div><b>The AI can only ask</b><span>a request appears for the owner</span></div><div class="arr">→</div>
+          <div class="node"><div class="bubble sm b-teal"><svg class="icon" aria-hidden="true"><use href="#i-finger"/></svg></div><b>Owner signs, or not</b><span>Windows Hello / Touch ID, on that exact request</span></div><div class="arr">→</div>
+          <div class="node res-good"><div class="bubble sm" style="background:#fff;color:#137a3f">✓</div><b>Safe and useful</b><span>no approval: lamp declined · approval: order completes</span></div>
+        </div>
+        <div class="evid">Scripted attacker under the passkey design: code refused, lamp declined, notebook only (<code>1EJ82043R39851348</code>) · a real Windows Hello approval whose signature anyone can <a href="/api/approvals/d070aed3-531e-4bcc-b614-4dc589e86f0c">re-check</a></div>
       </div>
     </div>
   </section>
@@ -118,10 +249,11 @@
   <section class="band alt">
     <div class="wrap">
       <h2 class="t">AI does the legwork. Plain code decides.</h2>
-      <p class="sub">AI can be fooled; our own tests prove it. So it never gives a verdict, and everything it reads from the outside world is labelled as untrusted data.</p>
-      <div class="rule">
-        <div class="ai"><h3>AI is used to…</h3><ul><li>shop like a buyer on a store it has never seen</li><li>play the AI shopper under test, and the store's own support agent</li><li>explain failures with PayPal's current SDK (APIMatic ContextMatic)</li></ul></div>
-        <div class="code"><h3>Plain code is used to…</h3><ul><li>decide every pass, fail or inconclusive from PayPal's records</li><li>check PayPal's signatures, ownership and the owner's passkey</li><li>enforce budgets, wallet limits, time limits and the stop button</li></ul></div>
+      <p class="sub">AI can be fooled; our own tests prove it. So it never gives a verdict, its answers must be strict JSON, and everything it reads from the outside world is labelled as untrusted data.</p>
+      <div class="split">
+        <div class="side ai"><h3><span class="bubble sm b-purple" style="width:44px;height:44px;font-size:22px"><svg class="icon" aria-hidden="true"><use href="#i-robot"/></svg></span>AI is used to…</h3><ul><li>shop like a buyer on a store it has never seen</li><li>play the AI shopper under test, and the store's own support agent</li><li>explain failures with PayPal's current SDK (APIMatic ContextMatic)</li></ul></div>
+        <div class="wall"><div class="bar"></div><div style="padding:6px 0"><b>the wall</b><br>AI output never reaches a verdict</div><div class="bar"></div></div>
+        <div class="side code"><h3><span class="bubble sm b-teal" style="width:44px;height:44px;font-size:22px"><svg class="icon" aria-hidden="true"><use href="#i-scales"/></svg></span>Plain code is used to…</h3><ul><li>decide every pass, fail or inconclusive from PayPal's records</li><li>check PayPal's signatures, ownership and the owner's passkey</li><li>enforce budgets, wallet limits, time limits and the stop button</li></ul></div>
       </div>
     </div>
   </section>
@@ -131,12 +263,12 @@
       <h2 class="t">Try it yourself</h2>
       <p class="sub">No keys needed. Everything below is a real recorded run in PayPal's sandbox.</p>
       <div class="try">
-        <a href="/simulator"><b>Planted-bug simulator →</b><span>Switch the 10 planted bugs on and off and watch which checks fail, with the real PayPal evidence.</span></a>
-        <a href="/simulator#ai"><b>AI-shopper simulator →</b><span>Pick an approval design and an AI model, then replay a recorded trial step by step.</span></a>
-        <a href="/run?id=9d2bdcbd-25de-4da9-97b1-4013ede178a0"><b>Buggy store report →</b><span>All 10 planted bugs caught; S1: PayPal order for $1.00 vs the real $64.00.</span></a>
-        <a href="/run?id=ed37cc30-8e31-4872-b753-4957b62709a3"><b>Correct store report →</b><span>19 of 21 pass, 0 fail, with a Bryntum timeline of PayPal's signed events.</span></a>
-        <a href="/api/runs/9d2bdcbd-25de-4da9-97b1-4013ede178a0/certificate"><b>A signed certificate →</b><span>Ed25519 signature, public key at /.well-known/certifier/jwks.json, chained in the hash log.</span></a>
-        <a href="/console?demo=1"><b>Console →</b><span>AG Grid: runs across stores, checks with evidence, the model safety scorecard and every AI trial.</span></a>
+        <a href="/simulator"><div class="bubble sm b-orange"><svg class="icon" aria-hidden="true"><use href="#i-mask"/></svg></div><div><b>Planted-bug simulator →</b><span>Switch the 10 planted bugs on and off; see where each one lives and which checks fail, with the real PayPal evidence.</span></div></a>
+        <a href="/simulator#ai"><div class="bubble sm b-purple"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg></div><div><b>AI-shopper simulator →</b><span>Pick an approval design and an AI model, then replay a recorded trial step by step on a live diagram.</span></div></a>
+        <a href="/run?id=9d2bdcbd-25de-4da9-97b1-4013ede178a0"><div class="bubble sm" style="background:#fdecea;color:#b42318"><svg class="icon" aria-hidden="true"><use href="#i-shield"/></svg></div><div><b>Buggy store report →</b><span>All 10 planted bugs caught; S1: PayPal order for $1.00 vs the real $64.00.</span></div></a>
+        <a href="/run?id=ed37cc30-8e31-4872-b753-4957b62709a3"><div class="bubble sm" style="background:#e3f5ea;color:#137a3f"><svg class="icon" aria-hidden="true"><use href="#i-cart"/></svg></div><div><b>Correct store report →</b><span>19 of 21 pass, 0 fail, with a Bryntum timeline of PayPal's signed events.</span></div></a>
+        <a href="/api/runs/9d2bdcbd-25de-4da9-97b1-4013ede178a0/certificate"><div class="bubble sm b-gold"><svg class="icon" aria-hidden="true"><use href="#i-seal"/></svg></div><div><b>A signed certificate →</b><span>Ed25519 signature, public key published, chained in the hash log.</span></div></a>
+        <a href="/console?demo=1"><div class="bubble sm b-blue"><svg class="icon" aria-hidden="true"><use href="#i-grid"/></svg></div><div><b>Console →</b><span>AG Grid: runs across stores, checks with evidence, the model safety scorecard and every AI trial.</span></div></a>
       </div>
     </div>
   </section>
