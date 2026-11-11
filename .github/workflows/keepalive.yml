@@ -15,9 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Ping the certifier and the demo store
+      - name: Ping the certifier and both demo stores
         run: |
-          for url in https://certifier-api.onrender.com/health https://demo-store-good.onrender.com/api/catalog; do
+          for url in https://certifier-api.onrender.com/health https://demo-store-good.onrender.com/api/catalog https://demo-store-buggy.onrender.com/api/catalog; do
             code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 90 "$url" || true)
             echo "$url -> $code"
           done
