@@ -1,6 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
-import { LlmError, askJson, extractJson } from "./index.js";
+import { LlmError, activeModel, askJson, extractJson, resetQuotaState } from "./index.js";
+
+beforeEach(() => resetQuotaState());
 
 const schema = z.object({ action: z.enum(["click", "done"]), element: z.number().int().optional() });
 const groq = { provider: "groq" as const, model: "m", apiKey: "k" };
@@ -80,6 +82,37 @@ describe("askJson", () => {
     await expect(askJson(groq, [{ role: "user", content: "go" }], schema, f, async (ms) => void waits.push(ms))).rejects.toThrow("groq HTTP 429 (daily quota reached; retry in ~14 min)");
     expect(calls).toBe(1);
     expect(waits).toEqual([]);
+  });
+
+  it("switches to the next fallback model when a model's DAILY quota is used up, and reports it", async () => {
+    const models: string[] = [];
+    const switches: string[] = [];
+    const f = (async (_url: string, init: RequestInit) => {
+      const model = (JSON.parse(String(init.body)) as { model: string }).model;
+      models.push(model);
+      if (model === "big") return new Response('{"error":{"message":"... tokens per day (TPD) ..."}}', { status: 429, headers: { "retry-after": "600" } });
+      return new Response(JSON.stringify({ choices: [{ message: { content: '{"action":"done"}' } }] }), { status: 200 });
+    }) as unknown as typeof fetch;
+    const cfg = { ...groq, model: "big", fallbackModels: ["small"], onFallback: (from: string, to: string) => void switches.push(`${from}->${to}`) };
+    expect(await askJson(cfg, [{ role: "user", content: "go" }], schema, f, async () => {})).toEqual({ action: "done" });
+    expect(models).toEqual(["big", "small"]);
+    expect(switches).toEqual(["big->small"]);
+    // The exhausted model is skipped from now on (no wasted call).
+    expect(activeModel(cfg)).toBe("small");
+    await askJson(cfg, [{ role: "user", content: "go" }], schema, f, async () => {});
+    expect(models).toEqual(["big", "small", "small"]);
+  });
+
+  it("does not switch models on a per-minute limit (it waits instead)", async () => {
+    let calls = 0;
+    const f = (async (_url: string, init: RequestInit) => {
+      calls++;
+      const model = (JSON.parse(String(init.body)) as { model: string }).model;
+      if (calls === 1) return new Response("slow down", { status: 429, headers: { "retry-after": "2" } });
+      return new Response(JSON.stringify({ choices: [{ message: { content: `{"action":"done","element":${model === "big" ? 1 : 2}}` } }] }), { status: 200 });
+    }) as unknown as typeof fetch;
+    const out = await askJson({ ...groq, model: "big", fallbackModels: ["small"] }, [{ role: "user", content: "go" }], schema, f, async () => {});
+    expect(out).toEqual({ action: "done", element: 1 });
   });
 
   it("treats a twice-empty answer as an error, never as a nudged guess", async () => {

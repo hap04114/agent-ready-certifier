@@ -12,7 +12,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ConfigError, bootConfig, findRepoRoot, requireConfig } from "@certifier/config";
 import { certifierRepo, createPgDb, migrateCertifier } from "@certifier/db";
-import type { Provider } from "@certifier/llm";
+import { type Provider, fallbackModelsOf } from "@certifier/llm";
 import type { CheckCode, EvidenceRef, Verdict } from "@certifier/truth";
 import { RunBudget } from "./budget.js";
 import { type StoreName, storeProfile } from "./stores.js";
@@ -62,7 +62,7 @@ try {
     const a = requireConfig(config, "the browser agent", ["KERNEL_API_KEY", "LLM_PROVIDER", "LLM_MODEL", "LLM_API_KEY", "PAYPAL_SANDBOX_BUYER_EMAIL", "PAYPAL_SANDBOX_BUYER_PASSWORD"]);
     agent = {
       kernelApiKey: a.KERNEL_API_KEY,
-      llm: { provider: a.LLM_PROVIDER as Provider, model: a.LLM_MODEL, apiKey: a.LLM_API_KEY },
+      llm: { provider: a.LLM_PROVIDER as Provider, model: a.LLM_MODEL, apiKey: a.LLM_API_KEY, fallbackModels: fallbackModelsOf(config.LLM_FALLBACK_MODELS) },
       buyer: { email: a.PAYPAL_SANDBOX_BUYER_EMAIL, password: a.PAYPAL_SANDBOX_BUYER_PASSWORD },
     };
   }

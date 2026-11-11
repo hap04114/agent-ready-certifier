@@ -10,7 +10,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { openKernelSession, runJourney } from "@certifier/browser-agent";
 import { ConfigError, bootConfig, findRepoRoot, redact, requireConfig } from "@certifier/config";
-import type { Provider } from "@certifier/llm";
+import { type Provider, fallbackModelsOf } from "@certifier/llm";
 import { PaypalCallError, SandboxPaypal } from "@certifier/paypal";
 
 const config = bootConfig("vault:setup");
@@ -47,7 +47,7 @@ if (manual) {
         context: session.context,
         startUrl: setup.approveUrl,
         mission: "This PayPal sandbox page asks the buyer to save PayPal as a payment method for a store. Log in as the buyer if asked, then agree and save. Reply done when PayPal returns you to the store.",
-        llm: { provider: a.LLM_PROVIDER as Provider, model: a.LLM_MODEL, apiKey: a.LLM_API_KEY },
+        llm: { provider: a.LLM_PROVIDER as Provider, model: a.LLM_MODEL, apiKey: a.LLM_API_KEY, fallbackModels: fallbackModelsOf(config.LLM_FALLBACK_MODELS) },
         buyer: { email: a.PAYPAL_SANDBOX_BUYER_EMAIL, password: a.PAYPAL_SANDBOX_BUYER_PASSWORD },
         scrub: (t) => redact(t, config),
         maxSteps: 20,

@@ -14,6 +14,13 @@ export interface LlmConfig {
   timeoutMs?: number;
   /** Minimum gap between calls to this provider (defaults: Gemini 7 s, Groq none). */
   minIntervalMs?: number;
+  /**
+   * Same-provider models to switch to, in order, when a model's DAILY quota is used up (free
+   * tiers give each model its own quota). Per-minute limits are waited out, never switched.
+   */
+  fallbackModels?: string[];
+  /** Told whenever a call switches model, so runs can record which model really answered. */
+  onFallback?: (from: string, to: string, reason: string) => void;
 }
 
 export interface ChatMessage {
@@ -25,6 +32,9 @@ export class LlmError extends Error {
   constructor(
     message: string,
     readonly status?: number,
+    /** A daily (not per-minute) quota refused the call. */
+    readonly dailyQuota = false,
+    readonly retryAfterS?: number,
   ) {
     super(message);
     this.name = "LlmError";
@@ -54,7 +64,50 @@ async function refusal(provider: Provider, res: Response): Promise<LlmError> {
   const hint = Number(res.headers.get("retry-after"));
   const daily = /per day|TPD|RPD|PerDay/i.test(detail);
   const wait = Number.isFinite(hint) && hint > 0 ? `; retry in ~${Math.ceil(hint / 60)} min` : "";
-  return new LlmError(`${provider} HTTP ${res.status}${res.status === 429 ? (daily ? " (daily quota reached" : " (rate limited") + `${wait})` : ""}`, res.status);
+  const reason = res.status === 429 ? ` (${daily ? "daily quota reached" : "rate limited"}${wait})` : "";
+  return new LlmError(
+    `${provider} HTTP ${res.status}${reason}`,
+    res.status,
+    res.status === 429 && daily,
+    Number.isFinite(hint) && hint > 0 ? hint : undefined,
+  );
+}
+
+/** Parse a comma-separated LLM_FALLBACK_MODELS setting. */
+export const fallbackModelsOf = (setting: string | undefined): string[] =>
+  (setting ?? "")
+    .split(",")
+    .map((m) => m.trim())
+    .filter(Boolean);
+
+/** provider:model → when its daily quota frees up again (epoch ms). Per process. */
+const exhaustedUntil = new Map<string, number>();
+const modelKey = (cfg: LlmConfig, model: string) => `${cfg.provider}:${model}`;
+
+/** The first configured model whose daily quota is not known to be used up. */
+export function activeModel(cfg: LlmConfig, now = Date.now()): string {
+  return [cfg.model, ...(cfg.fallbackModels ?? [])].find((m) => (exhaustedUntil.get(modelKey(cfg, m)) ?? 0) <= now) ?? cfg.model;
+}
+
+/** Tests only: forget which models were marked as exhausted. */
+export function resetQuotaState() {
+  exhaustedUntil.clear();
+}
+
+/** One call, switching to the next fallback model when the current one's daily quota is used up. */
+async function rawJson(cfg: LlmConfig, messages: ChatMessage[], fetcher: Fetcher, sleep: (ms: number) => Promise<void> = defaultSleep): Promise<string> {
+  for (;;) {
+    const model = activeModel(cfg);
+    try {
+      return await rawOnce({ ...cfg, model }, messages, fetcher, sleep);
+    } catch (err) {
+      if (!(err instanceof LlmError) || !err.dailyQuota) throw err;
+      exhaustedUntil.set(modelKey(cfg, model), Date.now() + (err.retryAfterS ?? 3600) * 1000);
+      const next = activeModel(cfg);
+      if (next === model) throw err;
+      cfg.onFallback?.(model, next, err.message);
+    }
+  }
 }
 export const defaultSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
@@ -71,7 +124,7 @@ async function pace(cfg: LlmConfig, sleep: (ms: number) => Promise<void>) {
   lastCallAt.set(cfg.provider, Date.now());
 }
 
-async function rawJson(cfg: LlmConfig, messages: ChatMessage[], fetcher: Fetcher, sleep: (ms: number) => Promise<void> = defaultSleep): Promise<string> {
+async function rawOnce(cfg: LlmConfig, messages: ChatMessage[], fetcher: Fetcher, sleep: (ms: number) => Promise<void>): Promise<string> {
   await pace(cfg, sleep);
   // A fresh timeout per attempt: a retry must not inherit the time an earlier attempt used.
   const timeoutMs = cfg.timeoutMs ?? 60_000;

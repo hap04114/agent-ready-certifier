@@ -23,6 +23,7 @@ const SERVICES: Record<string, { name: string; keys: string[] }> = {
       "KERNEL_API_KEY",
       "LLM_PROVIDER",
       "LLM_MODEL",
+      "LLM_FALLBACK_MODELS",
       "LLM_API_KEY",
       "PAYPAL_SANDBOX_BUYER_EMAIL",
       "PAYPAL_SANDBOX_BUYER_PASSWORD",

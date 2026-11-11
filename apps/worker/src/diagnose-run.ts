@@ -7,7 +7,7 @@
 import { ConfigError, bootConfig, requireConfig } from "@certifier/config";
 import { certifierRepo, createPgDb, migrateCertifier } from "@certifier/db";
 import { type ContextMaticSession, FIX_TOPICS, askContextMatic, diagnose, lookUpSdkMethods, openContextMatic } from "@certifier/diagnosis";
-import type { Provider } from "@certifier/llm";
+import { type Provider, fallbackModelsOf } from "@certifier/llm";
 import { impactOf } from "@certifier/truth";
 
 const config = bootConfig("diagnose");
@@ -48,7 +48,7 @@ try {
     console.warn('ContextMatic not registered (run pnpm apimatic:register); findings will be marked "no SDK context".');
   }
 
-  const llm = { provider: env.LLM_PROVIDER as Provider, model: env.LLM_MODEL, apiKey: env.LLM_API_KEY };
+  const llm = { provider: env.LLM_PROVIDER as Provider, model: env.LLM_MODEL, apiKey: env.LLM_API_KEY, fallbackModels: fallbackModelsOf(config.LLM_FALLBACK_MODELS) };
   for (const c of failed) {
     const topic = FIX_TOPICS[c.code];
     const s = session;
