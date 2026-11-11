@@ -9,7 +9,17 @@
 import { join } from "node:path";
 import { type Recording, openKernelSession, runJourney } from "@certifier/browser-agent";
 import { type Config, findRepoRoot, redact } from "@certifier/config";
-import { TEST_HOOK_PATH, type StoreDelivery, type TestHookCode, deliveriesPath, statusPath, storeDeliveries, storeOrderStatus } from "@certifier/contract";
+import {
+  TEST_HOOK_PATH,
+  type StoreDelivery,
+  type TestHookCode,
+  deliveriesPath,
+  deriveOwnershipToken,
+  statusPath,
+  storeDeliveries,
+  storeOrderStatus,
+  verifyOwnership,
+} from "@certifier/contract";
 import type { CertifierRepo } from "@certifier/db";
 import type { Provider } from "@certifier/llm";
 import { PaypalCallError, type PaypalAuditEntry, SandboxPaypal, verifyWebhook, webhookHeadersFrom } from "@certifier/paypal";
@@ -207,6 +217,18 @@ export async function runWorksPillar(opts: WorksRunOptions): Promise<WorksRunRes
   const runId = opts.runId ?? (await repo.createRun({ storeUrl, budgetRequests: budget.maxRequests, timeLimitMin: config.RUN_MAX_MINUTES }));
   log(`Run ${runId} against ${storeUrl} (budget ${budget.maxRequests} requests, ${config.RUN_MAX_MINUTES} min)`);
   try {
+    // Rule 3: no probe runs until the store serves its ownership token. Checked here as well as
+    // in the Run API, so every entry point (CLI, benchmark, API) enforces it.
+    if (!config.OWNERSHIP_TOKEN_SECRET) throw new Error("OWNERSHIP_TOKEN_SECRET is not set: cannot verify store ownership");
+    const own = await verifyOwnership(storeUrl, deriveOwnershipToken(config.OWNERSHIP_TOKEN_SECRET, storeUrl));
+    if (!own.verified) {
+      log(`Ownership NOT verified (${own.reason}); no tests were run.`);
+      await repo.finishRun(runId, "stopped", budget.used, { ...notes, stoppedBecause: "ownership not verified", detail: own.reason });
+      return { runId, status: "stopped", verdicts, error: `ownership not verified: ${own.reason}` };
+    }
+    log(`Ownership verified via ${own.method}.`);
+    await repo.setRunStatus(runId, "running");
+
     // 0. Read-only storefront scan (Current pillar and front-end Secure checks).
     const scan = await scanStorefront(`${storeUrl}/`, { spend: () => budget.spend() });
     log(`Storefront scanned: HTTP ${scan.status ?? "?"}, ${scan.files.length} public file(s)${scan.error ? ` (${scan.error})` : ""}`);

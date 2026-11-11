@@ -12,6 +12,8 @@ export interface LlmConfig {
   model: string;
   apiKey: string;
   timeoutMs?: number;
+  /** Minimum gap between calls to this provider (defaults: Gemini 7 s, Groq none). */
+  minIntervalMs?: number;
 }
 
 export interface ChatMessage {
@@ -42,7 +44,21 @@ async function withRetry(fn: () => Promise<Response>, sleep: (ms: number) => Pro
 }
 export const defaultSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
+/**
+ * Free tiers limit requests per minute (Gemini's is small), so calls to a provider are spaced out
+ * by a minimum interval instead of tripping 429s mid-trial.
+ */
+const MIN_INTERVAL_MS: Record<Provider, number> = { groq: 0, gemini: 7000 };
+const lastCallAt = new Map<string, number>();
+async function pace(cfg: LlmConfig, sleep: (ms: number) => Promise<void>) {
+  const gap = cfg.minIntervalMs ?? MIN_INTERVAL_MS[cfg.provider];
+  const wait = (lastCallAt.get(cfg.provider) ?? 0) + gap - Date.now();
+  if (wait > 0) await sleep(wait);
+  lastCallAt.set(cfg.provider, Date.now());
+}
+
 async function rawJson(cfg: LlmConfig, messages: ChatMessage[], fetcher: Fetcher, sleep: (ms: number) => Promise<void> = defaultSleep): Promise<string> {
+  await pace(cfg, sleep);
   const signal = AbortSignal.timeout(cfg.timeoutMs ?? 60_000);
   if (cfg.provider === "groq") {
     const call = (jsonMode: boolean) =>
