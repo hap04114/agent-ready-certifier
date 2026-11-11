@@ -51,22 +51,40 @@ export interface Diagnosis extends Finding {
 /** Strip anything that is not plain reason text (reasons can quote store-reported strings). */
 export const sanitize = (s: string) => s.replace(/[^\w\s.,:;$%()/'"@#+=-]/g, "").slice(0, 300);
 
-/** Ask ContextMatic one question, adapting to the tool's input schema. */
-export async function askContextMatic(session: ContextMaticSession & { schemas?: Record<string, { properties?: Record<string, unknown>; required?: string[] }> }, question: string) {
-  const tool = session.tools.find((t) => t === "ask") ?? session.tools.find((t) => /ask|search|query/i.test(t));
-  if (!tool) return undefined;
-  const schema = session.schemas?.[tool];
-  const props = Object.keys(schema?.properties ?? {});
-  const args: Record<string, unknown> = {};
-  const textProp = props.find((p) => /question|query|prompt|text|message|q$/i.test(p)) ?? props[0] ?? "question";
-  args[textProp] = question;
-  for (const p of props) {
-    if (/language|lang/i.test(p)) args[p] = "typescript";
-    else if (/api|sdk|product|plugin/i.test(p) && p !== textProp) args[p] = "paypal";
-  }
-  const text = await session.call(tool, args);
-  return { tool, text };
+/** ContextMatic addresses an SDK by language + API key (the key `fetch_api` lists for PayPal). */
+export const CONTEXTMATIC_SDK = { language: "typescript", key: "paypal" } as const;
+
+/** Ask ContextMatic's `ask` tool one question about the PayPal Server SDK for TypeScript. */
+export async function askContextMatic(session: ContextMaticSession, question: string) {
+  if (!session.tools.includes("ask")) return undefined;
+  const text = await session.call("ask", { ...CONTEXTMATIC_SDK, query: question });
+  return { tool: "ask", text };
 }
+
+/**
+ * Look each SDK method up in ContextMatic's endpoint index (`endpoint_search`), independently of
+ * the prose answer. The search is fuzzy (an unknown name still returns the closest endpoints), so
+ * a method counts only when an endpoint heading names it exactly (`## CreateOrder` for
+ * `createOrder`) or a code sample calls it (`.createOrder(`).
+ */
+export async function lookUpSdkMethods(session: ContextMaticSession, methods: string[]): Promise<Set<string>> {
+  const found = new Set<string>();
+  if (!session.tools.includes("endpoint_search")) return found;
+  for (const m of methods) {
+    const name = methodName(m);
+    if (!/^[A-Za-z_]\w{1,60}$/.test(name)) continue;
+    const text = await session.call("endpoint_search", { ...CONTEXTMATIC_SDK, query: name }).catch(() => "");
+    if (endpointNamed(text, name)) found.add(m);
+  }
+  return found;
+}
+
+/** True when an endpoint_search result names `name` exactly (heading or call), not just a near match. */
+export const endpointNamed = (text: string, name: string) =>
+  new RegExp(`^##\\s+${name}\\s*$`, "im").test(text) || new RegExp(`\\.${name}\\(`).test(text);
+
+/** `OrdersController.createOrder(...)` → `createOrder`. */
+export const methodName = (m: string) => m.split(/[.#(]/).filter(Boolean).pop()?.trim() ?? m;
 
 const SYSTEM = `You are a senior PayPal integration engineer writing a short finding for a merchant's developer.
 A deterministic certifier already decided that a check FAILED; you do not judge, you explain and propose a fix.
@@ -80,6 +98,8 @@ export async function diagnose(input: {
   reasons: string[];
   businessImpact?: string;
   context?: { tool: string; text: string };
+  /** Independent lookup of SDK method names (ContextMatic endpoint_search). */
+  lookUp?: (methods: string[]) => Promise<Set<string>>;
   ask?: typeof askJson;
 }): Promise<Diagnosis> {
   const reference = input.context?.text ?? "No PayPal SDK reference was available for this finding.";
@@ -96,16 +116,18 @@ export async function diagnose(input: {
     { role: "system", content: SYSTEM },
     { role: "user", content: user },
   ], finding);
-  const lower = reference.toLowerCase();
+  // A method is verified when ContextMatic's answer names it exactly or its endpoint index has it.
   const inRef = (m: string) => {
-    const name = m.split(/[.#(]/).filter(Boolean).pop() ?? m;
-    return lower.includes(name.toLowerCase());
+    const name = methodName(m);
+    return /^\w+$/.test(name) && new RegExp(`\\b${name}\\b`).test(reference);
   };
+  const indexed = input.context && input.lookUp ? await input.lookUp(out.sdkMethods.filter((m) => !inRef(m))).catch(() => new Set<string>()) : new Set<string>();
+  const ok = (m: string) => inRef(m) || indexed.has(m);
   return {
     ...out,
     code: input.code,
-    verifiedSdkMethods: input.context ? out.sdkMethods.filter(inRef) : [],
-    unverifiedSdkMethods: input.context ? out.sdkMethods.filter((m) => !inRef(m)) : out.sdkMethods,
+    verifiedSdkMethods: input.context ? out.sdkMethods.filter(ok) : [],
+    unverifiedSdkMethods: input.context ? out.sdkMethods.filter((m) => !ok(m)) : out.sdkMethods,
     source: input.context ? "contextmatic" : "none",
     contextTool: input.context?.tool,
   };

@@ -17,7 +17,8 @@ export interface ContextMaticCredentials {
 }
 
 export async function contextMaticToken(creds: ContextMaticCredentials, fetcher: typeof fetch = fetch): Promise<string> {
-  const form = new URLSearchParams({ grant_type: "client_credentials", client_id: creds.clientId, scope: "mcp:tools" });
+  // MCP auth requires the RFC 8707 `resource` indicator: the token is bound to the MCP server URL.
+  const form = new URLSearchParams({ grant_type: "client_credentials", client_id: creds.clientId, scope: "mcp:tools", resource: creds.mcpUrl ?? CONTEXTMATIC_MCP_URL });
   if (creds.clientSecret) form.set("client_secret", creds.clientSecret);
   const res = await fetcher(`${CONTEXTMATIC_BASE}/token`, {
     method: "POST",
@@ -25,8 +26,11 @@ export async function contextMaticToken(creds: ContextMaticCredentials, fetcher:
     body: form,
     signal: AbortSignal.timeout(20_000),
   });
-  const body = (await res.json().catch(() => ({}))) as { access_token?: string; error?: string };
-  if (!res.ok || !body.access_token) throw new Error(`ContextMatic token refused (HTTP ${res.status}${body.error ? `, ${body.error}` : ""})`);
+  const body = (await res.json().catch(() => ({}))) as { access_token?: string; error?: string; error_description?: string };
+  if (!res.ok || !body.access_token) {
+    const why = body.error_description ? `: ${body.error_description.replaceAll(creds.clientId, "[client]").slice(0, 160)}` : "";
+    throw new Error(`ContextMatic token refused (HTTP ${res.status}${body.error ? `, ${body.error}` : ""}${why})`);
+  }
   return body.access_token;
 }
 
@@ -54,11 +58,14 @@ export async function openContextMatic(creds: ContextMaticCredentials): Promise<
     async call(name, args) {
       const res = await client.callTool({ name, arguments: args });
       const content = (res.content ?? []) as { type: string; text?: string }[];
-      return content
+      const text = content
         .filter((c) => c.type === "text" && typeof c.text === "string")
         .map((c) => c.text!)
         .join("\n")
         .slice(0, 12_000);
+      // A tool error must never be passed on as if it were SDK reference text.
+      if (res.isError || /^Invalid arguments for '/.test(text)) throw new Error(`ContextMatic ${name} failed: ${text.slice(0, 160)}`);
+      return text;
     },
     close: () => client.close(),
   };

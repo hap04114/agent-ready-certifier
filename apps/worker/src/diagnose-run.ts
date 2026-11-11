@@ -6,7 +6,7 @@
  */
 import { ConfigError, bootConfig, requireConfig } from "@certifier/config";
 import { certifierRepo, createPgDb, migrateCertifier } from "@certifier/db";
-import { type ContextMaticSession, FIX_TOPICS, askContextMatic, diagnose, openContextMatic } from "@certifier/diagnosis";
+import { type ContextMaticSession, FIX_TOPICS, askContextMatic, diagnose, lookUpSdkMethods, openContextMatic } from "@certifier/diagnosis";
 import type { Provider } from "@certifier/llm";
 import { impactOf } from "@certifier/truth";
 
@@ -51,8 +51,16 @@ try {
   const llm = { provider: env.LLM_PROVIDER as Provider, model: env.LLM_MODEL, apiKey: env.LLM_API_KEY };
   for (const c of failed) {
     const topic = FIX_TOPICS[c.code];
-    const context = session && topic ? await askContextMatic(session, topic).catch(() => undefined) : undefined;
-    const d = await diagnose({ llm, code: c.code, summary: c.summary, reasons: c.reasons, businessImpact: impactOf(c.code), context });
+    const s = session;
+    const context =
+      s && topic
+        ? await askContextMatic(s, topic).catch((err) => {
+            console.warn(`  ${c.code}: ContextMatic ask failed (${err instanceof Error ? err.message.slice(0, 120) : "error"}); no SDK context for this finding`);
+            return undefined;
+          })
+        : undefined;
+    const lookUp = s ? (ms: string[]) => lookUpSdkMethods(s, ms) : undefined;
+    const d = await diagnose({ llm, code: c.code, summary: c.summary, reasons: c.reasons, businessImpact: impactOf(c.code), context, lookUp });
     await repo.saveFinding({
       runId,
       code: c.code,

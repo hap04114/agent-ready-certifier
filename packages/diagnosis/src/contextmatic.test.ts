@@ -17,6 +17,19 @@ describe("contextMaticToken", () => {
     expect(seen[0]!.has("client_secret")).toBe(false);
   });
 
+  it("binds the token to the MCP server with the RFC 8707 resource indicator", async () => {
+    const seen: URLSearchParams[] = [];
+    await contextMaticToken({ clientId: "c" }, capture(seen));
+    expect(seen[0]!.get("resource")).toBe("https://chatbotapi.apimatic.io/mcp/plugins");
+    await contextMaticToken({ clientId: "c", mcpUrl: "https://example.test/mcp" }, capture(seen));
+    expect(seen[1]!.get("resource")).toBe("https://example.test/mcp");
+  });
+
+  it("includes the server's reason, with the client ID masked", async () => {
+    const f = (async () => new Response(JSON.stringify({ error: "invalid_request", error_description: "client abc123 needs a resource" }), { status: 400 })) as unknown as typeof fetch;
+    await expect(contextMaticToken({ clientId: "abc123" }, f)).rejects.toThrow("ContextMatic token refused (HTTP 400, invalid_request: client [client] needs a resource)");
+  });
+
   it("sends the secret when the server issued one", async () => {
     const seen: URLSearchParams[] = [];
     await contextMaticToken({ clientId: "c", clientSecret: "s" }, capture(seen));

@@ -8,7 +8,8 @@
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
-    "apimatic:register": "tsx src/register-cli.ts"
+    "apimatic:register": "tsx src/register-cli.ts",
+    "apimatic:tools": "tsx src/schemas-cli.ts"
   },
   "dependencies": {
     "@certifier/config": "workspace:*",
