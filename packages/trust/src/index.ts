@@ -195,3 +195,5 @@ export async function submitToOpenTimestamps(digestHex: string, fetcher: typeof 
   // Detached timestamp file: magic, version 1, SHA-256 file-hash op (0x08), the digest, the timestamp.
   return Buffer.concat([OTS_MAGIC, Buffer.from([0x01, 0x08]), digest, timestamp]);
 }
+
+export * from "./passkeys.js";

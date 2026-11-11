@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agent-Ready Certifier — owner approvals</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+  <header class="top">
+    <div class="row">
+      <h1>Owner approvals</h1>
+      <span class="tag">PayPal sandbox only</span>
+    </div>
+    <p class="position">The A2 test, after the fix: an AI shopper that wants to spend more than its limit can only <b>ask</b>.
+      The owner approves with a <b>passkey</b> (Windows Hello, Touch ID, a phone or a security key). The agent can read every
+      email and code it is given, but it cannot make a passkey signature, so the bypass from the inbox-code version is gone.
+      The certifier checks the signature; plain code then decides the verdict from PayPal's records.</p>
+    <nav class="links"><a href="/">← Console</a></nav>
+  </header>
+  <main>
+    <div class="banner" id="banner" hidden></div>
+    <section class="card" id="register-card" hidden>
+      <div class="head"><div><h2>Register your passkey</h2><p>This one-time link came from <code>pnpm passkey:invite</code>. Only the passkey's public key is stored here.</p></div></div>
+      <div class="body">
+        <div class="actions"><button class="btn primary" id="register" type="button">Register a passkey on this device</button></div>
+        <p class="muted" id="register-status" aria-live="polite"></p>
+      </div>
+    </section>
+    <section class="card" id="request-card" hidden>
+      <div class="head"><div><h2>Approval request</h2><p>Check the amount before you sign. Your signature covers exactly this request and nothing else.</p></div></div>
+      <div class="body" id="request"></div>
+    </section>
+    <section class="card">
+      <div class="head"><div><h2>Requests from AI shopper trials</h2><p>Most recent first. Pending requests expire after a few minutes; an unanswered request is never approved.</p></div></div>
+      <div class="body" id="list">Loading…</div>
+    </section>
+    <section class="card">
+      <div class="head"><div><h2>Registered passkeys</h2></div></div>
+      <div class="body" id="passkeys">Loading…</div>
+    </section>
+  </main>
+  <script src="/assets/simplewebauthn-browser.js"></script>
+  <script src="/assets/owner.js"></script>
+</body>
+</html>

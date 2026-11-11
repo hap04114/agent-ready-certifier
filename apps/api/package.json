@@ -10,7 +10,8 @@
     "demo:export": "tsx src/export-demo.ts",
     "build:vendor": "node scripts/build-vendor.mjs",
     "cert:keygen": "tsx src/cert-keygen.ts",
-    "cert:issue": "tsx src/cert-issue.ts"
+    "cert:issue": "tsx src/cert-issue.ts",
+    "passkey:invite": "tsx src/passkey-invite.ts"
   },
   "dependencies": {
     "@certifier/config": "workspace:*",
@@ -18,15 +19,16 @@
     "@certifier/db": "workspace:*",
     "@certifier/llm": "workspace:*",
     "@certifier/paypal": "workspace:*",
+    "@certifier/trust": "workspace:*",
     "@certifier/truth": "workspace:*",
     "@certifier/worker": "workspace:*",
     "fastify": "^5.12.8",
-    "zod": "^4.6.7",
-    "@certifier/trust": "workspace:*"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@bryntum/scheduler-community": "8.0.0",
     "@electric-sql/pglite": "^0.5.15",
+    "@simplewebauthn/browser": "14.0.0",
     "esbuild": "0.28.2"
   }
 }

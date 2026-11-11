@@ -12,6 +12,7 @@ import type { Config } from "@certifier/config";
 import type { CertifierRepo } from "@certifier/db";
 import { type VerifyResult, verifyWebhook, webhookHeadersFrom } from "@certifier/paypal";
 import { type OwnershipVerifier, type RunStarter, registerRunApi } from "./runs.js";
+import { registerPasskeyRoutes } from "./passkey-routes.js";
 import { registerTrustRoutes } from "./trust-routes.js";
 
 export type WebhookVerifier = (headers: Record<string, string | string[] | undefined>, rawBody: Buffer) => Promise<VerifyResult>;
@@ -44,6 +45,9 @@ const ASSETS: Record<string, string> = {
   "data.js": "application/javascript; charset=utf-8",
   "console.js": "application/javascript; charset=utf-8",
   "run.js": "application/javascript; charset=utf-8",
+  "owner.js": "application/javascript; charset=utf-8",
+  // SimpleWebAuthn browser helpers (MIT), bundled by build:vendor.
+  "simplewebauthn-browser.js": "application/javascript; charset=utf-8",
   "demo-snapshot.json": "application/json; charset=utf-8",
   // Bryntum Scheduler Community (MIT), bundled by `pnpm --filter @certifier/api build:vendor`.
   "bryntum-scheduler.js": "application/javascript; charset=utf-8",
@@ -106,6 +110,7 @@ export function buildApi(config: Config, deps: ApiDeps = {}) {
   // Console and report pages (read-only; data comes from the public /api endpoints).
   app.get("/", async (_req, reply) => reply.headers(PAGE_HEADERS).type("text/html; charset=utf-8").send(readPublic("index.html")));
   app.get("/run", async (_req, reply) => reply.headers(PAGE_HEADERS).type("text/html; charset=utf-8").send(readPublic("run.html")));
+  app.get("/owner", async (_req, reply) => reply.headers(PAGE_HEADERS).type("text/html; charset=utf-8").send(readPublic("owner.html")));
   app.get("/assets/:file", async (req, reply) => {
     const file = (req.params as { file: string }).file;
     const type = ASSETS[file];
@@ -156,6 +161,7 @@ export function buildApi(config: Config, deps: ApiDeps = {}) {
 
   if (deps.repo) registerRunApi(app, { config, repo: deps.repo, runner: deps.runner, verifyOwnership: deps.verifyOwnership });
   if (deps.repo) registerTrustRoutes(app, { config, repo: deps.repo, timestamp: deps.timestamp });
+  if (deps.repo) registerPasskeyRoutes(app, { config, repo: deps.repo });
 
   return app;
 }
