@@ -12,6 +12,7 @@ import type { Config } from "@certifier/config";
 import type { CertifierRepo } from "@certifier/db";
 import { type VerifyResult, verifyWebhook, webhookHeadersFrom } from "@certifier/paypal";
 import { type OwnershipVerifier, type RunStarter, registerRunApi } from "./runs.js";
+import { registerTrustRoutes } from "./trust-routes.js";
 
 export type WebhookVerifier = (headers: Record<string, string | string[] | undefined>, rawBody: Buffer) => Promise<VerifyResult>;
 
@@ -20,6 +21,8 @@ export interface ApiDeps {
   runner?: RunStarter;
   verifyOwnership?: OwnershipVerifier;
   verifyWebhook?: WebhookVerifier;
+  /** Override OpenTimestamps submission (tests). */
+  timestamp?: (digestHex: string) => Promise<Buffer | undefined>;
   logger?: boolean;
 }
 
@@ -152,6 +155,7 @@ export function buildApi(config: Config, deps: ApiDeps = {}) {
   });
 
   if (deps.repo) registerRunApi(app, { config, repo: deps.repo, runner: deps.runner, verifyOwnership: deps.verifyOwnership });
+  if (deps.repo) registerTrustRoutes(app, { config, repo: deps.repo, timestamp: deps.timestamp });
 
   return app;
 }

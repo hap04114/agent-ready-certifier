@@ -8,7 +8,9 @@
     "start": "tsx src/main.ts",
     "typecheck": "tsc -p tsconfig.json",
     "demo:export": "tsx src/export-demo.ts",
-    "build:vendor": "node scripts/build-vendor.mjs"
+    "build:vendor": "node scripts/build-vendor.mjs",
+    "cert:keygen": "tsx src/cert-keygen.ts",
+    "cert:issue": "tsx src/cert-issue.ts"
   },
   "dependencies": {
     "@certifier/config": "workspace:*",
@@ -19,7 +21,8 @@
     "@certifier/truth": "workspace:*",
     "@certifier/worker": "workspace:*",
     "fastify": "^5.12.8",
-    "zod": "^4.6.7"
+    "zod": "^4.6.7",
+    "@certifier/trust": "workspace:*"
   },
   "devDependencies": {
     "@bryntum/scheduler-community": "8.0.0",

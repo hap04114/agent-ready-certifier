@@ -38,6 +38,7 @@ export const SENSITIVE_KEYS = [
   "APIMATIC_CLIENT_ID",
   "APIMATIC_CLIENT_SECRET",
   "REALWORLD_PAYPAL_CLIENT_SECRET",
+  "CERT_SIGNING_KEY",
   "OWNERSHIP_TOKEN_SECRET",
   "CERTIFIER_ADMIN_TOKEN",
   "CERT_SIGNING_PRIVATE_KEY",
@@ -131,6 +132,10 @@ export const envSchema = z.object({
   /** Throwaway sandbox app for the real-world study (open-source shops we did not write). */
   REALWORLD_PAYPAL_CLIENT_ID: optionalString,
   REALWORLD_PAYPAL_CLIENT_SECRET: optionalString,
+  /** Ed25519 private key (base64 PKCS#8) that signs certificates. Generate with pnpm cert:keygen. */
+  CERT_SIGNING_KEY: optionalString,
+  /** Feature switch: "off" stops submitting hash-log entries to OpenTimestamps (only hashes are sent). */
+  FEATURE_OPENTIMESTAMPS: optionalString,
   GEMINI_API_KEY: optionalString,
 
   // Sponsor tools

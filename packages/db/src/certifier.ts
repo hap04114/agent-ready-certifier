@@ -155,6 +155,31 @@ export const CERTIFIER_MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    id: "008_certificates_hash_log",
+    sql: `
+      -- One signed certificate per judged run (compact JWS, Ed25519), with the exact summary it signs.
+      CREATE TABLE certificates (
+        run_id          uuid PRIMARY KEY REFERENCES runs(id) ON DELETE CASCADE,
+        jws             text NOT NULL,
+        summary         jsonb NOT NULL,
+        summary_sha256  text NOT NULL,
+        kid             text NOT NULL,
+        issued_at       timestamptz NOT NULL DEFAULT now()
+      );
+      -- Append-only hash chain over certificates. prev_hash is UNIQUE, so the chain cannot fork.
+      CREATE TABLE cert_log (
+        seq             integer PRIMARY KEY,
+        run_id          uuid NOT NULL UNIQUE REFERENCES runs(id) ON DELETE CASCADE,
+        prev_hash       text NOT NULL UNIQUE,
+        entry_hash      text NOT NULL UNIQUE,
+        preimage        text NOT NULL,
+        created_at      timestamptz NOT NULL DEFAULT now(),
+        ots_calendar    text,
+        ots_proof       bytea
+      );
+    `,
+  },
 ];
 
 export const migrateCertifier = (db: Db) => migrate(db, CERTIFIER_SCHEMA, CERTIFIER_MIGRATIONS);
@@ -358,6 +383,63 @@ export function certifierRepo(db: Db) {
 
     async getTrialSteps(id: string) {
       return (await db.query<{ steps: unknown[] }>(`SELECT steps FROM ${S}.agent_trials WHERE id=$1`, [id])).rows[0]?.steps;
+    },
+
+    async getCertificate(runId: string) {
+      return (
+        await db.query<{ run_id: string; jws: string; summary: unknown; summary_sha256: string; kid: string; issued_at: Date }>(
+          `SELECT run_id, jws, summary, summary_sha256, kid, issued_at FROM ${S}.certificates WHERE run_id=$1`,
+          [runId],
+        )
+      ).rows[0];
+    },
+
+    /**
+     * Store a certificate and append its hash-log entry in one transaction. `entry` builds the
+     * log preimage from the previous hash and the next sequence number.
+     */
+    async saveCertificate(c: { runId: string; jws: string; summary: unknown; summarySha256: string; kid: string }, entry: (prev: { seq: number; hash: string }) => { preimage: string; entryHash: string; createdAt: string }) {
+      return db.transaction(async (tx) => {
+        const existing = (await tx.query<{ run_id: string }>(`SELECT run_id FROM ${S}.certificates WHERE run_id=$1`, [c.runId])).rows[0];
+        if (existing) return undefined;
+        await tx.query(`INSERT INTO ${S}.certificates (run_id, jws, summary, summary_sha256, kid) VALUES ($1,$2,$3,$4,$5)`, [c.runId, c.jws, JSON.stringify(c.summary), c.summarySha256, c.kid]);
+        const last = (await tx.query<{ seq: number; entry_hash: string }>(`SELECT seq, entry_hash FROM ${S}.cert_log ORDER BY seq DESC LIMIT 1 FOR UPDATE`)).rows[0];
+        const prev = { seq: last?.seq ?? 0, hash: last?.entry_hash ?? "0".repeat(64) };
+        const e = entry(prev);
+        await tx.query(`INSERT INTO ${S}.cert_log (seq, run_id, prev_hash, entry_hash, preimage, created_at) VALUES ($1,$2,$3,$4,$5,$6)`, [prev.seq + 1, c.runId, prev.hash, e.entryHash, e.preimage, e.createdAt]);
+        return { seq: prev.seq + 1, prevHash: prev.hash, entryHash: e.entryHash };
+      });
+    },
+
+    async setOtsProof(seq: number, calendar: string, proof: Buffer) {
+      await db.query(`UPDATE ${S}.cert_log SET ots_calendar=$2, ots_proof=$3 WHERE seq=$1`, [seq, calendar, proof]);
+    },
+
+    async listHashLog(limit = 500) {
+      return (
+        await db.query<{ seq: number; run_id: string; prev_hash: string; entry_hash: string; preimage: string; created_at: Date; ots_calendar: string | null; has_ots: boolean }>(
+          `SELECT seq, run_id, prev_hash, entry_hash, preimage, created_at, ots_calendar, (ots_proof IS NOT NULL) AS has_ots FROM ${S}.cert_log ORDER BY seq LIMIT $1`,
+          [limit],
+        )
+      ).rows;
+    },
+
+    async getLogEntry(seq: number) {
+      return (
+        await db.query<{ seq: number; run_id: string; prev_hash: string; entry_hash: string; preimage: string; created_at: Date; ots_calendar: string | null; ots_proof: Buffer | null }>(
+          `SELECT seq, run_id, prev_hash, entry_hash, preimage, created_at, ots_calendar, ots_proof FROM ${S}.cert_log WHERE seq=$1`,
+          [seq],
+        )
+      ).rows[0];
+    },
+
+    async getLogEntryForRun(runId: string) {
+      return (
+        await db.query<{ seq: number; prev_hash: string; entry_hash: string; preimage: string; ots_calendar: string | null; has_ots: boolean }>(
+          `SELECT seq, prev_hash, entry_hash, preimage, ots_calendar, (ots_proof IS NOT NULL) AS has_ots FROM ${S}.cert_log WHERE run_id=$1`,
+          [runId],
+        )
+      ).rows[0];
     },
 
     async listRuns(limit = 200) {
