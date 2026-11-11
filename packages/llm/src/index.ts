@@ -162,7 +162,9 @@ async function rawOnce(cfg: LlmConfig, messages: ChatMessage[], fetcher: Fetcher
       // Groq's JSON mode answers 400 (json_validate_failed) when the model's output is not valid
       // JSON. Ask again without JSON mode; the reply is still parsed and schema-validated below.
       const detail = await res.text().catch(() => "");
-      if (!/json_validate_failed|json/i.test(detail)) throw new LlmError(`${cfg.provider} HTTP 400 (${detail.slice(0, 120)})`, 400);
+      // gpt-oss sometimes attempts a native tool call ("tool_use_failed"); we use no tools, so ask
+      // again without JSON mode, the same way.
+      if (!/json_validate_failed|tool_use_failed|json/i.test(detail)) throw new LlmError(`${cfg.provider} HTTP 400 (${detail.slice(0, 120)})`, 400);
       res = await call(false);
     }
     if (!res.ok) throw await refusal(cfg.provider, res);
