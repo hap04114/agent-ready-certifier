@@ -79,11 +79,12 @@ export function registerTrustRoutes(app: FastifyInstance, deps: TrustDeps) {
     const cert = await repo.getCertificate(p.data.id);
     if (!cert) return reply.code(500).send({ error: "certificate_unavailable" });
     const entry = await repo.getLogEntryForRun(p.data.id);
-    const check = jwk ? verifyCertificate(cert.jws, jwk) : { valid: false };
+    // Without the key configured on this server we cannot check: say "unknown" (null), never "false".
+    const check = jwk ? verifyCertificate(cert.jws, jwk) : undefined;
     return {
       certificate: cert.jws,
-      payload: check.valid ? check.payload : JSON.parse(Buffer.from(cert.jws.split(".")[1] ?? "", "base64url").toString("utf8") || "{}"),
-      verified: check.valid,
+      payload: check?.valid ? check.payload : JSON.parse(Buffer.from(cert.jws.split(".")[1] ?? "", "base64url").toString("utf8") || "{}"),
+      verified: check ? check.valid : null,
       summary: cert.summary,
       summarySha256: cert.summary_sha256,
       issuedAt: cert.issued_at,
