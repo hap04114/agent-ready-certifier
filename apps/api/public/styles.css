@@ -25,7 +25,9 @@ a:hover { text-decoration: underline; }
 code, .mono { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.86em; }
 
 header.top { background: #0b1220; color: #fff; padding: 18px 24px 22px; }
-header.top .row { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+header.top .row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+header.top .home-mark { display: flex; flex: none; }
+header.top .home-mark img { width: 30px; height: 30px; display: block; filter: drop-shadow(0 4px 10px rgba(37,99,235,.45)); }
 header.top h1 { font-size: 20px; margin: 0; letter-spacing: 0.2px; }
 header.top .tag { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #1f6feb33; color: #9ec2ff; border: 1px solid #1f6feb66; }
 header.top p.position { margin: 10px 0 0; max-width: 980px; color: #c9d4e5; line-height: 1.5; font-size: 14.5px; }

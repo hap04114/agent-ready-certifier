@@ -19,7 +19,7 @@ verdict**, from PayPal's records, the store's records and PayPal-signed webhooks
 The free hosting tier sleeps when idle, so the first click can take about 50 seconds.
 
 **Short on time?** The [two-page summary for judges](docs/Agent-Ready-Certifier-Summary.pdf) (PDF), or the
-[80-page explainer](docs/Agent-Ready-Certifier-Explained.pdf) for every process and diagram, or the
+[88-page explainer](docs/Agent-Ready-Certifier-Explained.pdf) for every process and diagram, or the
 [slide deck on every tool we used](docs/Agent-Ready-Certifier-Built-With.pptx) (PowerPoint, 14 slides).
 
 ## Judge in 60 seconds
