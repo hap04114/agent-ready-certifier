@@ -24,8 +24,9 @@ what has actually run.
 
 ## Remaining
 
-1. Demo video and Devpost submission (owner).
-2. Before making the repo public: full-history secret scan (`pnpm scan:secrets`).
+1. Demo video and Devpost submission (owner). Copy-paste text: [devpost-submission.md](devpost-submission.md).
+2. ~~Before making the repo public: full-history secret scan~~ Done Nov 12: `pnpm scan:secrets` clean
+   (79 commits, staged files, `.env` values; PDFs checked separately), repository made public.
 3. After judging: rotate keys that were pasted in chat (Kernel on hold until the owner says so); delete the
    `demo-store-buggy` and real-world-study sandbox apps (the buggy store's secret is public by design).
 
