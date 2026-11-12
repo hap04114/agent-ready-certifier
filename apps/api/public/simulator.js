@@ -218,7 +218,15 @@
       })));
     });
     $("pillars").replaceChildren(...pillars);
+    const total = counts.pass + counts.fail + counts.inconclusive || 1;
+    const bar = el("div", { className: "scorebar" });
+    for (const k of ["pass", "fail", "inconclusive"]) {
+      const seg = el("i", { className: k });
+      seg.style.width = `${(counts[k] / total) * 100}%`;
+      bar.append(seg);
+    }
     $("score").replaceChildren(
+      bar,
       chip("pass", `${counts.pass} pass`), chip("fail", `${counts.fail} fail`), chip("inconclusive", `${counts.inconclusive} inconclusive / n/a`),
       el("span", { className: "muted", textContent: counts.fail ? ` Certificate: issued, listing ${counts.fail} failed check${counts.fail === 1 ? "" : "s"}.` : " Certificate: issued with no failures." }),
     );

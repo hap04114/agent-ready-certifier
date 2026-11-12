@@ -95,6 +95,60 @@
     .tool.wait rect.bg { fill: #fff4d6; stroke: #d4a017; stroke-width: 2; }
     .tool.blocked rect.bg { fill: #eef2f7; stroke: #0b1220; stroke-width: 2; stroke-dasharray: 6 3; }
     .mnode.active rect { stroke-width: 3.2; }
+
+    /* ---- light, polished theme (overrides the rules above) ---- */
+    body { background: #f6f8fb; }
+    .snav { background: rgba(255,255,255,.88); border-bottom: 1px solid #e6e9f0; }
+    .snav .logo { color: #0b1220; }
+    .snav a.l { color: #526072; font-weight: 500; } .snav a.l:hover, .snav a.l.on { color: #0b1220; } .snav a.l.on { font-weight: 650; }
+    .shero { color: #0b1220; border-bottom: 1px solid #e6e9f0; background: radial-gradient(700px 340px at 88% -10%, #dbeafe, transparent 62%), radial-gradient(560px 300px at 2% 110%, #ede9fe, transparent 62%), radial-gradient(520px 260px at 55% 130%, #ccfbf1, transparent 60%), #ffffff; }
+    .shero .eb { color: #0d9488; }
+    .shero h1 span { background: linear-gradient(100deg, #2563eb, #0d9488 50%, #7c3aed); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .shero p { color: #526072; } .shero p b { color: #0b1220; }
+    .tabs { box-shadow: 0 12px 30px -14px rgba(15,23,42,.28); border: 1px solid #e6e9f0; }
+    .card { border: 1px solid #e6e9f0; }
+    /* bug switches */
+    .toggle { border-top: 0; border-radius: 12px; padding: 10px; margin: 0 -10px 2px; transition: background .2s; }
+    .toggle:hover { background: #f6f8fb; }
+    .toggle input { appearance: none; -webkit-appearance: none; width: 40px; height: 22px; margin-top: 1px; border-radius: 999px; background: #cbd5e1; position: relative; cursor: pointer; transition: background .25s; accent-color: auto; }
+    .toggle input::before { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(15,23,42,.3); transition: transform .28s cubic-bezier(.3,1.4,.5,1); }
+    .toggle input:checked { background: #dc2626; }
+    .toggle input:checked::before { transform: translateX(18px); }
+    .toggle input:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+    .toggle:has(input:checked) { background: #fef2f2; }
+    .toggle:has(input:checked) .n { color: #b42318; }
+    /* score bar */
+    .scorebar { flex-basis: 100%; display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: #eef2f7; margin-bottom: 4px; }
+    .scorebar i { display: block; height: 100%; transition: width .5s cubic-bezier(.3,.8,.2,1); }
+    .scorebar .pass { background: linear-gradient(90deg, #22c55e, #16a34a); } .scorebar .fail { background: linear-gradient(90deg, #f87171, #dc2626); } .scorebar .inconclusive { background: #f59e0b; }
+    /* check tiles */
+    .ck { border-radius: 12px; border: 1px solid #e6e9f0; border-left-width: 4px; box-shadow: 0 1px 2px rgba(15,23,42,.04); padding: 10px 12px; transition: transform .15s, box-shadow .2s; }
+    .ck:hover { box-shadow: 0 10px 22px -14px rgba(15,23,42,.35); }
+    .ck.pass { border-left-color: #16a34a; } .ck.fail { background: #fef2f2; border-color: #fecaca; border-left-color: #dc2626; } .ck.inconclusive { border-left-color: #f59e0b; }
+    .ck[aria-pressed="true"] { outline: 2px solid #2563eb; outline-offset: 1px; }
+    p.where { background: #f8fafc; border: 1px solid #e6e9f0; }
+    p.now { background: #eef4ff; border: 1px solid #dbe7ff; }
+    /* AI replay as a numbered timeline */
+    .steps { counter-reset: st; }
+    .steps li { position: relative; margin-left: 36px; border-radius: 12px; border-color: #e6e9f0; box-shadow: 0 1px 2px rgba(15,23,42,.04); }
+    .steps li::before { counter-increment: st; content: counter(st); position: absolute; left: -36px; top: 9px; width: 24px; height: 24px; border-radius: 50%; background: #0b1220; color: #fff; font-size: 12px; font-weight: 700; display: grid; place-items: center; }
+    .steps li::after { content: ""; position: absolute; left: -25px; top: 35px; bottom: -8px; width: 2px; background: #e2e8f0; }
+    .steps li:last-child::after { display: none; }
+    .stat { border-radius: 12px; background: #fff; border-color: #e6e9f0; }
+    .verdict { border-radius: 12px; }
+    select { border-radius: 10px; }
+    /* entrance motion */
+    @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+    .shero .eb, .shero h1, .shero p { animation: rise .8s cubic-bezier(.2,.7,.2,1) both; }
+    .shero h1 { animation-delay: .08s; } .shero p { animation-delay: .16s; }
+    .tabs { animation: rise .7s cubic-bezier(.2,.7,.2,1) both .24s; }
+    [role="tabpanel"]:not([hidden]) > * { animation: rise .6s cubic-bezier(.2,.7,.2,1) both .3s; }
+    [role="tabpanel"]:not([hidden]) > *:nth-child(2) { animation-delay: .38s; } [role="tabpanel"]:not([hidden]) > *:nth-child(3) { animation-delay: .46s; }
+    ol.guide li { animation: rise .6s cubic-bezier(.2,.7,.2,1) both .3s; } ol.guide li:nth-child(2) { animation-delay: .4s; } ol.guide li:nth-child(3) { animation-delay: .5s; }
+    @media (prefers-reduced-motion: reduce) {
+      /* biome-ignore lint/complexity/noImportantStyles: the reduced-motion override has to beat every animation rule */
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
   </style>
 </head>
 <body>
