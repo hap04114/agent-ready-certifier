@@ -14,7 +14,8 @@ verdict**, from PayPal's records, the store's records and PayPal-signed webhooks
 [simulator](https://certifier-api.onrender.com/simulator) ·
 [console](https://certifier-api.onrender.com/console) ([recorded runs, no keys needed](https://certifier-api.onrender.com/console?demo=1)) ·
 [demo store](https://demo-store-good.onrender.com/) ·
-[connect your store in 3 steps](https://certifier-api.onrender.com/connect).
+[connect your store in 3 steps](https://certifier-api.onrender.com/connect) ·
+[built with: every sponsor tool, where, why, how and results](https://certifier-api.onrender.com/sponsors).
 The free hosting tier sleeps when idle, so the first click can take about 50 seconds.
 
 **Short on time?** The [two-page summary for judges](docs/Agent-Ready-Certifier-Summary.pdf) (PDF), or the
@@ -263,7 +264,8 @@ Run states: `requested → ownership_verified → running → judged`. Any state
 
 ## How we use each sponsor
 
-Each tool does real work in a real run; every screenshot below is from the live site.
+Each tool does real work in a real run; every screenshot below is from the live site. The same story as one
+page: [certifier-api.onrender.com/sponsors](https://certifier-api.onrender.com/sponsors).
 
 | Tool | What it does here |
 | --- | --- |

@@ -52,6 +52,12 @@ const ASSETS: Record<string, string> = {
   "theme.js": "application/javascript; charset=utf-8",
   "logo.svg": "image/svg+xml",
   "connect.js": "application/javascript; charset=utf-8",
+  // Live screenshots for the "Built with" (sponsors) page.
+  "sponsor-aggrid.png": "image/png",
+  "sponsor-contextmatic.png": "image/png",
+  "sponsor-bryntum.png": "image/png",
+  "sponsor-channel3.png": "image/png",
+  "sponsor-kernel.png": "image/png",
   // Inter variable font (SIL OFL 1.1), copied by build:vendor.
   "inter-var.woff2": "font/woff2",
   "inter-LICENSE.txt": "text/plain; charset=utf-8",
@@ -131,6 +137,7 @@ export function buildApi(config: Config, deps: ApiDeps = {}) {
   app.get("/run", async (_req, reply) => reply.headers(PAGE_HEADERS).type("text/html; charset=utf-8").send(readPublic("run.html")));
   app.get("/owner", async (_req, reply) => reply.headers(PAGE_HEADERS).type("text/html; charset=utf-8").send(readPublic("owner.html")));
   app.get("/connect", async (_req, reply) => reply.headers(PAGE_HEADERS).type("text/html; charset=utf-8").send(readPublic("connect.html")));
+  app.get("/sponsors", async (_req, reply) => reply.headers(PAGE_HEADERS).type("text/html; charset=utf-8").send(readPublic("sponsors.html")));
   // Feature switches the static pages need to know about (public, no secrets).
   app.get("/api/features", async () => ({ consolePresets: config.FEATURE_CONSOLE_PRESETS !== "off" }));
   app.get("/assets/:file", async (req, reply) => {

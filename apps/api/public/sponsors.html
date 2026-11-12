@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Built with · Agent-Ready Certifier</title>
+  <meta name="description" content="Every sponsor tool in Agent-Ready Certifier: where it is used, why, how, and the real result it produced on the PayPal sandbox.">
+  <link rel="icon" href="/assets/logo.svg" type="image/svg+xml">
+  <script src="/assets/theme.js"></script>
+  <script src="/assets/landing.js"></script>
+  <style>
+    @font-face { font-family: "InterVar"; src: url("/assets/inter-var.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+    :root {
+      --bg: #ffffff; --ink: #0b1220; --muted: #526072; --dim: #8a94a3; --line: #e6e9f0; --soft: #f6f8fb; --card: #ffffff;
+      --blue: #2563eb; --teal: #0d9488; --violet: #7c3aed; --amber: #d97706; --red: #dc2626; --green: #059669;
+      --grad: linear-gradient(100deg, #2563eb 0%, #0d9488 50%, #7c3aed 100%);
+      --shadow: 0 1px 2px rgba(15,23,42,.04), 0 16px 40px -20px rgba(15,23,42,.22);
+      --tb-line: #e6e9f0; --tb-bg: #fff; --tb-ink: #0b1220;
+    }
+    html[data-theme="dark"] {
+      --bg: #070b14; --ink: #e8edf6; --muted: #a3aec2; --dim: #6b778c; --line: rgba(255,255,255,.1); --soft: rgba(255,255,255,.04); --card: #0e1524;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 18px 40px -20px rgba(0,0,0,.7);
+      --tb-line: rgba(255,255,255,.16); --tb-bg: rgba(255,255,255,.05); --tb-ink: #f8fafc;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 80px; overflow-x: clip; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font-family: "InterVar", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; line-height: 1.55; overflow-x: clip; }
+    a { color: inherit; }
+    code { font-family: "Cascadia Mono", Consolas, ui-monospace, monospace; font-size: .86em; background: var(--soft); border: 1px solid var(--line); border-radius: 6px; padding: 1px 5px; overflow-wrap: anywhere; }
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+    .grad { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    html[data-theme="dark"] .grad { background: linear-gradient(100deg, #93c5fd, #5eead4 50%, #c4b5fd); -webkit-background-clip: text; background-clip: text; }
+
+    .aurora { position: fixed; inset: 0; z-index: -2; overflow: hidden; pointer-events: none; }
+    .aurora i { position: absolute; width: 50vmax; height: 50vmax; border-radius: 50%; filter: blur(110px); opacity: .24; animation: drift 28s ease-in-out infinite alternate; }
+    .aurora i:nth-child(1) { background: #93c5fd; top: -30vmax; left: -16vmax; }
+    .aurora i:nth-child(2) { background: #99f6e4; top: 0; right: -28vmax; animation-duration: 34s; }
+    html[data-theme="dark"] .aurora i { opacity: .16; }
+    @keyframes drift { to { transform: translate(8vmax, 6vmax) scale(1.12); } }
+    .scrollbar { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 60; background: var(--grad); transform-origin: 0 50%; transform: scaleX(0); }
+    .cursor-glow { position: fixed; top: -200px; left: -200px; width: 400px; height: 400px; border-radius: 50%; pointer-events: none; z-index: -1; background: radial-gradient(circle, rgba(37,99,235,.10), transparent 65%); opacity: 0; transition: opacity .4s; }
+    .cursor-glow.on { opacity: 1; }
+
+    /* nav */
+    .nav { position: sticky; top: 0; z-index: 50; border-bottom: 1px solid transparent; transition: background .3s, border-color .3s; }
+    .nav.scrolled { background: color-mix(in srgb, var(--bg) 84%, transparent); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom-color: var(--line); }
+    .nav .in { display: flex; align-items: center; gap: 24px; padding: 14px 24px; max-width: 1180px; margin: 0 auto; }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: -.01em; text-decoration: none; margin-right: auto; color: var(--ink); }
+    .logo-img { width: 32px; height: 32px; display: block; filter: drop-shadow(0 4px 10px rgba(37,99,235,.35)); }
+    .nav a.l { color: var(--muted); text-decoration: none; font-size: 14.5px; font-weight: 500; white-space: nowrap; }
+    @media (max-width: 520px) { .nav .in { gap: 14px; padding: 12px 16px; } .logo { font-size: 15px; } }
+    .nav a.l:hover, .nav a.l.on { color: var(--ink); }
+    .nav a.l.on { font-weight: 650; }
+    @media (max-width: 820px) { .nav a.l.hide-sm { display: none; } }
+    .theme-btn { position: relative; width: 38px; height: 38px; flex: none; border-radius: 11px; border: 1px solid var(--tb-line); background: var(--tb-bg); color: var(--tb-ink); cursor: pointer; display: grid; place-items: center; }
+    .theme-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+    .theme-btn svg { position: absolute; width: 18px; height: 18px; transition: transform .5s cubic-bezier(.3,1.4,.5,1), opacity .3s; }
+    .theme-btn .sun { opacity: 0; transform: rotate(-90deg) scale(.4); }
+    html[data-theme="dark"] .theme-btn .sun { opacity: 1; transform: none; }
+    html[data-theme="dark"] .theme-btn .moon { opacity: 0; transform: rotate(90deg) scale(.4); }
+    ::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+
+    .btn { position: relative; display: inline-flex; align-items: center; gap: 10px; padding: 13px 22px; border-radius: 12px; font-weight: 600; font-size: 15px; text-decoration: none; transition: transform .25s, box-shadow .25s; white-space: nowrap; }
+    .btn:hover { transform: translateY(-2px); }
+    .btn.primary { color: #fff; background: linear-gradient(135deg, #2563eb, #1d4ed8 60%, #4f46e5); box-shadow: 0 14px 30px -14px rgba(37,99,235,.7); }
+    .btn.ghost { color: var(--ink); background: var(--card); border: 1px solid var(--line); }
+
+    /* hero */
+    .hero { padding-block: 46px 40px; text-align: center; }
+    .eb { font-size: 13px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--teal); }
+    h1 { font-size: clamp(38px, 5.4vw, 64px); line-height: 1.04; letter-spacing: -.04em; font-weight: 760; margin: 14px auto 18px; max-width: 900px; }
+    .hero p.sub { font-size: clamp(17px, 1.6vw, 19.5px); color: var(--muted); max-width: 760px; margin: 0 auto 28px; }
+    .ctas { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+    .chips { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 34px; }
+    .chip { display: inline-flex; align-items: center; gap: 9px; padding: 9px 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); text-decoration: none; font-weight: 650; font-size: 15px; box-shadow: var(--shadow); transition: transform .2s, border-color .2s; }
+    .chip:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--c) 55%, var(--line)); }
+    .chip i { width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
+    .chip small { font-weight: 500; color: var(--dim); font-size: 12.5px; }
+
+    /* sections */
+    section.block { padding-block: 62px; }
+    .head { max-width: 780px; margin-bottom: 30px; }
+    .head h2 { font-size: clamp(28px, 3.4vw, 40px); letter-spacing: -.03em; line-height: 1.1; margin: 8px 0 10px; }
+    .head p { color: var(--muted); font-size: 17px; margin: 0; }
+
+    /* pipeline map */
+    .flow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; position: relative; }
+    @media (max-width: 900px) { .flow { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 560px) { .flow { grid-template-columns: 1fr; } }
+    .stage { position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px; box-shadow: var(--shadow); overflow: hidden; }
+    .stage::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 4px; background: var(--c); }
+    .stage .n { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; font-weight: 750; color: #fff; background: var(--c); font-size: 14px; }
+    .stage h3 { margin: 12px 0 6px; font-size: 18px; letter-spacing: -.01em; }
+    .stage p { margin: 0 0 12px; color: var(--muted); font-size: 14.5px; }
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag { font-size: 12.5px; font-weight: 650; padding: 3px 9px; border-radius: 999px; background: color-mix(in srgb, var(--c) 12%, transparent); color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 30%, transparent); text-decoration: none; }
+    html[data-theme="dark"] .tag { color: color-mix(in srgb, var(--c) 55%, #fff); }
+    .base { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 700px) { .base { grid-template-columns: 1fr; } }
+    .base > div { display: flex; gap: 12px; align-items: center; border: 1px dashed color-mix(in srgb, var(--c) 45%, var(--line)); border-radius: 14px; padding: 14px 16px; background: color-mix(in srgb, var(--c) 5%, var(--card)); font-size: 14.5px; color: var(--muted); }
+    .base b { color: var(--ink); }
+
+    /* at a glance */
+    .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 16px; background: var(--card); box-shadow: var(--shadow); }
+    table { width: 100%; border-collapse: collapse; font-size: 14.5px; min-width: 760px; }
+    th { text-align: left; font-size: 12.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); font-weight: 700; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+    td { padding: 13px 16px; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--muted); }
+    tr:last-child td { border-bottom: 0; }
+    td.t { color: var(--ink); font-weight: 700; white-space: nowrap; }
+    td.t a { text-decoration: none; }
+    td.t i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; background: var(--c); margin-right: 8px; }
+    td.r { color: var(--ink); }
+    /* phones: each tool becomes a stacked card */
+    @media (max-width: 700px) {
+      table { min-width: 0; }
+      thead { display: none; }
+      table, tbody, tr, td { display: block; width: 100%; }
+      tr { padding: 14px 16px; border-bottom: 1px solid var(--line); }
+      tr:last-child { border-bottom: 0; }
+      td { border: 0; padding: 3px 0; }
+      td.t { padding-bottom: 6px; font-size: 16px; }
+      td[data-label]::before { content: attr(data-label); display: block; font-size: 11.5px; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); margin-top: 6px; }
+    }
+
+    /* sponsor sections */
+    .sp { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr); gap: 46px; align-items: start; padding: 54px 0; border-top: 1px solid var(--line); }
+    .sp.flip > .text { order: 2; }
+    @media (max-width: 980px) { .sp, .sp.flip { grid-template-columns: 1fr; gap: 26px; } .sp.flip > .text { order: 0; } }
+    .sp .who { display: flex; align-items: center; gap: 12px; }
+    .sp .badge { width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 17px; background: var(--c); box-shadow: 0 10px 24px -12px var(--c); flex: none; }
+    .sp h2 { margin: 0; font-size: clamp(26px, 3vw, 34px); letter-spacing: -.03em; line-height: 1.1; }
+    .sp .role { color: var(--c); font-weight: 650; font-size: 14.5px; margin: 4px 0 0; }
+    html[data-theme="dark"] .sp .role { color: color-mix(in srgb, var(--c) 55%, #fff); }
+    .wwh { display: grid; gap: 14px; margin: 22px 0 0; }
+    .wwh > div { display: grid; grid-template-columns: 62px 1fr; gap: 12px; font-size: 15px; color: var(--muted); }
+    .wwh dt, .wwh .k { font-size: 12px; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); padding-top: 3px; }
+    .wwh b { color: var(--ink); font-weight: 650; }
+    .wwh ul { margin: 0; padding-left: 18px; } .wwh li { margin-bottom: 5px; }
+    .result { margin-top: 20px; border-radius: 14px; padding: 15px 17px; background: color-mix(in srgb, var(--c) 8%, var(--card)); border: 1px solid color-mix(in srgb, var(--c) 28%, var(--line)); font-size: 14.5px; color: var(--ink); }
+    .result .k { display: block; font-size: 12px; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; color: var(--c); margin-bottom: 4px; }
+    html[data-theme="dark"] .result .k { color: color-mix(in srgb, var(--c) 55%, #fff); }
+    .result ul { margin: 0; padding-left: 18px; } .result li { margin-bottom: 4px; }
+    .links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+    .links a { font-size: 14px; font-weight: 600; text-decoration: none; color: var(--blue); }
+    html[data-theme="dark"] .links a { color: #93c5fd; }
+    .links a::after { content: " →"; }
+
+    /* screenshot frame */
+    .shot { margin: 0; border-radius: 14px; overflow: hidden; border: 1px solid var(--line); background: #fff; box-shadow: 0 2px 4px rgba(15,23,42,.05), 0 30px 60px -30px rgba(15,23,42,.45); transition: transform .4s cubic-bezier(.2,.7,.2,1); }
+    .shot:hover { transform: translateY(-4px); }
+    .shot .bar { display: flex; align-items: center; gap: 7px; padding: 9px 12px; background: #f1f4f8; border-bottom: 1px solid #e3e8ef; }
+    .shot .bar i { width: 10px; height: 10px; border-radius: 50%; background: #d4dae3; }
+    .shot .bar i:nth-child(1) { background: #f87171; } .shot .bar i:nth-child(2) { background: #fbbf24; } .shot .bar i:nth-child(3) { background: #34d399; }
+    .shot .bar span { margin-left: 8px; font-size: 12px; color: #64748b; background: #fff; border: 1px solid #e3e8ef; border-radius: 7px; padding: 2px 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+    .shot img { display: block; width: 100%; height: auto; }
+    .shot.narrow { max-width: 420px; margin: 0 auto; }
+    figcaption { font-size: 13.5px; color: var(--dim); margin-top: 10px; text-align: center; }
+
+    /* render diagram + postman card */
+    .diagram { border: 1px solid var(--line); border-radius: 16px; background: var(--card); box-shadow: var(--shadow); padding: 20px; }
+    .svc { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 520px) { .svc { grid-template-columns: 1fr; } }
+    .svc > div { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; background: var(--soft); }
+    .svc b { display: block; font-size: 14.5px; } .svc span { font-size: 13px; color: var(--muted); }
+    .svc .web b::before { content: "● "; color: var(--green); }
+    .svc .db { grid-column: 1 / -1; text-align: center; border-style: dashed; }
+    .svc .db b::before { content: "◆ "; color: var(--blue); }
+    .pm .row { display: flex; align-items: center; gap: 12px; padding: 11px 4px; border-bottom: 1px solid var(--line); font-size: 14.5px; }
+    .pm .row:last-child { border-bottom: 0; }
+    .pm .row b { margin-left: auto; font-size: 13px; color: var(--muted); font-weight: 600; }
+    .pm .folder { width: 22px; height: 18px; border-radius: 3px; background: #ff6c37; position: relative; flex: none; }
+    .pm .folder::before { content: ""; position: absolute; top: -4px; left: 0; width: 10px; height: 5px; border-radius: 2px 2px 0 0; background: #ff6c37; }
+    .pm .hd { display: flex; align-items: center; justify-content: space-between; font-weight: 700; margin-bottom: 6px; }
+    .pm .hd span { font-size: 12.5px; color: var(--dim); font-weight: 600; }
+
+    /* paypal grid */
+    .pp { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    @media (max-width: 900px) { .pp { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 560px) { .pp { grid-template-columns: 1fr; } }
+    .card { position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; box-shadow: var(--shadow); overflow: hidden; }
+    .card::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(260px circle at var(--mx, -300px) var(--my, -300px), rgba(37,99,235,.09), transparent 60%); }
+    .card h4 { margin: 0 0 4px; font-size: 15.5px; }
+    .card p { margin: 0; color: var(--muted); font-size: 14px; }
+    .card .ck { margin-top: 8px; font-size: 12.5px; font-weight: 650; color: var(--blue); }
+    html[data-theme="dark"] .card .ck { color: #93c5fd; }
+
+    /* results band */
+    .band { border-radius: 22px; padding: 34px; color: #fff; background: radial-gradient(600px 300px at 90% 0%, #1d4ed866, transparent 60%), radial-gradient(500px 260px at 0% 100%, #0d948855, transparent 60%), #0b1220; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 20px; }
+    @media (max-width: 980px) { .band { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 520px) { .band { grid-template-columns: 1fr; padding: 24px; } }
+    .band .n { font-size: clamp(28px, 3vw, 38px); font-weight: 780; letter-spacing: -.03em; line-height: 1.05; }
+    .band .u { color: #aab4c5; font-size: 13.5px; margin-top: 6px; }
+
+    footer { border-top: 1px solid var(--line); margin-top: 60px; padding: 30px 0 48px; color: var(--dim); font-size: 13.5px; }
+    footer .in { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; }
+    footer a { text-decoration: none; color: var(--muted); }
+
+    /* reveal on scroll (landing.js adds .js and .in) */
+    .js .reveal { opacity: 0; transform: translateY(26px); transition: opacity .8s cubic-bezier(.2,.7,.2,1), transform .8s cubic-bezier(.2,.7,.2,1); }
+    .js .reveal.in { opacity: 1; transform: none; }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      /* biome-ignore lint/complexity/noImportantStyles: reduced motion must override every animation */
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="scrollbar" id="scrollbar"></div>
+  <div class="cursor-glow" id="glow"></div>
+  <div class="aurora" aria-hidden="true"><i></i><i></i></div>
+
+  <header class="nav" id="nav">
+    <div class="in">
+      <a class="logo" href="/"><img class="logo-img" src="/assets/logo.svg" alt="" width="32" height="32">Agent-Ready Certifier</a>
+      <a class="l hide-sm" href="/">Home</a>
+      <a class="l hide-sm" href="/how-it-works">How it works</a>
+      <a class="l hide-sm" href="/simulator">Simulator</a>
+      <a class="l hide-sm" href="/console">Console</a>
+      <a class="l hide-sm" href="/connect">Connect</a>
+      <a class="l on" href="/sponsors">Built with</a>
+      <button class="theme-btn" type="button" data-theme-toggle aria-label="Switch to dark mode">
+        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4"/></svg>
+        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.6A8.2 8.2 0 0 1 9.4 4a8.2 8.2 0 1 0 10.6 10.6z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero wrap">
+      <div class="eb">Built with our hackathon sponsors</div>
+      <h1>Every sponsor tool does <span class="grad">real work.</span></h1>
+      <p class="sub">Seven tools, each inside a real certification run on the PayPal sandbox. For every one: where it lives in the product, why it is there, how it works, and the result it produced, with live screenshots and real PayPal IDs.</p>
+      <div class="ctas">
+        <a class="btn primary" href="/console">Open the console</a>
+        <a class="btn ghost" href="/run?id=9d2bdcbd-25de-4da9-97b1-4013ede178a0">See a real report</a>
+      </div>
+      <nav class="chips" aria-label="Sponsor tools on this page">
+        <a class="chip" href="#aggrid" style="--c:#2563eb"><i></i>AG Grid <small>results console</small></a>
+        <a class="chip" href="#apimatic" style="--c:#7c3aed"><i></i>APIMatic <small>SDK-grounded fixes</small></a>
+        <a class="chip" href="#bryntum" style="--c:#0d9488"><i></i>Bryntum <small>run timeline</small></a>
+        <a class="chip" href="#channel3" style="--c:#d97706"><i></i>Channel3 <small>real products</small></a>
+        <a class="chip" href="#render" style="--c:#059669"><i></i>Render <small>hosting</small></a>
+        <a class="chip" href="#kernel" style="--c:#db2777"><i></i>Kernel <small>cloud browsers</small></a>
+        <a class="chip" href="#postman" style="--c:#ea580c"><i></i>Postman <small>API checks</small></a>
+        <a class="chip" href="#paypal" style="--c:#1d4ed8"><i></i>PayPal <small>the platform</small></a>
+      </nav>
+    </section>
+
+    <section class="block wrap reveal" aria-labelledby="map-h">
+      <div class="head">
+        <div class="eb">Where each tool sits</div>
+        <h2 id="map-h">One certification, four stages.</h2>
+        <p>A run stocks a real store, shops and attacks it like a buyer, an attacker and an AI agent would, judges every check from PayPal's records with plain code, then shows the proof. Each sponsor tool owns one job in that pipeline.</p>
+      </div>
+      <div class="flow">
+        <div class="stage" style="--c:#d97706"><div class="n">1</div><h3>Stock the store</h3><p>Demo stores sell real listings, so price checks run on real prices.</p><div class="tags"><a class="tag" href="#channel3">Channel3</a></div></div>
+        <div class="stage" style="--c:#db2777"><div class="n">2</div><h3>Shop and attack</h3><p>An AI buyer pays in a recorded cloud browser; scripted probes attack the checkout.</p><div class="tags"><a class="tag" href="#kernel">Kernel</a><a class="tag" href="#paypal" style="--c:#1d4ed8">PayPal sandbox</a></div></div>
+        <div class="stage" style="--c:#7c3aed"><div class="n">3</div><h3>Judge and explain</h3><p>Plain code decides every verdict; AI explains failures, grounded in the current SDK.</p><div class="tags"><a class="tag" href="#apimatic">APIMatic ContextMatic</a></div></div>
+        <div class="stage" style="--c:#2563eb"><div class="n">4</div><h3>Show the proof</h3><p>Compare runs, checks and AI models; see where a run waited on PayPal.</p><div class="tags"><a class="tag" href="#aggrid">AG Grid</a><a class="tag" href="#bryntum" style="--c:#0d9488">Bryntum</a></div></div>
+      </div>
+      <div class="base">
+        <div style="--c:#059669"><span class="tag" style="--c:#059669">Render</span><span><b>Hosts all of it</b> from one blueprint: the certifier with its public webhook listener, three stores and Postgres.</span></div>
+        <div style="--c:#ea580c"><span class="tag" style="--c:#ea580c">Postman</span><span><b>Lets anyone re-run</b> the API-level checks and the Run API without our code.</span></div>
+      </div>
+    </section>
+
+    <section class="block wrap reveal" aria-labelledby="glance-h">
+      <div class="head">
+        <div class="eb">At a glance</div>
+        <h2 id="glance-h">Which tool, where, why, and what it proved.</h2>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Tool</th><th>Where we use it</th><th>Why</th><th>Result on real runs</th></tr></thead>
+          <tbody>
+            <tr><td class="t" style="--c:#2563eb"><a href="#aggrid"><i></i>AG Grid</a></td><td data-label="Where we use it">The results console: four grids and one-click quick views</td><td data-label="Why">Compare stores, checks and AI models, and trace every verdict to PayPal's proof</td><td class="r" data-label="Result on real runs">"Failures only" opens the buggy store's 11 failing checks, each with its strongest evidence</td></tr>
+            <tr><td class="t" style="--c:#7c3aed"><a href="#apimatic"><i></i>APIMatic ContextMatic</a></td><td data-label="Where we use it">The diagnosis agent, at runtime, on every failed check</td><td data-label="Why">AI fixes often name SDK methods that do not exist</td><td class="r" data-label="Result on real runs">All 9 failures of run 4291cc0a explained; 3 PayPal Server SDK methods verified by exact name</td></tr>
+            <tr><td class="t" style="--c:#0d9488"><a href="#bryntum"><i></i>Bryntum Scheduler</a></td><td data-label="Where we use it">The run report's timeline</td><td data-label="Why">Tell a slow PayPal webhook from a broken store</td><td class="r" data-label="Result on real runs">PayPal's signed capture event in 1 s, refund event in 16 s (run ed37cc30)</td></tr>
+            <tr><td class="t" style="--c:#d97706"><a href="#channel3"><i></i>Channel3</a></td><td data-label="Where we use it">Both demo stores' catalog</td><td data-label="Why">Test on real listings and real prices, not toy data</td><td class="r" data-label="Result on real runs">Price tampering caught on a real $64.00 lamp: PayPal order at $1.00</td></tr>
+            <tr><td class="t" style="--c:#059669"><a href="#render"><i></i>Render</a></td><td data-label="Where we use it">One blueprint: 4 web services and Postgres</td><td data-label="Why">PayPal needs a public HTTPS listener; stores must be real sites</td><td class="r" data-label="Result on real runs">PayPal's own example ran as its own isolated store and was fully certified</td></tr>
+            <tr><td class="t" style="--c:#db2777"><a href="#kernel"><i></i>Kernel</a></td><td data-label="Where we use it">The AI buyer's cloud browser, recorded</td><td data-label="Why">Real buyer journeys through PayPal's popup, reviewable afterwards</td><td class="r" data-label="Result on real runs">AI buyer paid $100 on PayPal's own example in 9 steps; replay attached as evidence</td></tr>
+            <tr><td class="t" style="--c:#ea580c"><a href="#postman"><i></i>Postman</a></td><td data-label="Where we use it">A collection in <code>postman/</code></td><td data-label="Why">Anyone can re-run our API-level checks</td><td class="r" data-label="Result on real runs">24 requests in 4 folders: Run API, Secure checks, Trust, Owner approvals</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="wrap">
+      <!-- AG Grid -->
+      <section class="sp reveal" id="aggrid" style="--c:#2563eb" aria-labelledby="aggrid-h">
+        <div class="text">
+          <div class="who"><div class="badge">AG</div><div><h2 id="aggrid-h">AG Grid</h2><p class="role">The results console · ag-grid-community 36.3.0</p></div></div>
+          <div class="wwh">
+            <div><span class="k">Where</span><span>The <a href="/console">console</a>: <b>runs across stores</b>, <b>checks within a run</b> with drill-down to PayPal evidence, the <b>model safety scorecard</b> (model × scenario), and <b>every AI trial</b>.</span></div>
+            <div><span class="k">Why</span><span>One certification yields 21 verdicts and the scorecard hundreds of trials. Developers and judges need to compare stores, checks and models, and trace each verdict to the PayPal record behind it.</span></div>
+            <div><span class="k">How</span><ul><li>Floating filters, sorting, pinned columns and <b>CSV export</b> on every grid.</li><li>One-click <b>quick views</b>: failures only, compare models, evidence for a check.</li><li>Click a check to open its reasons, business impact and evidence, each labelled with its strength (<code>paypal-api</code>, <code>paypal-signed</code>…).</li></ul></div>
+          </div>
+          <div class="result"><span class="k">Result</span><ul><li>"Failures only" opens buggy-store run <code>9d2bdcbd</code>: 11 failing checks, all 10 planted bugs.</li><li>The scorecard shows the real N per cell: gpt-oss-120b raised its own limit 2 of 10 times with the code readable, 0 of 6 with approval in PayPal's window.</li></ul></div>
+          <div class="links"><a href="/console">Open the console</a><a href="/console?demo=1">Recorded demo, no keys</a></div>
+        </div>
+        <figure class="shot"><div class="bar"><i></i><i></i><i></i><span>certifier-api.onrender.com/console</span></div><img src="/assets/sponsor-aggrid.png" alt="AG Grid console: the Failures only quick view shows the buggy store's failing checks and the model scorecard" width="1360" height="1000" loading="lazy"></figure>
+      </section>
+
+      <!-- APIMatic -->
+      <section class="sp flip reveal" id="apimatic" style="--c:#7c3aed" aria-labelledby="apimatic-h">
+        <div class="text">
+          <div class="who"><div class="badge">AM</div><div><h2 id="apimatic-h">APIMatic ContextMatic</h2><p class="role">SDK-grounded fixes for every failure · MCP at runtime</p></div></div>
+          <div class="wwh">
+            <div><span class="k">Where</span><span>The <b>diagnosis agent</b>, called at runtime for each failed check; its fix appears under the verdict in every run report.</span></div>
+            <div><span class="k">Why</span><span>AI-written fixes often name PayPal SDK methods that do not exist. A fix a developer can trust must use the current PayPal Server SDK.</span></div>
+            <div><span class="k">How</span><ul><li>The agent asks ContextMatic (MCP <code>ask</code>, PayPal Server SDK, TypeScript) for current guidance on the failure.</li><li>Every SDK method the agent then names is checked: <b>verified</b> only if ContextMatic's answer or its <code>endpoint_search</code> index lists it by exact name.</li><li>The verdict stays rule-based; the fix is labelled as an AI explanation.</li></ul></div>
+          </div>
+          <div class="result"><span class="k">Result</span><ul><li>All 9 failures of buggy-store run <code>4291cc0a</code> explained with ContextMatic context.</li><li>Verified: <code>OrdersController.createOrder</code> (S1, S7), <code>PaymentsController.getCapturedPayment</code> and <code>getRefund</code> (W4).</li></ul></div>
+          <div class="links"><a href="/run?id=4291cc0a-613a-4592-9833-e84d1d9284cd">See the diagnosed report</a></div>
+        </div>
+        <figure class="shot"><div class="bar"><i></i><i></i><i></i><span>certifier-api.onrender.com/run?id=4291cc0a…</span></div><img src="/assets/sponsor-contextmatic.png" alt="A failed W4 check with a suggested fix whose PayPal SDK methods are verified against ContextMatic" width="1238" height="545" loading="lazy"></figure>
+      </section>
+
+      <!-- Bryntum -->
+      <section class="sp reveal" id="bryntum" style="--c:#0d9488" aria-labelledby="bryntum-h">
+        <div class="text">
+          <div class="who"><div class="badge">B</div><div><h2 id="bryntum-h">Bryntum Scheduler</h2><p class="role">The run timeline · Community edition 8.0.0 (MIT)</p></div></div>
+          <div class="wwh">
+            <div><span class="k">Where</span><span>Every <b>run report</b>: one bar per step of the certification, in seconds from the start.</span></div>
+            <div><span class="k">Why</span><span>A run waits on PayPal's signed webhooks. Seeing those waits is how you tell a slow PayPal ("delayed") from a broken store, and why a missing event is never blamed on the store.</span></div>
+            <div><span class="k">How</span><ul><li>Steps are typed (setup, AI agent, wait, webhook, attack, judging); webhook waits are highlighted.</li><li>Bundled locally, loaded only when a run has a timeline; <code>FEATURE_RUN_TIMELINE=off</code> hides it.</li></ul></div>
+          </div>
+          <div class="result"><span class="k">Result</span><ul><li>Good-store run <code>ed37cc30</code>: PayPal's signed capture event arrived in <b>1 s</b>, the refund event in <b>16 s</b>.</li><li>The AI buyer's three approvals took 90 s, 28 s and 26 s.</li></ul></div>
+          <div class="links"><a href="/run?id=ed37cc30-8e31-4872-b753-4957b62709a3">See the timeline</a></div>
+        </div>
+        <figure class="shot"><div class="bar"><i></i><i></i><i></i><span>certifier-api.onrender.com/run?id=ed37cc30…</span></div><img src="/assets/sponsor-bryntum.png" alt="Bryntum run timeline: each step as a bar, with PayPal webhook waits" width="1272" height="763" loading="lazy"></figure>
+      </section>
+
+      <!-- Channel3 -->
+      <section class="sp flip reveal" id="channel3" style="--c:#d97706" aria-labelledby="channel3-h">
+        <div class="text">
+          <div class="who"><div class="badge">C3</div><div><h2 id="channel3-h">Channel3</h2><p class="role">Real products and prices · product search API</p></div></div>
+          <div class="wwh">
+            <div><span class="k">Where</span><span>Both demo stores' <b>catalog</b>: a committed snapshot of Channel3 product search (<code>catalog:sync</code>), labelled on the store page.</span></div>
+            <div><span class="k">Why</span><span>A certifier should be tested on real listings, not toy data. The price checks need real prices in the right bands.</span></div>
+            <div><span class="k">How</span><ul><li>Three real listings: Blomus KUMI mug <b>$20.99</b>, TIEFOSSI A5 dotted notebook <b>$18.80</b>, UPLIFT Desk LED Desk Lamp E3 <b>$64.00</b>.</li><li>Kept in the bands the checks rely on: the notebook fits an AI shopper's $20 limit, the lamp does not.</li><li>Price tampering (S1) and the machine-readable price check (A4) run against these listings; the AI-shopper funnel (R3) shops this store.</li></ul></div>
+          </div>
+          <div class="result"><span class="k">Result</span><ul><li>On the buggy store, S1 set every price field to $1.00 and PayPal order <code>5V384020GN270763Y</code> was created for <b>1.00 USD</b> against the lamp's real <b>64.00 USD</b> (run <code>9d2bdcbd</code>).</li></ul></div>
+          <div class="links"><a href="https://demo-store-good.onrender.com/">Open the demo store</a></div>
+        </div>
+        <figure class="shot narrow"><div class="bar"><i></i><i></i><i></i><span>demo-store-good.onrender.com</span></div><img src="/assets/sponsor-channel3.png" alt="Demo store selling a real Channel3 listing, labelled as a Channel3 snapshot" width="600" height="720" loading="lazy"></figure>
+      </section>
+
+      <!-- Render -->
+      <section class="sp reveal" id="render" style="--c:#059669" aria-labelledby="render-h">
+        <div class="text">
+          <div class="who"><div class="badge">R</div><div><h2 id="render-h">Render</h2><p class="role">All hosting · one blueprint (<code>render.yaml</code>)</p></div></div>
+          <div class="wwh">
+            <div><span class="k">Where</span><span>Everything you click is on Render: the certifier (API, console, reports, this page), both demo stores, PayPal's example store, and Postgres.</span></div>
+            <div><span class="k">Why</span><span>PayPal delivers signed webhooks only to a <b>public HTTPS</b> URL, and ownership is proven on a real hosted site. Code we did not write must run <b>isolated</b> from ours.</span></div>
+            <div><span class="k">How</span><ul><li>Secrets use <code>sync: false</code>; <code>pnpm render:sync</code> sets them and prints names only, never values.</li><li>Deploys on every push; the third-party store redeploys only when its own folder changes.</li></ul></div>
+          </div>
+          <div class="result"><span class="k">Result</span><ul><li>PayPal's signed capture event reached the Render-hosted listener and verified in about 1 s (run <code>ed37cc30</code>).</li><li>PayPal's own example ran unchanged as its own service and was fully certified: 9 pass, 3 fail, 9 inconclusive (run <code>c38fb9cd</code>).</li></ul></div>
+        </div>
+        <div class="diagram" role="img" aria-label="Render blueprint: four web services and a Postgres database">
+          <div class="svc">
+            <div class="web"><b>certifier-api</b><span>Run API, console, reports, webhook listener</span></div>
+            <div class="web"><b>demo-store-good</b><span>correct, current, secure store</span></div>
+            <div class="web"><b>demo-store-buggy</b><span>10 planted bugs, its own throwaway app</span></div>
+            <div class="web"><b>paypal-example-store</b><span>PayPal's example, unchanged, isolated</span></div>
+            <div class="db"><b>certifier-db (Postgres)</b><span>runs, verdicts, evidence, trials, certificates</span></div>
+          </div>
+          <figcaption>The services in <code>render.yaml</code>, all on the PayPal sandbox</figcaption>
+        </div>
+      </section>
+
+      <!-- Kernel -->
+      <section class="sp flip reveal" id="kernel" style="--c:#db2777" aria-labelledby="kernel-h">
+        <div class="text">
+          <div class="who"><div class="badge">K</div><div><h2 id="kernel-h">Kernel</h2><p class="role">Cloud browsers for the AI buyer · recorded</p></div></div>
+          <div class="wwh">
+            <div><span class="k">Where</span><span>The <b>AI buyer agent</b> in every Works run, the agent checkout funnel (R3), the third-party run, and the C3 button measurement.</span></div>
+            <div><span class="k">Why</span><span>A real purchase goes through PayPal's popup in a real browser. A recording makes what the AI did reviewable afterwards.</span></div>
+            <div><span class="k">How</span><ul><li>Playwright connects to a Kernel cloud browser over CDP; the agent sees the page as untrusted data and acts through fixed actions.</li><li>Each session is recorded; its replay ID is attached as <code>certifier-recorded</code> evidence, which shows what happened but never decides a verdict.</li></ul></div>
+          </div>
+          <div class="result"><span class="k">Result</span><ul><li>On PayPal's own example, the AI buyer paid $100 with the example's own PayPal button in 9 steps (replay <code>p4pmsm0d0rs65mg9suyjzs5y</code>).</li><li>Funnel on the live store: Qwen3.8-27B paid 3 of 3; gpt-oss-120b 0 of 2 (never opened PayPal).</li></ul></div>
+          <div class="links"><a href="/run?id=c38fb9cd-21c4-4e21-9d62-29b9a6d3dae1">See the third-party run</a></div>
+        </div>
+        <figure class="shot"><div class="bar"><i></i><i></i><i></i><span>certifier-api.onrender.com/run?id=ed37cc30…</span></div><img src="/assets/sponsor-kernel.png" alt="Run summary naming the Kernel replay attached as evidence" width="1270" height="110" loading="lazy"></figure>
+      </section>
+
+      <!-- Postman -->
+      <section class="sp reveal" id="postman" style="--c:#ea580c" aria-labelledby="postman-h">
+        <div class="text">
+          <div class="who"><div class="badge">P</div><div><h2 id="postman-h">Postman</h2><p class="role">The API-level checks, as a collection</p></div></div>
+          <div class="wwh">
+            <div><span class="k">Where</span><span><code>postman/agent-ready-certifier.postman_collection.json</code> in the repository.</span></div>
+            <div><span class="k">Why</span><span>A certificate should be checkable without trusting our code. Anyone can re-run the API-level checks against a store they own.</span></div>
+            <div><span class="k">How</span><ul><li>Import the collection, set the base URL, run the folders in order.</li><li>The same endpoints the console and reports use, including certificate verification and the public hash log.</li></ul></div>
+          </div>
+          <div class="result"><span class="k">Result</span><ul><li>24 requests in 4 folders, covering the Run API, the API-level Secure checks, the trust layer and passkey owner approvals.</li></ul></div>
+          <div class="links"><a href="https://github.com/hap04114/agent-ready-certifier/tree/main/postman" rel="noopener">Get the collection</a></div>
+        </div>
+        <div class="diagram pm" role="img" aria-label="The Postman collection's four folders and request counts">
+          <div class="hd">Agent-Ready Certifier <span>24 requests</span></div>
+          <div class="row"><span class="folder"></span>Run API<b>8 requests</b></div>
+          <div class="row"><span class="folder"></span>Secure checks (API level, against a store you own)<b>7 requests</b></div>
+          <div class="row"><span class="folder"></span>Trust: certificates and hash log<b>5 requests</b></div>
+          <div class="row"><span class="folder"></span>Owner approvals (passkeys)<b>4 requests</b></div>
+        </div>
+      </section>
+    </div>
+
+    <section class="block wrap reveal" id="paypal" aria-labelledby="paypal-h">
+      <div class="head">
+        <div class="eb">And the platform itself</div>
+        <h2 id="paypal-h">PayPal, end to end, sandbox only.</h2>
+        <p>Every verdict cites the PayPal IDs it relied on. These are the PayPal products the certifier exercises, and the checks each one makes possible.</p>
+      </div>
+      <div class="pp">
+        <div class="card"><h4>PayPal Server SDK 2.5.0</h4><p>Every Orders, Payments and Vault call, with <code>Environment.Sandbox</code> enforced at boot.</p><div class="ck">all checks</div></div>
+        <div class="card"><h4>Orders v2</h4><p>Create, read and capture orders; read back what PayPal recorded.</p><div class="ck">W1–W3 · S1 · S4 · S6 · S7 · R1 · A1–A3</div></div>
+        <div class="card"><h4>Payments v2</h4><p>Refund a capture and read the refund back.</p><div class="ck">W4</div></div>
+        <div class="card"><h4>Negative testing</h4><p><code>PayPal-Mock-Response</code>: forced decline and server error on the store's own capture.</p><div class="ck">W2 · W3</div></div>
+        <div class="card"><h4>Webhooks + signatures</h4><p>Signed events verified by the certifier itself (certificate, CRC32, SHA256withRSA); PayPal's resend.</p><div class="ck">W5 · W6 · S2 · S3</div></div>
+        <div class="card"><h4>Idempotency</h4><p><code>PayPal-Request-Id</code> on every write; the store must reuse it on retries.</p><div class="ck">S7</div></div>
+        <div class="card"><h4>Vault v3</h4><p>A saved sandbox PayPal wallet, so AI-shopper trials make real captures.</p><div class="ck">R1 · A2</div></div>
+        <div class="card"><h4>JavaScript SDK</h4><p>Buttons, Pay Later messaging and Venmo, checked on any store's page.</p><div class="ck">C1 · C2 · C3 · C5</div></div>
+        <div class="card"><h4>Agent Toolkit 1.11.0</h4><p>The store's own AI support agent (<code>get_order</code>, <code>create_refund</code>, <code>get_refund</code>): gpt-oss-120b made 0 of 6 wrong refunds and 6 of 6 genuine ones.</p><div class="ck">A6 · R2</div></div>
+      </div>
+    </section>
+
+    <section class="block wrap reveal" aria-label="Results">
+      <div class="band">
+        <div><div class="n">48/52</div><div class="u">planted-bug detections (92%), 0 bugs ever wrongly passed</div></div>
+        <div><div class="n">0</div><div class="u">false alarms on the correct store</div></div>
+        <div><div class="n">2/10 → 0/6</div><div class="u">AI limit bypasses: code readable vs. approval in PayPal's window</div></div>
+        <div><div class="n">0/37</div><div class="u">bypasses with the owner's passkey, 4 models</div></div>
+        <div><div class="n">9 · 3 · 9</div><div class="u">pass · fail · inconclusive on PayPal's own example</div></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap in">
+      <a class="logo" href="/"><img class="logo-img" src="/assets/logo.svg" alt="" width="28" height="28">Agent-Ready Certifier</a>
+      <a href="/how-it-works">How it works</a><a href="/simulator">Simulator</a><a href="/console">Console</a><a href="/connect">Connect your store</a><a href="https://github.com/hap04114/agent-ready-certifier" rel="noopener">GitHub</a>
+      <span style="flex-basis:100%">PayPal sandbox only · every ID on this page is a sandbox ID from a real run · screenshots taken from the live site · product names are the sponsors' trademarks</span>
+    </div>
+  </footer>
+</body>
+</html>

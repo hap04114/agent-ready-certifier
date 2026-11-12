@@ -38,6 +38,20 @@ describe("pages", () => {
     expect(logo.headers["content-type"]).toBe("image/svg+xml");
   });
 
+  it("serves the Built-with (sponsors) page and every screenshot it shows", async () => {
+    const res = await app().inject({ method: "GET", url: "/sponsors" });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["content-security-policy"]).toContain("default-src 'self'");
+    for (const id of ["aggrid", "apimatic", "bryntum", "channel3", "render", "kernel", "postman", "paypal"]) expect(res.body).toContain(`id="${id}"`);
+    const images = [...res.body.matchAll(/src="\/assets\/(sponsor-[a-z0-9]+\.png)"/g)].map((m) => m[1]!);
+    expect(images.length).toBe(5);
+    for (const img of images) {
+      const r = await app().inject({ method: "GET", url: `/assets/${img}` });
+      expect(r.statusCode).toBe(200);
+      expect(r.headers["content-type"]).toBe("image/png");
+    }
+  });
+
   it("serves the Connect-your-store page with snippets that match the store contract", async () => {
     const res = await app().inject({ method: "GET", url: "/connect" });
     expect(res.statusCode).toBe(200);
