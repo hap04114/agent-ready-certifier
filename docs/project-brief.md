@@ -49,18 +49,9 @@ One run checks a store on four pillars and returns a certificate: Works, Current
 6. **Explain.** AI turns each failure into plain language with a suggested fix grounded in PayPal docs.
 7. **Certify.** A report with a score per pillar, a video of the run, and a re-test button after fixes.
 
-## What makes it different from Breakpoint
+## What makes it different
 
-Breakpoint is a security test bench for its own built-in vulnerable demo store; it states it is not a tool for testing arbitrary live stores ([Breakpoint README](https://github.com/arc585/breakpoint)). The certifier tests any merchant's own store, on correctness, PayPal adoption, security and agent readiness together.
-
-|  | Breakpoint | Agent-Ready Certifier |
-| --- | --- | --- |
-| Target | Bundled "Dusk Coffee" demo app only | Any store the developer owns and verifies |
-| Scope | Security attacks on the shop's AI assistant | Works, Current, Secure and Agent-ready |
-| Method | Four scripted checks, two LLM attacker scenarios, mostly API-level | Real browser buyer journey plus scripted probes plus an AI shopper |
-| Why AI is needed | To play the attacker | To navigate stores it has never seen, since every site differs |
-| PayPal business link | Merchant losses from manipulation | PayPal's playbook adoption problem |
-| Approval-path test | Not among its six scenarios | Included (I-HITL style) |
+The certifier tests any merchant's own store, on correctness, PayPal adoption, security and agent readiness together.
 
 ### The five locked differentiators
 
@@ -72,27 +63,8 @@ Breakpoint is a security test bench for its own built-in vulnerable demo store; 
 
 ### Plus a security pillar, done responsibly
 
-Breakpoint covers some of the same flaws (amount tampering, forged webhooks), but only on its own demo app. The certifier applies payment-security checks to a real store, non-destructively, in sandbox only, and only after the owner proves control. That responsible-testing design is itself a differentiator for a security-minded judge.
+The certifier applies payment-security checks to a real store, non-destructively, in sandbox only, and only after the owner proves control. That responsible-testing design is itself a differentiator for a security-minded judge.
 
-## Competition and positioning
-
-A scan of public GitHub on November 6, 2026 found no entry that certifies a merchant's own store across working, playbook, security and agent readiness. The crowded spaces are guarded shopping agents and merchant operations agents; testing tools are rare.
-
-| Group | Examples | Overlap |
-| --- | --- | --- |
-| Guarded shopping agents and spending firewalls (very crowded) | Velora, PayGuard, PayAgent AI, ApprovalPay, Mandate, two Leash projects, Agent Payment Firewalls, ShopPilot, Proof-of-Intent | Low: they build safe agents; we test stores and agents |
-| Merchant operations agents (crowded) | Cleared, CashFlow AI, RecoverAI, Invoice Steward, PayPilot, Wrenly, paypal-agent-shop | None |
-| Testing and security (rare) | [Breakpoint](https://github.com/arc585/breakpoint) (own demo store only), [Waypoint](https://github.com/skcache/waypoint) (verifies its own code fixture with an oracle), [webhook simulator](https://github.com/brandon-makes/paypal-webhook-simulator) | Medium for Waypoint's oracle idea; low otherwise |
-| Agent-ready stores | [Doorway](https://github.com/cloudy070/doorway-paypal-ai-hackathon-2026) imports a merchant site with AI and exposes shopping tools | Different: Doorway makes stores agent-ready; we prove whether they are |
-
-### One-line positioning
-
-- **Versus Breakpoint:** "Breakpoint attacks its own demo store; we certify yours."
-- **Versus Waypoint:** "Waypoint verifies a code fixture; we test the live store through a real browser."
-- **Versus Doorway:** "Doorway makes stores agent-ready; we prove whether they are."
-- **Versus firewalls:** "They build safer agents; we measure which agents and stores are safe."
-
-**Caution:** private repositories and unpublished Devpost submissions are invisible to this scan.
 
 ## Security module in detail
 
@@ -231,7 +203,7 @@ A tool that runs security checks against other people's stores must prove it can
 ### Rules
 
 1. **Ownership verification before any test.** The developer places a unique token on the store (a meta tag or a file at a fixed path), the same pattern domain-verification services use. No token, no tests.
-2. **Sandbox only, enforced in code.** All PayPal calls go to api-m.sandbox.paypal.com; the app refuses to start with live hosts or live credentials. Several hackathon entries enforce this at boot, which judges will expect.
+2. **Sandbox only, enforced in code.** All PayPal calls go to api-m.sandbox.paypal.com; the app refuses to start with live hosts or live credentials.
 3. **Least privilege.** The certifier never needs the merchant's API secret. It uses its own sandbox buyer accounts, reads order status through credentials scoped to the test, and stores nothing longer than the run needs.
 4. **Rate limits and stop button.** A fixed request budget per run and a kill switch, so a test can never hammer a site.
 5. **Audit trail.** Every probe, request and result is logged with a timestamp, so the merchant sees exactly what was sent.
@@ -329,7 +301,7 @@ The core project already reaches most categories; variations come later and only
 | Render | Credits | Hosts the app and test worker |
 | Bryntum | $1,000 x 3 | Only if scheduled re-certification runs are added |
 
-Breakpoint also uses AG Grid and Render, so the grid must show more than one demo's findings.
+The grid must show more than one demo's findings: multi-store, multi-run data.
 
 ### Open decisions
 

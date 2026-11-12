@@ -22,7 +22,6 @@ Every major design choice traces back to a specific finding. This table is also 
 | Some agents look safe only because they fail tasks | [WASP](https://www.researchgate.net/publication/391246714_WASP_Benchmarking_Web_Agent_Security_Against_Prompt_Injection_Attacks) | Report task success next to safety | Scorecard |
 | Networks will certify agent behavior; no standard yet | [Unite.AI](https://www.unite.ai/ant-international-visa-mastercard-align-on-ai-agent-verification-rules/), [Fintechly](https://fintechly.com/compliance/know-your-agent-is-the-compliance-standard-agentic-commerce-doesnt-have-yet/) | Issue verifiable certificates and a model scorecard | Trust layer |
 | AI coding assistants hallucinate SDK calls | [PayPal blog on APIMatic Context Plugin](https://developer.paypal.com/community/blog/A%20New%20Context%20Plugin%20for%20AI-Assisted%20Coding%20with%20PayPal%20SDKs) | Ground fix suggestions in current PayPal SDK context | Diagnosis agent |
-| Breakpoint tests only its own demo store | [Breakpoint README](https://github.com/arc585/breakpoint) | Bring-your-own-store with ownership verification | Web app, ownership check |
 
 ## Layered architecture
 
@@ -203,7 +202,7 @@ Six sponsor tools do real work in the product; two are optional stretch goals. E
 - **Where it sits:** the results console.
 - **Grids:** (1) runs across stores with pillar scores; (2) checks within a run with evidence links; (3) the model safety scorecard by model, scenario and trial.
 - **Features that show depth:** filtering by pillar or status, sorting, row drill-down into evidence, column pinning, CSV export for agencies.
-- **Why it matters:** an agency managing many stores needs to compare results; Breakpoint also uses AG Grid, so ours must show multi-store, multi-run data, not one demo's findings.
+- **Why it matters:** an agency managing many stores needs to compare results, so the grids show multi-store, multi-run data, not one demo's findings.
 
 **Channel3 (prize: $1,500)**
 
@@ -314,4 +313,3 @@ The hackathon requires a public repository with an open-source license, setup in
 - [Unite.AI: Know Your Agent](https://www.unite.ai/ant-international-visa-mastercard-align-on-ai-agent-verification-rules/) and [Fintechly](https://fintechly.com/compliance/know-your-agent-is-the-compliance-standard-agentic-commerce-doesnt-have-yet/)
 - [PayPal Q3 2026 slides recap](https://www.investing.com/news/company-news/paypal-q3-2026-slides-profit-beats-revenue-misses-expectations-93CH-4975781)
 - [Hookdeck: PayPal webhooks](https://hookdeck.com/webhooks/platforms/guide-to-paypal-webhooks-features-and-best-practices)
-- [Breakpoint README](https://github.com/arc585/breakpoint)

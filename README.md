@@ -160,21 +160,7 @@ and labelled by type. Checks without a line here are plain correctness or playbo
 - Not for non-technical store owners on their own: a developer adds the ownership token and, for the
   full Works and Secure checks, the small [store contract](docs/store-contract.md).
 
-## Prior art, and what's different
-
-| Project | What it does | Difference |
-| --- | --- | --- |
-| PayPal's own tools (sandbox, negative testing, webhook simulator) | Building blocks for testing an integration | We combine them into one evidence-backed certification, and use real signed events, not the simulator (simulator events can't be signature-verified) |
-| Breakpoint ([README](https://github.com/arc585/breakpoint)) | Security test bench for its own bundled vulnerable demo store | Tests **any** store its owner verifies, across correctness, playbook adoption, security and agent readiness |
-| Heistproof ([repo](https://github.com/eric2612115/heistproof)) | Robs a PayPal checkout with scripted and AI "thieves"; verdicts from reconciling the shop's books with PayPal records; tested real open-source shops | Close in spirit on the Works/Secure side. We add the Current and Agent-ready pillars, ownership verification before any test, A2 before/after, and signed, hash-logged certificates |
-| Unhappy Path ([repo](https://github.com/ShermaineYap/unhappy-path)) | Crash-tests a sandbox integration (declines, forged and duplicate webhooks, price tampering, refund sync) behind a small test contract | Very similar Works/Secure scope (they report 25/25 planted failures caught). We add playbook, agent-readiness and AI-shopper safety checks, and publish verifiable certificates |
-| Checkout Proof ([repo](https://github.com/guillermo-delrio/checkout-proof)) | Static scan, AI-assisted upgrade to SDK v6, then sandbox proofs on real open-source shops | They upgrade code; we certify it. Our real-world study is narrower (one third-party integration, PayPal's own example, fully certified once) |
-| ChosenOne (another hackathon entry, as its authors describe it) | Measures whether AI agents **choose** a store | We measure whether an agent can **finish buying** correctly, and whether it can be tricked, with PayPal's records as proof |
-| Shelf Ready ([repo](https://github.com/Eman2123/Shelf-Ready)) | Audits product data for agent readiness | Our A4 checks one narrow thing they don't: that the published machine-readable price equals what PayPal actually charged |
-| Safer AI-shopper projects (spending mandates, guarded agents) | Protect the **shopper's** agent | We certify the **merchant's store** and measure models' safety on it; complementary, not competing |
-| Web-agent research benchmarks (WASP, WebDecept, Magentic Marketplace) | Measure agents in research environments | We run the same kinds of traps on PayPal's rails and read the outcome from PayPal's records |
-
-### How a verdict is proven
+## How a verdict is proven
 
 Every piece of evidence carries a strength label, shown everywhere in the UI:
 
