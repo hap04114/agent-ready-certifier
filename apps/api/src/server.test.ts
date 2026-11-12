@@ -32,6 +32,10 @@ describe("pages", () => {
     const font = await app().inject({ method: "GET", url: "/assets/inter-var.woff2" });
     expect(font.statusCode).toBe(200);
     expect(font.headers["content-type"]).toBe("font/woff2");
+    expect((await app().inject({ method: "GET", url: "/assets/theme.js" })).statusCode).toBe(200);
+    const logo = await app().inject({ method: "GET", url: "/assets/logo.svg" });
+    expect(logo.statusCode).toBe(200);
+    expect(logo.headers["content-type"]).toBe("image/svg+xml");
   });
 
   it("keeps old console links working: /?demo=1 redirects to /console?demo=1", async () => {

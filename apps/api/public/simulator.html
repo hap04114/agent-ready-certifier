@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Agent-Ready Certifier — simulator</title>
   <link rel="stylesheet" href="/assets/styles.css">
+  <link rel="icon" href="/assets/logo.svg" type="image/svg+xml">
+  <script src="/assets/theme.js"></script>
   <style>
     @font-face { font-family: "InterVar"; src: url("/assets/inter-var.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
     body { font-family: "InterVar", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; background: #f3f5fa; -webkit-font-smoothing: antialiased; overflow-x: clip; }
@@ -145,6 +147,61 @@
     [role="tabpanel"]:not([hidden]) > * { animation: rise .6s cubic-bezier(.2,.7,.2,1) both .3s; }
     [role="tabpanel"]:not([hidden]) > *:nth-child(2) { animation-delay: .38s; } [role="tabpanel"]:not([hidden]) > *:nth-child(3) { animation-delay: .46s; }
     ol.guide li { animation: rise .6s cubic-bezier(.2,.7,.2,1) both .3s; } ol.guide li:nth-child(2) { animation-delay: .4s; } ol.guide li:nth-child(3) { animation-delay: .5s; }
+    /* >>> theme >>> */
+
+    /* ---- theme switch (shared) ---- */
+    ::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+    .theme-btn { position: relative; width: 38px; height: 38px; flex: none; border-radius: 11px; border: 1px solid var(--tb-line, #e6e9f0); background: var(--tb-bg, #fff); color: var(--tb-ink, #0b1220); cursor: pointer; display: grid; place-items: center; transition: transform .2s, border-color .2s; }
+    .theme-btn:hover { transform: translateY(-1px); border-color: var(--tb-hover, #cbd5e1); }
+    .theme-btn:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+    .theme-btn svg { position: absolute; width: 18px; height: 18px; transition: transform .5s cubic-bezier(.3,1.4,.5,1), opacity .3s; }
+    .theme-btn .sun { opacity: 0; transform: rotate(-90deg) scale(.4); }
+    .theme-btn .moon { opacity: 1; transform: none; }
+    html[data-theme="dark"] .theme-btn { --tb-line: rgba(255,255,255,.16); --tb-bg: rgba(255,255,255,.05); --tb-ink: #f8fafc; --tb-hover: rgba(255,255,255,.3); }
+    html[data-theme="dark"] .theme-btn .sun { opacity: 1; transform: none; }
+    html[data-theme="dark"] .theme-btn .moon { opacity: 0; transform: rotate(90deg) scale(.4); }
+    .logo-img { width: 32px; height: 32px; display: block; filter: drop-shadow(0 4px 10px rgba(37,99,235,.35)); }
+    .btn.primary { background: linear-gradient(135deg, #2563eb, #1d4ed8 60%, #4f46e5); border-color: transparent; }
+    /* ==== dark theme ==== */
+    html[data-theme="dark"] { --bg: #070b14; --panel: #0f1626; --ink: #e6ebf5; --muted: #98a3b8; --line: rgba(255,255,255,.1); }
+    html[data-theme="dark"] body { background: #070b14; color: #e6ebf5; }
+    html[data-theme="dark"] a { color: #93c5fd; }
+    html[data-theme="dark"] .snav { background: rgba(5,7,13,.9); border-bottom-color: rgba(255,255,255,.08); }
+    html[data-theme="dark"] .snav .logo { color: #fff; } html[data-theme="dark"] .snav a.l { color: #aab4c5; } html[data-theme="dark"] .snav a.l:hover, html[data-theme="dark"] .snav a.l.on { color: #fff; }
+    html[data-theme="dark"] .shero { color: #fff; border-bottom-color: rgba(255,255,255,.08); background: radial-gradient(700px 340px at 88% -10%, #1d4ed855, transparent 62%), radial-gradient(560px 300px at 2% 110%, #6d28d944, transparent 62%), #05070d; }
+    html[data-theme="dark"] .shero .eb { color: #5eead4; }
+    html[data-theme="dark"] .shero h1 span { background: linear-gradient(100deg, #93c5fd, #5eead4 45%, #c4b5fd); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    html[data-theme="dark"] .shero p { color: #aab4c5; } html[data-theme="dark"] .shero p b { color: #fff; }
+    html[data-theme="dark"] .tabs { background: #0f1626; border-color: rgba(255,255,255,.1); }
+    html[data-theme="dark"] .tabs button { color: #cbd5e1; } html[data-theme="dark"] .tabs button:hover { background: rgba(255,255,255,.06); }
+    html[data-theme="dark"] .tabs button[aria-selected="true"] { background: #f8fafc; color: #0b1220; }
+    html[data-theme="dark"] ol.guide li { background: #0f1626; border-color: rgba(255,255,255,.09); color: #cbd5e1; } html[data-theme="dark"] ol.guide strong { color: #fff; }
+    html[data-theme="dark"] .card { background: #0f1626; border-color: rgba(255,255,255,.09); box-shadow: none; }
+    html[data-theme="dark"] .diagram { background: #fff; border-radius: 12px; padding: 10px; }
+    html[data-theme="dark"] .toggle:hover { background: rgba(255,255,255,.04); }
+    html[data-theme="dark"] .toggle input { background: #334155; } html[data-theme="dark"] .toggle input:checked { background: #dc2626; }
+    html[data-theme="dark"] .toggle:has(input:checked) { background: rgba(220,38,38,.12); } html[data-theme="dark"] .toggle:has(input:checked) .n { color: #fca5a5; }
+    html[data-theme="dark"] .toggle .c { color: #93c5fd; }
+    html[data-theme="dark"] .ck { background: #111a2c; border-color: rgba(255,255,255,.08); color: #e6ebf5; }
+    html[data-theme="dark"] .ck.pass { border-left-color: #22c55e; } html[data-theme="dark"] .ck.inconclusive { border-left-color: #f59e0b; }
+    html[data-theme="dark"] .ck.fail { background: rgba(220,38,38,.12); border-color: rgba(248,113,113,.35); border-left-color: #ef4444; }
+    html[data-theme="dark"] .scorebar { background: rgba(255,255,255,.08); }
+    html[data-theme="dark"] p.where { background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.08); }
+    html[data-theme="dark"] p.now { background: rgba(37,99,235,.14); border-color: rgba(96,165,250,.3); }
+    html[data-theme="dark"] .impact { background: rgba(220,38,38,.14); color: #fecaca; }
+    html[data-theme="dark"] select { background: #0f1626; color: #e6ebf5; border-color: rgba(255,255,255,.14); }
+    html[data-theme="dark"] .scen { background: rgba(255,255,255,.05); }
+    html[data-theme="dark"] .stat { background: #111a2c; border-color: rgba(255,255,255,.08); }
+    html[data-theme="dark"] .seg { border-color: rgba(255,255,255,.12); } html[data-theme="dark"] .seg button { background: transparent; color: #cbd5e1; }
+    html[data-theme="dark"] .seg button[aria-pressed="true"] { background: #f8fafc; color: #0b1220; } html[data-theme="dark"] .seg button:disabled { color: #475569; }
+    html[data-theme="dark"] .steps li { background: #111a2c; border-color: rgba(255,255,255,.08); }
+    html[data-theme="dark"] .steps li::before { background: #2563eb; } html[data-theme="dark"] .steps li::after { background: rgba(255,255,255,.1); }
+    html[data-theme="dark"] .steps .th { color: #cbd5e1; } html[data-theme="dark"] .steps .rs { color: #98a3b8; }
+    html[data-theme="dark"] .verdict.pass { background: rgba(16,185,129,.14); } html[data-theme="dark"] .verdict.fail { background: rgba(220,38,38,.14); }
+    html[data-theme="dark"] button.btn { background: rgba(255,255,255,.05); color: #e6ebf5; border-color: rgba(255,255,255,.14); }
+    html[data-theme="dark"] button.btn.primary { background: linear-gradient(135deg, #2563eb, #1d4ed8 60%, #4f46e5); color: #fff; }
+    /* <<< theme <<< */
+
     @media (prefers-reduced-motion: reduce) {
       /* biome-ignore lint/complexity/noImportantStyles: the reduced-motion override has to beat every animation rule */
       *, *::before, *::after { animation: none !important; transition: none !important; }
@@ -154,11 +211,15 @@
 <body>
   <header class="snav">
     <div class="in">
-      <a class="logo" href="/"><span class="mark"></span>Agent-Ready Certifier</a>
+      <a class="logo" href="/"><img class="logo-img" src="/assets/logo.svg" alt="" width="32" height="32">Agent-Ready Certifier</a>
       <a class="l hide-sm" href="/">Home</a>
       <a class="l hide-sm" href="/how-it-works">How it works</a>
       <a class="l on" href="/simulator">Simulator</a>
       <a class="l hide-sm" href="/console">Console</a>
+      <button class="theme-btn" type="button" data-theme-toggle aria-label="Switch to dark mode">
+        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4"/></svg>
+        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.6A8.2 8.2 0 0 1 9.4 4a8.2 8.2 0 1 0 10.6 10.6z"/></svg>
+      </button>
     </div>
   </header>
   <section class="shero">

@@ -49,6 +49,8 @@ const ASSETS: Record<string, string> = {
   "simulator.js": "application/javascript; charset=utf-8",
   "landing.js": "application/javascript; charset=utf-8",
   "how.js": "application/javascript; charset=utf-8",
+  "theme.js": "application/javascript; charset=utf-8",
+  "logo.svg": "image/svg+xml",
   // Inter variable font (SIL OFL 1.1), copied by build:vendor.
   "inter-var.woff2": "font/woff2",
   "inter-LICENSE.txt": "text/plain; charset=utf-8",
