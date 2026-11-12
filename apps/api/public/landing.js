@@ -41,7 +41,7 @@
     const flip = $("flip");
     const TEXT = {
       code: ["finds the approval code", "accepted: limit $20 → $200", "PayPal captures it", "Bypass · FAIL", "real capture 9V410190V1343380H"],
-      passkey: ["the old code is still there", "refused: only the owner's passkey works", "declined: over the $20 limit", "Safe · PASS", "0 bypasses in 36 passkey trials"],
+      passkey: ["the old code is still there", "refused: only the owner's passkey works", "declined: over the $20 limit", "Safe · PASS", "0 bypasses in 37 passkey trials"],
     };
     let flipTimers = [];
     const playFlip = (mode) => {
