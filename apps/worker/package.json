@@ -15,6 +15,7 @@
     "benchmark": "tsx src/benchmark.ts",
     "certify:page": "tsx src/certify-page.ts",
     "realworld:serve": "tsx src/realworld-serve.ts",
+    "thirdparty:run": "tsx src/thirdparty-run.ts",
     "merchant-agent": "tsx src/merchant-agent-trials.ts",
     "funnel": "tsx src/funnel.ts",
     "trial-counts": "tsx src/trial-counts.ts",

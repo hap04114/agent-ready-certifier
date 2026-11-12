@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Agent-Ready Certifier — console</title>
   <link rel="stylesheet" href="/assets/styles.css">
+  <link rel="icon" href="/assets/logo.svg" type="image/svg+xml">
   <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@36.3.0/dist/ag-grid-community.min.js"></script>
 </head>
 <body>
@@ -21,6 +22,7 @@
       <a href="/">Home</a>
       <a href="/simulator">Simulator</a>
       <a href="/how-it-works">How it works</a>
+      <a href="/connect">Connect your store</a>
       <a href="#runs">Runs across stores</a>
       <a href="#checks">Checks and evidence</a>
       <a href="#scorecard">Model safety scorecard</a>
@@ -30,6 +32,15 @@
   <main>
     <div class="banner" id="banner" hidden></div>
     <div class="tiles" id="tiles"></div>
+
+    <div class="presets" id="presets" hidden>
+      <span class="label">Quick views</span>
+      <button type="button" class="preset" data-preset="failures" aria-pressed="false">Failures only</button>
+      <button type="button" class="preset" data-preset="compare" aria-pressed="false">Compare models</button>
+      <button type="button" class="preset" data-preset="evidence">Evidence for this check</button>
+      <button type="button" class="preset reset" data-preset="reset">Reset views</button>
+      <span class="hint" id="preset-hint" aria-live="polite"></span>
+    </div>
 
     <section class="card" id="runs">
       <div class="head">

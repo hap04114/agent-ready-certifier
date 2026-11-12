@@ -38,6 +38,25 @@ describe("pages", () => {
     expect(logo.headers["content-type"]).toBe("image/svg+xml");
   });
 
+  it("serves the Connect-your-store page with snippets that match the store contract", async () => {
+    const res = await app().inject({ method: "GET", url: "/connect" });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["content-security-policy"]).toContain("default-src 'self'");
+    expect(res.body).toContain('name="agent-ready-certifier"');
+    expect(res.body).toContain("/.well-known/certifier/ownership.txt");
+    expect(res.body).toContain("/.well-known/certifier/orders/");
+    expect(res.body).toContain("/.well-known/certifier/test-hook");
+    expect(res.body).toContain("/webhooks/paypal");
+    expect(res.body).not.toMatch(/<script>(?!<\/script>)/);
+    expect((await app().inject({ method: "GET", url: "/assets/connect.js" })).statusCode).toBe(200);
+  });
+
+  it("exposes the console preset feature switch: on by default, FEATURE_CONSOLE_PRESETS=off hides it", async () => {
+    expect((await app().inject({ method: "GET", url: "/api/features" })).json()).toEqual({ consolePresets: true });
+    const off = buildApi(parseConfig({ ...base, FEATURE_CONSOLE_PRESETS: "off" }), { logger: false });
+    expect((await off.inject({ method: "GET", url: "/api/features" })).json()).toEqual({ consolePresets: false });
+  });
+
   it("keeps old console links working: /?demo=1 redirects to /console?demo=1", async () => {
     const res = await app().inject({ method: "GET", url: "/?demo=1" });
     expect(res.statusCode).toBe(302);

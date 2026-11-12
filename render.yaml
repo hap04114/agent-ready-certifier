@@ -143,3 +143,30 @@ services:
         sync: false
       - key: DEMO_STORE_BUGGY_OWNERSHIP_TOKEN
         sync: false
+
+  # Third-party target: PayPal's own public example integration (standard-integration, Node), its
+  # server run UNCHANGED behind a thin store-contract adapter (thirdparty/paypal-standard-integration).
+  # Separate service, own throwaway sandbox app, no database: it cannot affect the certifier or the
+  # demo stores. Outside the pnpm workspace; npm installs only the example's own dependencies.
+  - type: web
+    name: paypal-example-store
+    runtime: node
+    plan: free
+    rootDir: thirdparty/paypal-standard-integration
+    buildCommand: npm install --prefix example/server --omit=dev --ignore-scripts --no-audit --no-fund
+    startCommand: node adapter.mjs
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: PAYPAL_ENV
+        value: sandbox
+      - key: REALWORLD_PAYPAL_CLIENT_ID
+        sync: false
+      - key: REALWORLD_PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: EXAMPLE_STORE_STATUS_KEY
+        sync: false
+      # Public ownership token the store serves
+      - key: EXAMPLE_STORE_OWNERSHIP_TOKEN
+        sync: false

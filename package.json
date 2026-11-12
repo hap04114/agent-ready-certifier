@@ -36,6 +36,7 @@
     "cert:issue": "pnpm --filter @certifier/api cert:issue",
     "certify:page": "pnpm --filter @certifier/worker certify:page",
     "realworld:serve": "pnpm --filter @certifier/worker realworld:serve",
+    "thirdparty:run": "pnpm --filter @certifier/worker thirdparty:run",
     "merchant-agent": "pnpm --filter @certifier/worker merchant-agent",
     "funnel": "pnpm --filter @certifier/worker funnel",
     "passkey:invite": "pnpm --filter @certifier/api passkey:invite",

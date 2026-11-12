@@ -48,6 +48,11 @@ const SERVICES: Record<string, { name: string; keys: string[] }> = {
       "DEMO_STORE_BUGGY_OWNERSHIP_TOKEN",
     ],
   },
+  // PayPal's own example integration (thirdparty/paypal-standard-integration), its throwaway app.
+  "paypal-example-store": {
+    name: "paypal-example-store",
+    keys: ["REALWORLD_PAYPAL_CLIENT_ID", "REALWORLD_PAYPAL_CLIENT_SECRET", "EXAMPLE_STORE_STATUS_KEY", "EXAMPLE_STORE_OWNERSHIP_TOKEN"],
+  },
 };
 
 const env = parse(readFileSync(join(findRepoRoot()!, ".env")));

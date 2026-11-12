@@ -27,6 +27,8 @@ export const SENSITIVE_KEYS = [
   "DEMO_STORE_BUGGY_WEBHOOK_ID",
   "DEMO_STORE_BUGGY_CERTIFIER_WEBHOOK_ID",
   "DEMO_STORE_BUGGY_STATUS_KEY",
+  "EXAMPLE_STORE_STATUS_KEY",
+  "EXAMPLE_STORE_CERTIFIER_WEBHOOK_ID",
   "PAYPAL_LOOKALIKE_CLIENT_ID",
   "PAYPAL_LOOKALIKE_CLIENT_SECRET",
   "DATABASE_URL",
@@ -111,6 +113,14 @@ export const envSchema = z.object({
   DEMO_STORE_BUGGY_STATUS_KEY: optionalString,
   DEMO_STORE_BUGGY_OWNERSHIP_TOKEN: optionalString,
 
+  // Third-party store: PayPal's own example integration run unchanged behind a thin adapter
+  // (thirdparty/paypal-standard-integration), on the REALWORLD_PAYPAL_* throwaway app.
+  EXAMPLE_STORE_URL: urlWithDefault("https://paypal-example-store.onrender.com"),
+  EXAMPLE_STORE_STATUS_KEY: optionalString,
+  EXAMPLE_STORE_OWNERSHIP_TOKEN: optionalString,
+  /** ID of the certifier listener's webhook on the throwaway app (store contract item 2). */
+  EXAMPLE_STORE_CERTIFIER_WEBHOOK_ID: optionalString,
+
   // Lookalike merchant (Milestone 6)
   PAYPAL_LOOKALIKE_CLIENT_ID: optionalString,
   PAYPAL_LOOKALIKE_CLIENT_SECRET: optionalString,
@@ -127,6 +137,8 @@ export const envSchema = z.object({
   LLM_FALLBACK_MODELS: optionalString,
   /** Feature switch: "off" hides the Bryntum run timeline in reports (default on). */
   FEATURE_RUN_TIMELINE: optionalString,
+  /** Feature switch: "off" hides the one-click preset views in the AG Grid console (default on). */
+  FEATURE_CONSOLE_PRESETS: optionalString,
   /** Feature switch for the demo stores: "placeholder" replaces the Channel3 product snapshot. */
   DEMO_CATALOG: optionalString,
   /** Throwaway sandbox app for the real-world study (open-source shops we did not write). */

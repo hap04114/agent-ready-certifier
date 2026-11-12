@@ -1,0 +1,12 @@
+{
+  "name": "paypal-example-store",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PayPal's standard-integration example, run unchanged behind a thin store-contract adapter (Agent-Ready Certifier). Not part of the pnpm workspace.",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "build": "npm install --prefix example/server --omit=dev --ignore-scripts --no-audit --no-fund",
+    "start": "node adapter.mjs"
+  }
+}

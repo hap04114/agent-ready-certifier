@@ -40,6 +40,9 @@ text = setVar(text, "DEMO_STORE_GOOD_STATUS_KEY", deriveStatusKey(config.OWNERSH
 text = setVar(text, "DEMO_STORE_GOOD_OWNERSHIP_TOKEN", deriveOwnershipToken(config.OWNERSHIP_TOKEN_SECRET!, config.DEMO_STORE_GOOD_URL));
 text = setVar(text, "DEMO_STORE_BUGGY_STATUS_KEY", deriveStatusKey(config.OWNERSHIP_TOKEN_SECRET!, config.DEMO_STORE_BUGGY_URL));
 text = setVar(text, "DEMO_STORE_BUGGY_OWNERSHIP_TOKEN", deriveOwnershipToken(config.OWNERSHIP_TOKEN_SECRET!, config.DEMO_STORE_BUGGY_URL));
+text = setVar(text, "EXAMPLE_STORE_STATUS_KEY", deriveStatusKey(config.OWNERSHIP_TOKEN_SECRET!, config.EXAMPLE_STORE_URL));
+text = setVar(text, "EXAMPLE_STORE_OWNERSHIP_TOKEN", deriveOwnershipToken(config.OWNERSHIP_TOKEN_SECRET!, config.EXAMPLE_STORE_URL));
 writeFileSync(envPath, text);
 console.log(`store:keys: wrote DEMO_STORE_GOOD_STATUS_KEY and DEMO_STORE_GOOD_OWNERSHIP_TOKEN for ${new URL(config.DEMO_STORE_GOOD_URL).origin}`);
 console.log(`store:keys: wrote DEMO_STORE_BUGGY_STATUS_KEY and DEMO_STORE_BUGGY_OWNERSHIP_TOKEN for ${new URL(config.DEMO_STORE_BUGGY_URL).origin}`);
+console.log(`store:keys: wrote EXAMPLE_STORE_STATUS_KEY and EXAMPLE_STORE_OWNERSHIP_TOKEN for ${new URL(config.EXAMPLE_STORE_URL).origin}`);

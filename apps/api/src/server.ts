@@ -51,6 +51,7 @@ const ASSETS: Record<string, string> = {
   "how.js": "application/javascript; charset=utf-8",
   "theme.js": "application/javascript; charset=utf-8",
   "logo.svg": "image/svg+xml",
+  "connect.js": "application/javascript; charset=utf-8",
   // Inter variable font (SIL OFL 1.1), copied by build:vendor.
   "inter-var.woff2": "font/woff2",
   "inter-LICENSE.txt": "text/plain; charset=utf-8",
@@ -129,6 +130,9 @@ export function buildApi(config: Config, deps: ApiDeps = {}) {
   app.get("/how-it-works", async (_req, reply) => reply.headers(PAGE_HEADERS).type("text/html; charset=utf-8").send(readPublic("how-it-works.html")));
   app.get("/run", async (_req, reply) => reply.headers(PAGE_HEADERS).type("text/html; charset=utf-8").send(readPublic("run.html")));
   app.get("/owner", async (_req, reply) => reply.headers(PAGE_HEADERS).type("text/html; charset=utf-8").send(readPublic("owner.html")));
+  app.get("/connect", async (_req, reply) => reply.headers(PAGE_HEADERS).type("text/html; charset=utf-8").send(readPublic("connect.html")));
+  // Feature switches the static pages need to know about (public, no secrets).
+  app.get("/api/features", async () => ({ consolePresets: config.FEATURE_CONSOLE_PRESETS !== "off" }));
   app.get("/assets/:file", async (req, reply) => {
     const file = (req.params as { file: string }).file;
     const type = ASSETS[file];
