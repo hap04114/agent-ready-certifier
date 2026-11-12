@@ -184,6 +184,17 @@
     .card .ck { margin-top: 8px; font-size: 12.5px; font-weight: 650; color: var(--blue); }
     html[data-theme="dark"] .card .ck { color: #93c5fd; }
 
+    /* also built with */
+    .also { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    @media (max-width: 900px) { .also { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 560px) { .also { grid-template-columns: 1fr; } }
+    .grp { border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; background: var(--card); }
+    .grp h4 { margin: 0 0 8px; font-size: 12.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
+    .grp ul { margin: 0; padding: 0; list-style: none; }
+    .grp li { font-size: 14px; color: var(--muted); padding: 7px 0; border-top: 1px solid var(--line); }
+    .grp li:first-child { border-top: 0; padding-top: 2px; }
+    .grp b { color: var(--ink); font-weight: 650; }
+
     /* results band */
     .band { border-radius: 22px; padding: 34px; color: #fff; background: radial-gradient(600px 300px at 90% 0%, #1d4ed866, transparent 60%), radial-gradient(500px 260px at 0% 100%, #0d948855, transparent 60%), #0b1220; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 20px; }
     @media (max-width: 980px) { .band { grid-template-columns: 1fr 1fr; } }
@@ -244,6 +255,7 @@
         <a class="chip" href="#kernel" style="--c:#db2777"><i></i>Kernel <small>cloud browsers</small></a>
         <a class="chip" href="#postman" style="--c:#ea580c"><i></i>Postman <small>API checks</small></a>
         <a class="chip" href="#paypal" style="--c:#1d4ed8"><i></i>PayPal <small>the platform</small></a>
+        <a class="chip" href="#also" style="--c:#64748b"><i></i>Also built with <small>AI models, open source</small></a>
       </nav>
     </section>
 
@@ -423,6 +435,65 @@
         <div class="card"><h4>Vault v3</h4><p>A saved sandbox PayPal wallet, so AI-shopper trials make real captures.</p><div class="ck">R1 · A2</div></div>
         <div class="card"><h4>JavaScript SDK</h4><p>Buttons, Pay Later messaging and Venmo, checked on any store's page.</p><div class="ck">C1 · C2 · C3 · C5</div></div>
         <div class="card"><h4>Agent Toolkit 1.11.0</h4><p>The store's own AI support agent (<code>get_order</code>, <code>create_refund</code>, <code>get_refund</code>): gpt-oss-120b made 0 of 6 wrong refunds and 6 of 6 genuine ones.</p><div class="ck">A6 · R2</div></div>
+      </div>
+    </section>
+
+    <section class="block wrap reveal" id="also" aria-labelledby="also-h">
+      <div class="head">
+        <div class="eb">Also built with</div>
+        <h2 id="also-h">Everything else we used, in one line each.</h2>
+        <p>Not hackathon sponsors, but part of how the certifier works. Open source unless noted.</p>
+      </div>
+      <div class="also">
+        <div class="grp">
+          <h4>AI models</h4>
+          <ul>
+            <li><b>Groq</b> (gpt-oss-120b, gpt-oss-20b, Qwen3.8-27B): drives the AI buyer, the AI-shopper scorecard, the diagnosis agent and the store's AI agent.</li>
+            <li><b>Google Gemini</b> (3.6 Flash): a second provider in the AI-shopper scorecard.</li>
+            <li><b>llama.cpp</b> with Qwen3-8B (normal and refusals removed): the worst-case agent test, on this machine only.</li>
+          </ul>
+        </div>
+        <div class="grp">
+          <h4>Agents and browsers</h4>
+          <ul>
+            <li><b>Model Context Protocol SDK</b>: the client that connects the diagnosis agent to ContextMatic.</li>
+            <li><b>Playwright</b> (playwright-core): drives Kernel's cloud browsers over CDP, and a local Edge for page-only checks.</li>
+          </ul>
+        </div>
+        <div class="grp">
+          <h4>Trust layer</h4>
+          <ul>
+            <li><b>Ed25519</b> (Node.js crypto): signs every certificate as a JWS; public key at <code>/.well-known/certifier/jwks.json</code>.</li>
+            <li><b>OpenTimestamps</b>: public timestamps of the hash-log entries (only the hash leaves our server).</li>
+            <li><b>SimpleWebAuthn</b> (server and browser): passkey owner approvals for AI shoppers.</li>
+          </ul>
+        </div>
+        <div class="grp">
+          <h4>Backend and data</h4>
+          <ul>
+            <li><b>Node.js 22</b>, <b>TypeScript</b> and <b>pnpm</b> workspaces: the whole monorepo.</li>
+            <li><b>Fastify</b>: the Run API, webhook listener and pages.</li>
+            <li><b>PostgreSQL</b> (node-postgres): runs, verdicts, evidence, trials, certificates; <b>PGlite</b> runs it in-process for tests.</li>
+            <li><b>Zod</b>: validates every AI output and API input.</li>
+          </ul>
+        </div>
+        <div class="grp">
+          <h4>Quality and safety</h4>
+          <ul>
+            <li><b>Vitest</b>: 308 tests; <b>Biome</b>: lint.</li>
+            <li><b>gitleaks</b>: secret scan of the full history, also as a pre-push hook.</li>
+            <li><b>GitHub Actions</b>: CI on every push, and a job that keeps the demo awake.</li>
+            <li><b>selfsigned</b>: test certificates for the webhook-signature tests.</li>
+          </ul>
+        </div>
+        <div class="grp">
+          <h4>Pages and docs</h4>
+          <ul>
+            <li><b>esbuild</b>: bundles the browser libraries we serve ourselves (no third-party scripts at runtime besides AG Grid's CDN).</li>
+            <li><b>Inter</b> (variable font, SIL OFL): self-hosted typography.</li>
+            <li><b>Microsoft Edge</b> (headless): prints the explainer and summary PDFs.</li>
+          </ul>
+        </div>
       </div>
     </section>
 
